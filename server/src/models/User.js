@@ -32,6 +32,11 @@ const userSchema = new mongoose.Schema({
     default: true,
     required: true
   },
+  mustChangePassword: {
+    type: Boolean,
+    default: false,
+    required: true
+  },
   tokenVersion: {
     type: Number,
     default: 0,
@@ -84,7 +89,8 @@ userSchema.methods.toPublicJSON = function toPublicJSON() {
     email: this.email,
     role: this.role,
     employeeId: this.employeeId ? this.employeeId.toString() : null,
-    isActive: this.isActive
+    isActive: this.isActive,
+    mustChangePassword: this.mustChangePassword
   };
 };
 
