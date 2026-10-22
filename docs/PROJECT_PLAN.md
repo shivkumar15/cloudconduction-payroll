@@ -259,15 +259,12 @@ Expected: frontend `http://localhost:5173`; health endpoint `http://localhost:50
 - Final resume bullet points should be written only after the corresponding features and tests are complete. Do not claim production payroll or real payment processing.
 
 ## Immediate next task
-1. Pull latest `main` (`git pull origin main`) so local files include Phase 3 employee model/API/UI.
-2. Run `npm install --prefix server`, `npm test`, and `npm run build`; if anything fails, share errors only, not secret values.
-3. With MongoDB running and an admin account already seeded, test create/search/filter/pagination/edit/deactivate/reactivate under `/admin/employees`.
-4. Verify duplicate employee code/work email is rejected and the linked employee can log in. Check that the employee profile is fetched from `/api/employees/me`.
-5. Test the authorization boundary by trying to access another employee's object ID as a logged-in employee; the API should return 403. Do not share passwords or other secrets.
-6. After these database-backed checks pass, update the handoff file with actual outputs and begin Phase 4 payroll calculation rules.
-7. With MongoDB running, log in as admin and test `/admin/employees`: create synthetic employee, search/filter/page, edit, deactivate and reactivate. Confirm a duplicate employee code/email is rejected and the linked employee login works.
-8. Log in as the employee and verify `/employee` shows only their own profile. Attempt a direct request for another employee's ID and confirm the API returns 403. Test these DB-backed cases before marking Phase 3 fully verified.
-9. If all Phase 3 checks pass, update this file with the actual outputs and move to Phase 4 payroll logic.
+1. Pull latest `main` (`git pull origin main`) so the local clone contains the Phase 3 model, API, and UI.
+2. Run `npm install --prefix server`, `npm test`, and `npm run build`. Share error output only if a command fails; never share secrets.
+3. With MongoDB running and an admin account seeded, open `/admin/employees`. Create a synthetic employee, then test search, department/status filters, pagination, edit, deactivate, and reactivate.
+4. Verify duplicate employee code and work email are rejected and the linked employee account can log in. The admin-provided initial password is never stored in plaintext.
+5. Log in as that employee and verify `/employee` shows their own profile. Try reading a different employee's ID as that employee and confirm the API responds with 403.
+6. After these database-backed checks and the newest GitHub Actions run pass, update the recorded results and begin Phase 4 payroll calculation rules.
 
 ## Future-session resume instructions
 Paste/upload this file and say:
