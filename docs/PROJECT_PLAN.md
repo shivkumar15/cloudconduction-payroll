@@ -192,7 +192,8 @@ Apply role/ownership rules to all endpoints. Enforce all state transitions and m
 - Acceptance: no misleading data, failure handling, server authorization.
 ### Phase 7 — quality and release
 - [ ] Unit and API integration suite.
-- [x] Bounded concurrency smoke-test script (default 25 concurrent workers / 250 health requests); execute and record actual metrics before claiming a capacity number.
+- [x] Bounded concurrency smoke-test script (default 25 concurrent workers / 250 health requests).
+- [x] User ran local health-endpoint smoke test: target `http://127.0.0.1:5001/api/health`; 250 requests; concurrency 25; 250 succeeded; 0 failed/non-2xx; elapsed 212 ms; measured throughput 1,177.3 requests/second; p50 11.7 ms, p95 46.7 ms, p99 60.1 ms.
 - [ ] Add authenticated API performance test with synthetic employees/payroll after those features exist.
 - [ ] Client production build/lint.
 - [ ] Security regression checklist.
@@ -229,6 +230,29 @@ Expected: frontend `http://localhost:5173`; health endpoint `http://localhost:50
 - SMTP service uses env-based Nodemailer configuration. Actual SMTP credentials/delivery are not configured or verified yet; reset email cannot work until provider settings are set.
 - MongoDB pool configured with max 20/min 2 sockets per server process. Added bounded health-endpoint smoke test, defaults 25 concurrent workers and 250 requests; no load run/actual capacity is claimed yet. Future employee endpoints must be paginated; production multi-instance rate limiting needs a shared store.
 - Added tests for OTP helper and reset validation. The latest CI for these new commits is still pending; verify via Actions before claiming the newest changes pass.
+
+
+## Resume alignment (based on the uploaded one-page resume, reviewed 2026-10-22)
+
+### Evidence from the current resume
+- B.Tech CSE (AI & ML), CGPA 7.8/10 through 4th semester.
+- Current stated target: Data Analyst or Python Developer; the user's broader project discussions also include ML Engineer goals.
+- Skills listed: Python, SQL, JavaScript, C/C++; Pandas, NumPy, EDA, visualization, Matplotlib, Streamlit; React, HTML, CSS, Flask, Tailwind, REST APIs; Git/GitHub, MongoDB, Jupyter, VS Code, Postman, Vercel and Render.
+- Projects already listed: ByteBazaar MERN e-commerce, Indian Startup Intelligence Dashboard (3,000–4,000 records; cleaning/date processing/charts), Moody Player mood-based recommender, Banking Management System.
+- Experience includes full-stack internship (Androwebstech) and ML internship at NIELIT, with data preprocessing and content-based movie recommendations. Resume also lists winning Ideathon 2025 (1st of 42 teams).
+
+### What CloudConduction Payroll should prove
+- Do not make it just another MERN CRUD app; emphasize business rules, financial correctness, authorization boundaries, idempotency, auditability, test coverage, and measured performance.
+- Complete realistic employee + payroll workflows with synthetic data, strict role/owner access and paginated APIs.
+- Analytics should use actual persisted records: monthly payroll totals, deductions, departments, and trends; add date/period filters, empty/loading/error states, and downloadable CSV reports. This ties the full-stack project to the user's data-analysis/dashboard experience.
+- Add integration tests for auth/permissions and payroll invariants, CI, and a repeatable load-testing report against database-backed endpoints (not just health).
+- Only add a Python analytics/forecasting component if it brings a useful, demonstrable capability after core payroll correctness is completed; do not add AI/ML for decoration.
+- Measure and report observed benchmark scope, environment, concurrency, error rate and latency; never claim an unsupported number of real users.
+
+### Resume positioning recommendation
+- For full-stack roles, position the project around MERN, secure cookie sessions/OTP reset, RBAC, payroll calculation integrity, idempotent simulated transactions, analytics dashboards, test automation and CI.
+- For Data Analyst/Python roles, highlight validated data aggregation, payroll trend reporting, CSV export and analytical visualizations; keep the core data logic demonstrable and use Python only when justified.
+- Final resume bullet points should be written only after the corresponding features and tests are complete. Do not claim production payroll or real payment processing.
 
 ## Immediate next task
 1. Pull latest `main` (`git pull origin main`) so local files include the password toggle, password-reset page/API, and load smoke test.
