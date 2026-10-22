@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { AuthProvider, useAuth } from "./contexts/AuthContext.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import LoginPage from "./pages/auth/LoginPage.jsx";
+import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage.jsx";
 import AdminDashboard from "./pages/admin/AdminDashboard.jsx";
 import EmployeeDashboard from "./pages/employee/EmployeeDashboard.jsx";
 import UnauthorizedPage from "./pages/UnauthorizedPage.jsx";
@@ -25,6 +26,7 @@ function AppRoutes() {
     <Routes>
       <Route path="/" element={<HomeRedirect />} />
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
       <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
