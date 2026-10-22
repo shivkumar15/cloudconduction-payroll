@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { app } from "../src/app.js";
+import { changePasswordSchema } from "../src/validators/authSchemas.js";
 
 async function withServer(t) {
   const server = app.listen(0);
@@ -60,4 +61,47 @@ test("unsafe requests reject an untrusted origin", async (t) => {
 
   assert.equal(response.status, 403);
   assert.equal(body.message, "Request origin not allowed");
+});
+
+
+test("change-password schema enforces current password, a 12-character new password, and strict fields", () => {
+  assert.equal(changePasswordSchema.safeParse({
+    currentPassword: "initial-temporary-password",
+    newPassword: "a-different-strong-password"
+  }).success, true);
+
+  assert.equal(changePasswordSchema.safeParse({
+    currentPassword: "",
+    newPassword: "a-different-strong-password"
+  }).success, false);
+
+  assert.equal(changePasswordSchema.safeParse({
+    currentPassword: "initial-temporary-password",
+    newPassword: "short"
+  }).success, false);
+
+  assert.equal(changePasswordSchema.safeParse({
+    currentPassword: "initial-temporary-password",
+    newPassword: "a-different-strong-password",
+    role: "admin"
+  }).success, false);
+});
+
+test("change-password route requires an authenticated session", async (t) => {
+  const baseUrl = await withServer(t);
+  const response = await fetch(`${baseUrl}/api/auth/change-password`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Origin": "http://localhost:5173"
+    },
+    body: JSON.stringify({
+      currentPassword: "initial-temporary-password",
+      newPassword: "a-different-strong-password"
+    })
+  });
+  const body = await response.json();
+
+  assert.equal(response.status, 401);
+  assert.equal(body.success, false);
 });
