@@ -36,9 +36,9 @@ See [`docs/PROJECT_PLAN.md`](docs/PROJECT_PLAN.md) for the full roadmap, securit
 
 ## Current capabilities
 - Foundation: React/Vite/Tailwind dashboard and Express/Mongoose API health endpoint.
-- Authentication API foundation: login, logout, current-user lookup, password hashing, role middleware, origin checking, and a one-time admin provisioning script.
+- Authentication API: login, logout, current-user lookup, password hashing, role middleware, trusted-origin checks, and one-time admin provisioning.
+- Frontend login form is connected to the API client and session context. Protected routes separate admin and employee workspaces.
 - Employee management, payroll processing, simulated transaction execution, and analytics APIs are not implemented yet.
-- The frontend login form is not connected yet; authentication currently needs API testing or a client UI added in the next frontend phase.
 
 ## Authentication API (development)
 There is no public registration endpoint. Create a development admin explicitly:
@@ -64,4 +64,4 @@ From the repository root:
 npm test
 npm run build
 ```
-The API tests load the backend environment config, so ensure `server/.env` is configured first. The user reported that the initial app opened locally; authentication behavior still needs to be tested on the updated code.
+The API tests load the backend environment config, so ensure `server/.env` is configured first. GitHub Actions runs the API tests and frontend production build on pushes and pull requests; check the Actions tab for verified results. The authentication changes still need local end-to-end verification.
