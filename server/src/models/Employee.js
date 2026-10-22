@@ -50,6 +50,7 @@ const employeeSchema = new mongoose.Schema({
   },
   department: { type: String, required: true, trim: true, minlength: 2, maxlength: 80 },
   designation: { type: String, required: true, trim: true, minlength: 2, maxlength: 80 },
+  currency: { type: String, enum: ["INR"], required: true, default: "INR" },
   salaryStructure: { type: salaryStructureSchema, required: true },
   employmentStatus: {
     type: String,
@@ -73,6 +74,7 @@ employeeSchema.methods.toPublicJSON = function toPublicJSON() {
     firstName: this.firstName,
     lastName: this.lastName,
     workEmail: this.workEmail,
+    currency: this.currency,
     department: this.department,
     designation: this.designation,
     salaryStructure: {
