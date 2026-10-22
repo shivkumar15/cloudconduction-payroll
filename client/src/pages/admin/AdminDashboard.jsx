@@ -1,4 +1,4 @@
-import { Activity, Banknote, LogOut, ShieldCheck, Users, UserRoundCog } from "lucide-react";
+import { Activity, Banknote, LogOut, ShieldCheck, Users, UserCog } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext.jsx";
 
@@ -78,7 +78,7 @@ export default function AdminDashboard() {
         <section className="mt-6 grid gap-4 md:grid-cols-[1.5fr_1fr]">
           <article className="rounded-2xl border border-slate-200 bg-white p-6">
             <div className="flex items-start gap-3">
-              <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-indigo-50 text-indigo-600"><UserRoundCog size={22} /></span>
+              <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-indigo-50 text-indigo-600"><UserCog size={22} /></span>
               <div>
                 <h2 className="text-lg font-semibold">Employee management</h2>
                 <p className="mt-2 text-sm leading-6 text-slate-600">Create employee records with linked employee logins, manage salary structures, search and filter records, and deactivate access when an employee leaves.</p>
