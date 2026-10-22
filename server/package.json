@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "node --watch src/server.js",
     "start": "node src/server.js",
-    "test": "node --test"
+    "test": "node --test",
+    "seed:admin": "node src/scripts/seedAdmin.js"
   },
   "dependencies": {
     "cookie-parser": "^1.4.7",
