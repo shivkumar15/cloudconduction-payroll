@@ -6,6 +6,8 @@ import { rateLimit } from "express-rate-limit";
 import { env } from "./config/env.js";
 import { notFoundHandler } from "./middleware/notFound.js";
 import { errorHandler } from "./middleware/errorHandler.js";
+import { requireTrustedOriginForUnsafeMethods } from "./middleware/trustedOrigin.js";
+import authRoutes from "./routes/authRoutes.js";
 
 export const app = express();
 
@@ -30,12 +32,16 @@ app.use("/api", rateLimit({
   legacyHeaders: false
 }));
 
+app.use("/api", requireTrustedOriginForUnsafeMethods);
+
 app.get("/api/health", (req, res) => {
   res.status(200).json({
     success: true,
     message: "CloudConduction Payroll API is healthy"
   });
 });
+
+app.use("/api/auth", authRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);
