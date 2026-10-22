@@ -37,6 +37,27 @@ const userSchema = new mongoose.Schema({
     default: 0,
     min: 0,
     required: true
+  },
+  passwordResetOtpHash: {
+    type: String,
+    default: null,
+    select: false
+  },
+  passwordResetExpiresAt: {
+    type: Date,
+    default: null,
+    select: false
+  },
+  passwordResetAttempts: {
+    type: Number,
+    default: 0,
+    min: 0,
+    select: false
+  },
+  passwordResetRequestedAt: {
+    type: Date,
+    default: null,
+    select: false
   }
 }, {
   timestamps: true,
@@ -61,6 +82,5 @@ userSchema.methods.toPublicJSON = function toPublicJSON() {
     isActive: this.isActive
   };
 };
-
 
 export const User = mongoose.models.User || mongoose.model("User", userSchema);
