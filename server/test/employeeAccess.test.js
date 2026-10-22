@@ -64,3 +64,13 @@ test("employee role cannot pass an admin-only role guard", () => {
   assert.equal(result.statusCode, 403);
   assert.equal(result.nextCalled, false);
 });
+
+
+test("role-protected workspace access is blocked until temporary password is changed", () => {
+  const result = runMiddleware(requireRole("employee"), {
+    authUser: { role: "employee", mustChangePassword: true }
+  });
+  assert.equal(result.statusCode, 403);
+  assert.equal(result.body.code, "PASSWORD_CHANGE_REQUIRED");
+  assert.equal(result.nextCalled, false);
+});
