@@ -137,12 +137,10 @@ Apply role/ownership rules to all endpoints. Enforce all state transitions and m
 - Acceptance: repository contains the initial scaffold and documented setup; no real secrets are committed.
 ### Phase 1 — foundation
 - [x] Initial starter scaffold generated locally (React/Vite/Tailwind, Express/Mongoose connection, health endpoint, baseline security middleware, one health test).
-- [ ] User installs dependencies locally and verifies setup.
-- [ ] Verify Node/npm/MongoDB setup.
-- [ ] Run client and API.
-- [ ] Client production build and API test.
+- [x] User reports local app/URLs opened successfully without errors.
+- [ ] Confirm client production build and `npm test` results specifically.
 - [ ] Add lint/format commands if useful.
-- Acceptance: start command, client build, health endpoint and tests all pass. Do not mark complete before verification.
+- Acceptance: start command, client build, health endpoint and tests all pass. Local startup is user-reported; production build/test evidence is not yet captured.
 ### Phase 2 — authentication and authorization
 - [ ] User model/indexes.
 - [ ] Admin seed/provisioning script.
@@ -206,22 +204,23 @@ npm run build
 Expected: frontend `http://localhost:5173`; health endpoint `http://localhost:5001/api/health`. MongoDB must run for backend startup, while the health test imports the app without starting DB connection.
 
 ## Current status — 2026-10-22
-- Initial scaffold bundle was generated locally as `cloudconduction-payroll-complete-plan.zip`.
-- GitHub repository exists: `https://github.com/shivkumar15/cloudconduction-payroll` (public, default branch `main`; connected account has push/admin access).
-- Committed `docs/PROJECT_PLAN.md` first, then published the starter scaffold to `main`.
-- Published files include root `.gitignore`, root `package.json`, `README.md`; server package/env example/app/startup/config/middleware/health test; client package, Vite config, HTML entry, React bootstrap, initial dashboard and global CSS.
-- Initial frontend metrics are placeholders intentionally; no fake salary totals shown.
-- Base middleware: Helmet, exact-origin CORS via env, request size limits, cookie-parser, API rate limiter.
-- Auth and payroll features are not implemented yet.
-- Not verified: npm install, startup, test result, production build, browser behavior. Do not represent the scaffold as tested.
-- No `.env` secret or real employee data was committed.
+- GitHub repository: `https://github.com/shivkumar15/cloudconduction-payroll` (public, default branch `main`; connected account has push/admin access).
+- User reports initial local app/URLs opened successfully without errors. Exact npm test and production build output has not yet been captured.
+- Foundation files are committed: root package/README/gitignore; server app/startup/config/middleware/env example/health test; client Vite config and initial dashboard.
+- Authentication API files are committed: `server/src/models/User.js`, `server/src/utils/sessionToken.js`, `server/src/validators/authSchemas.js`, `server/src/middleware/auth.js`, `server/src/middleware/trustedOrigin.js`, `server/src/controllers/authController.js`, `server/src/routes/authRoutes.js`, and `server/src/scripts/seedAdmin.js`.
+- Auth routes are mounted in `server/src/app.js`; `server/test/auth.test.js` tests anonymous `/me`, malformed login input, missing Origin and untrusted Origin.
+- `server/package.json` contains `seed:admin`. `.env.example` documents optional seed variables; do not commit actual secrets.
+- README explains local admin provisioning and auth endpoints.
+- No public signup is available. Frontend login UI is not connected yet.
+- Auth code has been committed but is not verified by running tests in the user's local environment yet. No real `.env` values or employee data were committed.
 
 ## Immediate next task
-1. Clone `https://github.com/shivkumar15/cloudconduction-payroll` or download the ZIP.
-2. Install dependencies, copy `server/.env.example` to `server/.env`, create a valid random JWT secret, and ensure MongoDB is running (local or Atlas URI).
-3. Run `npm run dev`, open the frontend and `/api/health`; then run `npm test` and `npm run build`.
-4. Share the exact terminal output if any step fails; fix all Phase 1 issues before implementing authentication.
-5. Update this document after each phase with changed paths, commit reference, test evidence, known issues and the exact next task.
+1. Pull latest `main` (`git pull origin main`) so local files include Phase 2 auth commits.
+2. Confirm `server/.env` has a 32+ character `JWT_SECRET`, valid `MONGODB_URI`, and `CLIENT_ORIGIN=http://localhost:5173`.
+3. Run `npm test` and `npm run build`; report results and fix failures first.
+4. Set `SEED_ADMIN_EMAIL` and `SEED_ADMIN_PASSWORD` in `server/.env` (unique password, at least 12 characters); run `npm run seed:admin --prefix server` once, then remove the seed password value.
+5. Verify login/logout/current-user API; the frontend login form is the next planned UI addition. Do not share the actual password or `.env` file.
+6. Update this handoff with commit/test evidence and exact next task.
 
 ## Future-session resume instructions
 Paste/upload this file and say:
