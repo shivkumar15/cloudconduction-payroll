@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { Employee } from "../src/models/Employee.js";
+import { User } from "../src/models/User.js";
 import {
   createEmployeeSchema,
   employeeListQuerySchema,
@@ -90,4 +91,15 @@ test("employee list query bounds page size and supports filters", () => {
 test("employee code and work email have database unique-index definitions", () => {
   assert.equal(Employee.schema.path("employeeCode").options.unique, true);
   assert.equal(Employee.schema.path("workEmail").options.unique, true);
+});
+
+ 
+test("employee login reference uses a unique partial index without colliding on admin nulls", () => {
+  const employeeReferenceIndex = User.schema.indexes().find(([keys, options]) =>
+    keys.employeeId === 1 && options.unique === true
+  );
+  assert.ok(employeeReferenceIndex);
+  assert.deepEqual(employeeReferenceIndex[1].partialFilterExpression, {
+    employeeId: { $type: "objectId" }
+  });
 });
