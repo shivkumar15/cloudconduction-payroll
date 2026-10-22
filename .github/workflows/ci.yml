@@ -25,6 +25,7 @@ jobs:
     env:
       NODE_ENV: test
       MONGODB_URI: mongodb://127.0.0.1:27017/cloudconduction_payroll_test
+      INTEGRATION_TEST_MONGODB_URI: mongodb://127.0.0.1:27017/cloudconduction_payroll_test
       JWT_SECRET: ci-only-secret-value-replace-this-with-more-than-32-characters
       CLIENT_ORIGIN: http://localhost:5173
     steps:
