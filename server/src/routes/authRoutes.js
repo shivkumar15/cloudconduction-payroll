@@ -6,6 +6,17 @@ import passwordResetRoutes from "./passwordResetRoutes.js";
 
 const router = Router();
 
+const passwordChangeLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  message: {
+    success: false,
+    message: "Too many password change attempts. Please try again later."
+  }
+});
+
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: 10,
@@ -20,7 +31,7 @@ const loginLimiter = rateLimit({
 router.post("/login", loginLimiter, login);
 router.post("/logout", logout);
 router.get("/me", requireAuth, getCurrentUser);
-router.post("/change-password", requireAuth, changePassword);
+router.post("/change-password", passwordChangeLimiter, requireAuth, changePassword);
 router.use("/password-reset", passwordResetRoutes);
 
 export default router;
