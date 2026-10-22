@@ -119,7 +119,7 @@ The API unit/route tests load the backend environment config, so ensure `server/
 npm run test:integration --prefix server
 ```
 
-GitHub Actions run 76 at commit `81a16a79` passed the unit/route tests, MongoDB-backed employee lifecycle integration test, and frontend production build. The developer also reported locally passing all 26 unit/API tests, the production build, and the 1-test MongoDB integration suite on 2026-10-22. The local admin/employee browser smoke test remains outstanding. A server install reported one high-severity npm audit item; run `npm audit --prefix server` to identify the advisory and affected dependency before selecting an update. Do not use `npm audit fix --force` without reviewing breaking changes.
+GitHub Actions run 76 at commit `81a16a79` passed the unit/route tests, MongoDB-backed employee lifecycle integration test, and frontend production build. The developer also reported locally passing all 26 unit/API tests, the production build, and the 1-test MongoDB integration suite on 2026-10-22. The local admin/employee browser smoke test remains outstanding. The user identified high-severity advisories affecting Nodemailer in version 7.x. `server/package.json` has been updated to `^10.2.1` (Node.js 20+ required by Nodemailer 10; the project CI uses Node 22). After pulling, run `npm install --prefix server` and `npm audit --prefix server` to verify the advisories are resolved, then rerun all tests and inspect the latest CI run. This upgrade is not considered fully verified until those checks pass.
 
 
 ## Password reset email configuration
