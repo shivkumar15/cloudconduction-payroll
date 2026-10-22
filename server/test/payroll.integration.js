@@ -22,6 +22,13 @@ test("MongoDB payroll lifecycle snapshots salaries, prevents duplicate periods a
   }
   assert.match(testDatabaseName, /test/i, "Integration test database name must include 'test'");
 
+  // Keep payroll integration data in its own disposable database so this test
+  // cannot race with the employee lifecycle integration test when CI runs files in parallel.
+  const payrollDatabaseName = testDatabaseName + "_payroll";
+  const isolatedMongoUrl = new URL(mongoUri);
+  isolatedMongoUrl.pathname = "/" + payrollDatabaseName;
+  const isolatedMongoUri = isolatedMongoUrl.toString();
+
   const runId = randomBytes(4).toString("hex");
   const adminEmail = "payroll-admin-" + runId + "@example.test";
   const employeeEmail = "payroll-employee-" + runId + "@example.test";
@@ -67,7 +74,7 @@ test("MongoDB payroll lifecycle snapshots salaries, prevents duplicate periods a
   }
 
   try {
-    await mongoose.connect(mongoUri, { serverSelectionTimeoutMS: 8_000 });
+    await mongoose.connect(isolatedMongoUri, { serverSelectionTimeoutMS: 8_000 });
     connected = true;
     await Promise.all([User.init(), Employee.init(), PayrollRun.init()]);
 
