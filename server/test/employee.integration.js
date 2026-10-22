@@ -101,6 +101,7 @@ test("MongoDB employee lifecycle enforces login links, roles, duplicates and own
     assert.equal(firstBody.success, true);
     assert.equal(firstEmployee.employeeCode, employeeCode);
     assert.equal(firstEmployee.workEmail, employeeEmail);
+    assert.equal(firstEmployee.currency, "INR");
     assert.equal(firstEmployee.salaryStructure.baseSalaryPaise, 2_500_000);
 
     const duplicateCode = await request(baseUrl, "/api/employees", {
