@@ -19,7 +19,7 @@ export function requireEmployeeReadAccess(req, res, next) {
   if (req.authUser.role === "admin") return next();
 
   const ownEmployeeId = req.authUser.employeeId?.toString();
-  if (req.authUser.role === "employee" && ownEmployeeId && ownEmployeeId === req.params.id) {
+  if (req.authUser.role === "employee" && ownEmployeeId && ownEmployeeId.toLowerCase() === req.params.id.toLowerCase()) {
     return next();
   }
 
