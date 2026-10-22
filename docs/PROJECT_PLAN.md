@@ -168,7 +168,8 @@ Apply role/ownership rules to all endpoints. Enforce all state transitions and m
 - [x] Employee workspace now fetches and displays its own profile and salary inputs.
 - [x] Unit tests for request validation, unique-index definitions, admin-only role guard, ownership decisions, malformed IDs, and unauthenticated API denial.
 - [x] Dedicated MongoDB-backed API lifecycle test covers create, duplicate code/email rejection, paginated search, linked login, role denial, owner vs. other employee reads, update, deactivation/session invalidation, and reactivation.
-- [ ] Confirm the new MongoDB-backed integration run passes in CI and test the admin/employee browser workflow locally.
+- [x] Latest GitHub Actions run at commit `81a16a79` passed, including the unit/API tests, MongoDB-backed employee integration test, and frontend production build.
+- [ ] Complete a local browser smoke test of admin and employee workflows.
 - Acceptance: implementation and database-backed test are committed; do not mark Phase 3 fully verified until the newest CI result and local browser smoke test pass.
 ### Phase 4 — payroll logic
 - [ ] Document salary formula and inputs.
@@ -222,7 +223,7 @@ Expected: frontend `http://localhost:5173`; health endpoint `http://localhost:50
 
 ## Current status — 2026-10-22
 - GitHub repository: `https://github.com/shivkumar15/cloudconduction-payroll` (public, default branch `main`; connected account has push/admin access).
-- User reports initial local app/URLs opened successfully without errors. Exact npm test and production build output has not yet been captured.
+- User locally verified Phase 3 on 2026-10-22: `npm test` passed all 26 tests (0 failures); `npm run build` passed (Vite transformed 1,655 modules); and `npm run test:integration --prefix server` passed its MongoDB-backed employee lifecycle test (1 passed, 0 failed).
 - Foundation files are committed. Phase 3 adds `server/src/models/Employee.js`, `server/src/utils/money.js`, `server/src/validators/employeeSchemas.js`, `server/src/controllers/employeeController.js`, `server/src/routes/employeeRoutes.js`, and ownership middleware. Routes are mounted at `/api/employees`.
 - Authentication API files are committed: `server/src/models/User.js`, `server/src/utils/sessionToken.js`, `server/src/validators/authSchemas.js`, `server/src/middleware/auth.js`, `server/src/middleware/trustedOrigin.js`, `server/src/controllers/authController.js`, `server/src/routes/authRoutes.js`, and `server/src/scripts/seedAdmin.js`.
 - Auth routes are mounted in `server/src/app.js`; tests cover anonymous `/me`, malformed login input, missing Origin and untrusted Origin. Ephemeral test servers now await listening/close correctly.
@@ -234,7 +235,8 @@ Expected: frontend `http://localhost:5173`; health endpoint `http://localhost:50
 - OTP codes are generated with cryptographic randomness, stored as user-bound HMAC digests, expire after 10 minutes, accept at most 5 wrong code attempts, apply a 60-second resend cooldown, and are consumed via a conditional atomic update. Successful reset increments session version.
 - SMTP service uses env-based Nodemailer configuration. Actual SMTP credentials/delivery are not configured or verified yet; reset email cannot work until provider settings are set.
 - MongoDB pool configured with max 20/min 2 sockets per server process. Added bounded health-endpoint smoke test, defaults 25 concurrent workers and 250 requests; no load run/actual capacity is claimed yet. Future employee endpoints must be paginated; production multi-instance rate limiting needs a shared store.
-- Added tests for OTP helper/reset validation and Phase 3 employee schemas, unique-index definitions, role guard, ownership policy, malformed IDs and unauthenticated routes. Added `server/test/employee.integration.js`, a dedicated MongoDB-backed API lifecycle test; it requires `INTEGRATION_TEST_MONGODB_URI` and refuses database names without `test` to reduce the risk of touching application data. `server/package.json` exposes it as `test:integration`, and GitHub Actions provisions MongoDB 7 to run it. CI run 61 at commit `ded0605e` completed successfully, including the MongoDB-backed employee lifecycle test and frontend build. Subsequent changes made INR explicit and separated the integration test from the unit suite; the newest CI run is queued, so verify it before claiming the latest commit passed. A local browser smoke test is still outstanding.
+- Added tests for OTP helper/reset validation and Phase 3 employee schemas, unique-index definitions, role guard, ownership policy, malformed IDs and unauthenticated routes. The dedicated MongoDB-backed employee lifecycle test requires `INTEGRATION_TEST_MONGODB_URI` and refuses database names without `test`. CI run 76 at commit `81a16a79` passed. The user also reports all 26 unit/API tests, the frontend build, and the MongoDB integration test passed locally on 2026-10-22. A local browser smoke test remains outstanding.
+- Dependency security: the user's `npm install --prefix server` reported 1 high-severity vulnerability; package/advisory identity has not yet been captured. Do not run `npm audit fix --force` until the affected dependency and breaking-change path are reviewed.
 
 
 ## Resume alignment (based on the uploaded one-page resume, reviewed 2026-10-22)
@@ -260,13 +262,10 @@ Expected: frontend `http://localhost:5173`; health endpoint `http://localhost:50
 - Final resume bullet points should be written only after the corresponding features and tests are complete. Do not claim production payroll or real payment processing.
 
 ## Immediate next task
-1. Pull latest `main` (`git pull origin main`) so the local clone contains the Phase 3 model, API, UI, and integration test.
-2. Run `npm install --prefix server`, `npm test`, and `npm run build`. Share error output only if a command fails; never share secrets.
-3. Set `INTEGRATION_TEST_MONGODB_URI` in `server/.env` to a dedicated test database such as `mongodb://127.0.0.1:27017/cloudconduction_payroll_test`; never point the integration test at the app/live database. With MongoDB running, run `npm run test:integration --prefix server` to exercise employee creation, duplicate rejection, login links, authorization, status changes, and session invalidation.
-4. With MongoDB running and an admin account seeded, open `/admin/employees`. Create a synthetic employee, then test search, department/status filters, pagination, edit, deactivate, and reactivate.
-5. Verify duplicate employee code/work email is rejected and the linked employee account can log in. The admin-provided initial password is never stored in plaintext.
-6. Log in as that employee and verify `/employee` shows their own profile. Try reading a different employee's ID as that employee and confirm the API responds with 403.
-7. After the newest GitHub Actions run and local browser smoke test pass, update the recorded results and begin Phase 4 payroll calculation rules.
+1. Run `npm audit --prefix server` and inspect the exact advisory, affected dependency path, installed version, and patched version recommendation. Do not use `npm audit fix --force` blindly. Share the audit output with any secrets (if any) removed.
+2. Start the app and complete a local browser smoke test: as admin, create a synthetic employee, search/filter/paginate, edit salary/profile, deactivate and reactivate; then log in as that employee and verify the profile page shows only that employee's own information.
+3. Confirm the browser cannot bypass backend ownership by requesting another employee's ID; API response should be 403.
+4. After the dependency advisory is triaged and UI smoke test is complete, mark Phase 3 verified and move to Phase 4 payroll calculations.
 
 ## Future-session resume instructions
 Paste/upload this file and say:
