@@ -37,7 +37,9 @@ See [`docs/PROJECT_PLAN.md`](docs/PROJECT_PLAN.md) for the full roadmap, securit
 ## Current capabilities
 - Foundation: React/Vite/Tailwind dashboard and Express/Mongoose API health endpoint.
 - Authentication API: login, logout, current-user lookup, password hashing, role middleware, trusted-origin checks, and one-time admin provisioning.
-- Frontend login form is connected to the API client and session context. Protected routes separate admin and employee workspaces.
+- Frontend sign-in has an accessible show/hide password toggle. Protected routes separate admin and employee workspaces.
+- Email OTP password reset is implemented: six-digit code, 10-minute expiry, HMAC-stored code hash, resend cooldown, attempt limit, generic account response, and session invalidation after reset.
+- SMTP must be configured before password-reset email delivery can work. With no SMTP configuration, the request endpoint returns an explicit server-configuration error.
 - Employee management, payroll processing, simulated transaction execution, and analytics APIs are not implemented yet.
 
 ## Authentication API (development)
@@ -65,3 +67,41 @@ npm test
 npm run build
 ```
 The API tests load the backend environment config, so ensure `server/.env` is configured first. GitHub Actions runs the API tests and frontend production build on pushes and pull requests; check the Actions tab for verified results. The authentication changes still need local end-to-end verification.
+
+
+## Password reset email configuration
+
+Password reset uses SMTP via Nodemailer. Add the following to your local `server/.env` (never commit real values):
+
+```dotenv
+SMTP_HOST=smtp.your-provider.example
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=your-provider-username
+SMTP_PASS=your-provider-password-or-api-key
+MAIL_FROM=no-reply@your-verified-domain.example
+```
+
+Use the SMTP settings provided by your email provider; sender addresses often need provider/domain verification. With STARTTLS on port 587, `SMTP_SECURE=false` is common; for implicit TLS on port 465, use `SMTP_SECURE=true`. Do not use your ordinary email password if the provider requires an app password or API key.
+
+The reset request endpoint is `POST /api/auth/password-reset/request` with `{ "email": "..." }`. Confirm the code using `POST /api/auth/password-reset/confirm` with `{ "email": "...", "otp": "123456", "newPassword": "..." }`. Reset codes are one-time and expire in 10 minutes. Never print or log the OTP.
+
+## Concurrent users and load smoke test
+
+The app is not restricted to a single user: each account has a unique normalized email, the signed session identifies the relevant account, and auth requests load the account from MongoDB. Mongoose is configured with a connection pool of up to 20 sockets per server process. Employee listing will be paginated before employee records are implemented.
+
+To run a bounded smoke test against the health endpoint, start MongoDB and the backend first, then open another terminal:
+
+```bash
+npm run load:test --prefix server
+```
+
+By default it sends 250 requests with up to 25 concurrent workers. You can override it (PowerShell example):
+
+```powershell
+$env:LOAD_TEST_CONCURRENCY="25"
+$env:LOAD_TEST_REQUESTS="250"
+npm run load:test --prefix server
+```
+
+This is a basic health-endpoint concurrency smoke test, **not** a proof of production capacity or a full authenticated payroll benchmark. Record the results and later load-test authenticated employee/payroll APIs against synthetic data. The default per-process in-memory rate limiter is suitable only for a single-process demo; multi-instance production requires a shared rate-limit store (for example Redis) and measured deployment capacity.
