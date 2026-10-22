@@ -159,7 +159,7 @@ Apply role/ownership rules to all endpoints. Enforce all state transitions and m
 - [x] GitHub Actions CI passed for the password-reset UI, OTP utility/API validation tests, Nodemailer dependency and connection-pool/load-test commits; the latest documented-plan run also passed tests and build.
 - Acceptance: current automated test/build baseline passes in CI; actual SMTP delivery, true local auth smoke test and load metrics must be verified by developer.
 ### Phase 3 — employee management
-- [x] Employee model with unique employee code/work email, status, timestamps and salary structure stored in integer paise.
+- [x] Employee model with unique employee code/work email, explicit INR currency, status, timestamps and salary structure stored in integer paise.
 - [x] Zod create/update/query validation, including no unknown fields and deductions not exceeding gross earnings.
 - [x] Admin list/create/update/deactivate APIs, including linked employee-login provisioning.
 - [x] Pagination (maximum 100 per page), escaped search, department/status filters and deterministic sorting.
