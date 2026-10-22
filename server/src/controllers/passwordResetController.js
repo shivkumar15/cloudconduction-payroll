@@ -137,6 +137,7 @@ export async function confirmPasswordReset(req, res, next) {
       {
         $set: {
           passwordHash,
+          mustChangePassword: false,
           passwordResetOtpHash: null,
           passwordResetExpiresAt: null,
           passwordResetAttempts: 0,
