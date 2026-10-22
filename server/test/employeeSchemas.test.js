@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { Employee } from "../src/models/Employee.js";
 import {
   createEmployeeSchema,
   employeeListQuerySchema,
@@ -83,4 +84,10 @@ test("employee list query bounds page size and supports filters", () => {
 
   assert.equal(employeeListQuerySchema.safeParse({ pageSize: "101" }).success, false);
   assert.equal(employeeListQuerySchema.safeParse({ employmentStatus: "deleted" }).success, false);
+});
+
+
+test("employee code and work email have database unique-index definitions", () => {
+  assert.equal(Employee.schema.path("employeeCode").options.unique, true);
+  assert.equal(Employee.schema.path("workEmail").options.unique, true);
 });
