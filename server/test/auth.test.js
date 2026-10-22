@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { app } from "../src/app.js";
 import { changePasswordSchema } from "../src/validators/authSchemas.js";
+import { User } from "../src/models/User.js";
 
 async function withServer(t) {
   const server = app.listen(0);
@@ -104,4 +105,21 @@ test("change-password route requires an authenticated session", async (t) => {
 
   assert.equal(response.status, 401);
   assert.equal(body.success, false);
+});
+
+
+test("employee accounts default to a required password change while admins do not", () => {
+  const employee = new User({
+    email: "employee@example.test",
+    passwordHash: "not-a-real-hash",
+    role: "employee"
+  });
+  const admin = new User({
+    email: "admin@example.test",
+    passwordHash: "not-a-real-hash",
+    role: "admin"
+  });
+
+  assert.equal(employee.mustChangePassword, true);
+  assert.equal(admin.mustChangePassword, false);
 });
