@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { app } from "../src/app.js";
 import { changePasswordSchema } from "../src/validators/authSchemas.js";
 import { User } from "../src/models/User.js";
+import { env } from "../src/config/env.js";
 
 async function withServer(t) {
   const server = app.listen(0);
@@ -146,4 +147,52 @@ test("hydrated legacy employee records without the flag require a password chang
 
   assert.equal(legacyEmployee.mustChangePassword, true);
   assert.equal(legacyAdmin.mustChangePassword, false);
+});
+
+
+test("password-reset requests do not reveal whether an email belongs to an active account", async (t) => {
+  const originalSmtpConfig = {
+    SMTP_HOST: env.SMTP_HOST,
+    SMTP_PORT: env.SMTP_PORT,
+    SMTP_USER: env.SMTP_USER,
+    SMTP_PASS: env.SMTP_PASS,
+    MAIL_FROM: env.MAIL_FROM
+  };
+  Object.assign(env, {
+    SMTP_HOST: "smtp.example.test",
+    SMTP_PORT: 587,
+    SMTP_USER: "sender@example.test",
+    SMTP_PASS: "test-only-not-a-real-secret",
+    MAIL_FROM: "sender@example.test"
+  });
+  t.after(() => Object.assign(env, originalSmtpConfig));
+
+  const results = [
+    null,
+    { passwordResetRequestedAt: new Date() }
+  ];
+  t.mock.method(User, "findOne", () => ({
+    select: async () => results.shift()
+  }));
+
+  const baseUrl = await withServer(t);
+  async function requestReset(email) {
+    const response = await fetch(baseUrl + "/api/auth/password-reset/request", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Origin": "http://localhost:5173"
+      },
+      body: JSON.stringify({ email })
+    });
+    return { status: response.status, body: await response.json() };
+  }
+
+  const unknownAddress = await requestReset("not-registered@example.test");
+  const activeAddressInCooldown = await requestReset("employee@example.test");
+
+  assert.equal(unknownAddress.status, 202);
+  assert.equal(activeAddressInCooldown.status, 202);
+  assert.deepEqual(unknownAddress.body, activeAddressInCooldown.body);
+  assert.match(unknownAddress.body.message, /verify the address or contact your payroll administrator/i);
 });
