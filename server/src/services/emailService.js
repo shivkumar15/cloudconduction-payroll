@@ -30,7 +30,7 @@ export async function sendPasswordResetOtpEmail({ to, otp }) {
   });
 
   await transporter.sendMail({
-    from: env.MAIL_FROM,
+    from: `CloudConduction Payroll <${env.MAIL_FROM}>`,
     to,
     subject: "Your CloudConduction Payroll password reset code",
     text: [
