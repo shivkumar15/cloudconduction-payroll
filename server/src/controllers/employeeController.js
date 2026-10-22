@@ -149,7 +149,8 @@ export async function createEmployee(req, res, next) {
         passwordHash,
         role: "employee",
         employeeId: employee._id,
-        isActive: true
+        isActive: true,
+        mustChangePassword: true
       });
     } catch (error) {
       await Employee.deleteOne({ _id: employee._id });
