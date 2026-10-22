@@ -145,9 +145,12 @@ Apply role/ownership rules to all endpoints. Enforce all state transitions and m
 - [ ] Add lint/format commands if useful.
 - Acceptance: start command, client build, health endpoint and tests all pass. Local startup is user-reported; production build/test evidence is not yet captured.
 ### Phase 2 — authentication and authorization
-- [x] User model with unique normalized email, password hash, role, active flag and session token version.
+- [x] User model with unique normalized email, password hash, role, active flag, employee link, `mustChangePassword` and session token version.
 - [x] Admin seed/provisioning script; no public registration endpoint.
-- [x] Login/logout/current-user routes.
+- [x] Login/logout/current-user and authenticated change-password routes.
+- [x] Newly created employee accounts are marked with a mandatory temporary-password change; backend role-protected APIs refuse workspace access until changed.
+- [x] Password changes verify the current password, enforce a 12-character minimum, reject reuse, update the bcrypt hash, clear the mandatory flag, invalidate other sessions, and issue a fresh cookie for the active browser.
+- [x] Change-password screen is accessible to all authenticated roles; dashboard links exist for both admin and employee.
 - [x] HttpOnly session cookie, eight-hour expiry, SameSite and Secure-in-production settings.
 - [x] Session token verification and role middleware.
 - [x] Trusted-Origin enforcement on unsafe API methods.
@@ -155,7 +158,8 @@ Apply role/ownership rules to all endpoints. Enforce all state transitions and m
 - [x] Accessible show/hide password toggles on login, password-reset, reset-confirmation, and admin-created employee initial-password inputs.
 - [x] Tests cover anonymous access, malformed login/reset input, OTP shape/HMAC, missing/untrusted origin and absent SMTP configuration.
 - [ ] Verify actual SMTP delivery and login/reset flow with a local test mailbox.
-- [ ] Add broader tests for successful login, password reset end-to-end, forbidden role and ownership during protected resource development.
+- [x] Add tests for change-password validation and anonymous-route denial; MongoDB integration verifies mandatory first-login change, blocked workspace access, incorrect/reused password rejection, session invalidation and successful new-password login.
+- [ ] Verify SMTP delivery with a test mailbox after configuring provider settings.
 - [x] GitHub Actions CI passed for the password-reset UI, OTP utility/API validation tests, Nodemailer dependency and connection-pool/load-test commits; the latest documented-plan run also passed tests and build.
 - Acceptance: current automated test/build baseline passes in CI; actual SMTP delivery, true local auth smoke test and load metrics must be verified by developer.
 ### Phase 3 — employee management
@@ -237,7 +241,8 @@ Expected: frontend `http://localhost:5173`; health endpoint `http://localhost:50
 - SMTP service uses env-based Nodemailer configuration. Actual SMTP credentials/delivery are not configured or verified yet; reset email cannot work until provider settings are set.
 - MongoDB pool configured with max 20/min 2 sockets per server process. Added bounded health-endpoint smoke test, defaults 25 concurrent workers and 250 requests; no load run/actual capacity is claimed yet. Future employee endpoints must be paginated; production multi-instance rate limiting needs a shared store.
 - Added tests for OTP helper/reset validation and Phase 3 employee schemas, unique-index definitions, role guard, ownership policy, malformed IDs and unauthenticated routes. The dedicated MongoDB-backed employee lifecycle test requires `INTEGRATION_TEST_MONGODB_URI` and refuses database names without `test`. CI run 76 at commit `81a16a79` passed. The user also reports all 26 unit/API tests, the frontend build, and the MongoDB integration test passed locally on 2026-10-22. A local browser smoke test remains outstanding.
-- Dependency security: user verified `nodemailer@10.2.1` installed locally, `npm audit --prefix server` reported `found 0 vulnerabilities`, all 26 unit/API tests passed, `npm run build` succeeded, and `npm run test:integration --prefix server` passed (1 test, 0 failures). GitHub Actions run 79 at commit `4df8941b` passed after the Nodemailer version update. The SMTP provider/delivery itself has not been tested because SMTP credentials are not configured. A local admin/employee browser smoke test remains outstanding.
+- Dependency security: user verified `nodemailer@10.2.1` installed locally, `npm audit --prefix server` reported `found 0 vulnerabilities`, all 26 unit/API tests passed, the frontend build succeeded, and the MongoDB-backed integration test passed. GitHub Actions run 79 passed after the Nodemailer version update. SMTP credentials/delivery remain unconfigured.
+- Password-change workflow was added: employee creation sets `mustChangePassword`, backend role guards block protected workspace APIs until the temporary password changes, and authenticated users can change passwords from `/change-password` or their dashboard. Change-password validation and lifecycle integration tests were added; verify the newest CI run and local test/build results after pulling these changes.
 
 
 ## Resume alignment (based on the uploaded one-page resume, reviewed 2026-10-22)
@@ -263,10 +268,12 @@ Expected: frontend `http://localhost:5173`; health endpoint `http://localhost:50
 - Final resume bullet points should be written only after the corresponding features and tests are complete. Do not claim production payroll or real payment processing.
 
 ## Immediate next task
-1. Complete a local browser smoke test with the latest code: start MongoDB and the app, log in as admin, and open `/admin/employees`.
-2. Create a synthetic employee, test searching/filtering/pagination, edit salary/profile, deactivate and reactivate the record.
-3. Log in with the linked employee credentials and confirm `/employee` shows only that employee's profile; try accessing another employee's ID and verify the API denies it.
-4. If the browser smoke test passes, mark Phase 3 complete and move to Phase 4 payroll calculations. SMTP delivery remains a separate auth setup task and requires local provider configuration before it can be verified.
+1. Pull latest `main` and run `npm install --prefix server`, `npm test`, `npm run build`, and `npm run test:integration --prefix server`.
+2. Verify the latest GitHub Actions run passes for the temporary-password/password-change implementation.
+3. Create a new synthetic employee and confirm their first login redirects to `/change-password`; verify they cannot call employee workspace APIs before changing it.
+4. Change the password, confirm the user reaches the employee workspace, sign out/in with the new password, and verify the old temporary password no longer works. Test a voluntary password change from the employee workspace too.
+5. Configure SMTP in local `server/.env` if email-based Forgot password should work. After a test email is delivered, verify valid/expired/incorrect OTP paths. Do not share app passwords or OTPs.
+6. Once CI and local checks pass, update the handoff and continue to Phase 4 payroll calculations.
 
 ## Future-session resume instructions
 Paste/upload this file and say:
