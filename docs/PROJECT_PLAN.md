@@ -82,15 +82,15 @@ cloudconduction-payroll/
 - [ ] Configure and verify an actual SMTP provider with an owned test mailbox.
 - [ ] Admin provisioned through secure seed/admin workflow; no public role self-selection.
 ### Authorization/privacy
-- [ ] Central requireAuth and requireRole middleware.
-- [ ] Employee data ownership enforced server-side.
-- [ ] Explicit writable fields; prevent mass assignment.
+- [x] Central requireAuth and requireRole middleware.
+- [x] Employee data ownership enforced server-side for employee self-service and direct record reads.
+- [x] Explicit employee writable fields; request schemas reject extra fields and prevent role injection.
 - [ ] Never trust client-supplied role, salary, net pay, amount, status or employee ID without server checks.
 - [ ] Never log password, tokens, cookies or sensitive salary details.
 - [ ] Synthetic data only.
 ### API/infrastructure
-- [ ] Validate route params, query and body.
-- [ ] Exact CORS origin allowlist; Helmet; body-size caps; rate limiting.
+- [x] Validate employee route IDs, list query params and create/update bodies; existing auth routes also validate inputs.
+- [x] Exact CORS origin allowlist; Helmet; body-size caps; rate limiting.
 - [ ] Generic production 500 responses and minimal structured logs.
 - [ ] HTTPS in deployment; secrets in host environment, not repo.
 - [ ] Least-privilege DB credentials/network rules.
@@ -159,12 +159,16 @@ Apply role/ownership rules to all endpoints. Enforce all state transitions and m
 - [x] GitHub Actions CI passed for the password-reset UI, OTP utility/API validation tests, Nodemailer dependency and connection-pool/load-test commits; the latest documented-plan run also passed tests and build.
 - Acceptance: current automated test/build baseline passes in CI; actual SMTP delivery, true local auth smoke test and load metrics must be verified by developer.
 ### Phase 3 — employee management
-- [ ] Employee model and validation.
-- [ ] Admin list/create/update/deactivate APIs and UI.
-- [ ] Pagination/filtering and strict writable fields (pagination is required to prevent unbounded list responses).
-- [ ] Employee self-service route.
-- [ ] Tests for validation, uniqueness, roles and ownership.
-- Acceptance: admin manages synthetic employees; employee sees only own record.
+- [x] Employee model with unique employee code/work email, status, timestamps and salary structure stored in integer paise.
+- [x] Zod create/update/query validation, including no unknown fields and deductions not exceeding gross earnings.
+- [x] Admin list/create/update/deactivate APIs, including linked employee-login provisioning.
+- [x] Pagination (maximum 100 per page), escaped search, department/status filters and deterministic sorting.
+- [x] Employee self-service profile route and admin-or-owner single-record read guard.
+- [x] Admin UI for employee creation, salary details, search, filters, pagination, edit, reactivate and deactivate.
+- [x] Employee workspace now fetches and displays its own profile and salary inputs.
+- [x] Unit tests for request validation, unique-index definitions, admin-only role guard, ownership decisions, malformed IDs, and unauthenticated API denial.
+- [ ] Run local MongoDB-backed end-to-end tests for successful create/update/deactivate/reactivate, duplicate records, linked login, and an employee attempting to read another employee's ID.
+- Acceptance: implementation is committed; do not mark Phase 3 fully verified until CI and local database-backed flows pass.
 ### Phase 4 — payroll logic
 - [ ] Document salary formula and inputs.
 - [ ] Pure unit-testable currency service using integer paise.
@@ -218,18 +222,18 @@ Expected: frontend `http://localhost:5173`; health endpoint `http://localhost:50
 ## Current status — 2026-10-22
 - GitHub repository: `https://github.com/shivkumar15/cloudconduction-payroll` (public, default branch `main`; connected account has push/admin access).
 - User reports initial local app/URLs opened successfully without errors. Exact npm test and production build output has not yet been captured.
-- Foundation files are committed: root package/README/gitignore; server app/startup/config/middleware/env example/health test; client Vite config and initial dashboard.
+- Foundation files are committed. Phase 3 adds `server/src/models/Employee.js`, `server/src/utils/money.js`, `server/src/validators/employeeSchemas.js`, `server/src/controllers/employeeController.js`, `server/src/routes/employeeRoutes.js`, and ownership middleware. Routes are mounted at `/api/employees`.
 - Authentication API files are committed: `server/src/models/User.js`, `server/src/utils/sessionToken.js`, `server/src/validators/authSchemas.js`, `server/src/middleware/auth.js`, `server/src/middleware/trustedOrigin.js`, `server/src/controllers/authController.js`, `server/src/routes/authRoutes.js`, and `server/src/scripts/seedAdmin.js`.
 - Auth routes are mounted in `server/src/app.js`; tests cover anonymous `/me`, malformed login input, missing Origin and untrusted Origin. Ephemeral test servers now await listening/close correctly.
 - `server/package.json` contains `seed:admin`. `.env.example` documents optional seed variables; no actual secret values were committed.
-- Frontend login UI, Axios API client, session context, protected admin/employee routes and logout controls are committed.
+- Frontend login UI, Axios API client, session context, protected routes and logout controls are committed. Admin `/admin/employees` supports create/edit/deactivate/reactivate, pagination/search/filters; employee `/employee` loads the linked user's own profile.
 - `.github/workflows/ci.yml` runs backend tests and frontend production build on pushes and PRs.
-- No public signup is available. Employee/payroll API and features are still pending.
+- No public signup is available. Phase 3 employee API/UI is now implemented on main; payroll and transactions remain pending.
 - Password visibility toggle was added to sign-in form; a forgot-password UI now supports requesting an email OTP and setting a new password.
 - OTP codes are generated with cryptographic randomness, stored as user-bound HMAC digests, expire after 10 minutes, accept at most 5 wrong code attempts, apply a 60-second resend cooldown, and are consumed via a conditional atomic update. Successful reset increments session version.
 - SMTP service uses env-based Nodemailer configuration. Actual SMTP credentials/delivery are not configured or verified yet; reset email cannot work until provider settings are set.
 - MongoDB pool configured with max 20/min 2 sockets per server process. Added bounded health-endpoint smoke test, defaults 25 concurrent workers and 250 requests; no load run/actual capacity is claimed yet. Future employee endpoints must be paginated; production multi-instance rate limiting needs a shared store.
-- Added tests for OTP helper and reset validation. The latest CI for these new commits is still pending; verify via Actions before claiming the newest changes pass.
+- Added tests for OTP helper/reset validation and Phase 3 employee schemas, unique-index definitions, role guard, ownership policy, malformed IDs and unauthenticated routes. The latest CI run for Phase 3 changes is queued/pending as of this update; check GitHub Actions before claiming CI passed. Successful DB-backed employee CRUD, duplicate races and cross-employee route denial still require a local end-to-end pass.
 
 
 ## Resume alignment (based on the uploaded one-page resume, reviewed 2026-10-22)
@@ -255,12 +259,15 @@ Expected: frontend `http://localhost:5173`; health endpoint `http://localhost:50
 - Final resume bullet points should be written only after the corresponding features and tests are complete. Do not claim production payroll or real payment processing.
 
 ## Immediate next task
-1. Pull latest `main` (`git pull origin main`) so local files include the password toggle, password-reset page/API, and load smoke test.
-2. Run `npm install --prefix server` (for Nodemailer), `npm test`, and `npm run build`; if anything fails, share errors only, not secret values.
-3. Test the show/hide password toggle on `/login`.
-4. Configure SMTP using your provider's values in local `server/.env`, then request a reset code from `/forgot-password` and verify valid, expired and incorrect OTP behavior. Do not share OTPs or provider credentials.
-5. Run `npm run load:test --prefix server` while the backend is running and record the actual result. This tests health endpoint concurrency only, not full payroll capacity.
-6. Then implement Phase 3 employee schema and paginated CRUD APIs, employee provisioning/role attachment, and owner-only self-service endpoints.
+1. Pull latest `main` (`git pull origin main`) so local files include Phase 3 employee model/API/UI.
+2. Run `npm install --prefix server`, `npm test`, and `npm run build`; if anything fails, share errors only, not secret values.
+3. With MongoDB running and an admin account already seeded, test create/search/filter/pagination/edit/deactivate/reactivate under `/admin/employees`.
+4. Verify duplicate employee code/work email is rejected and the linked employee can log in. Check that the employee profile is fetched from `/api/employees/me`.
+5. Test the authorization boundary by trying to access another employee's object ID as a logged-in employee; the API should return 403. Do not share passwords or other secrets.
+6. After these database-backed checks pass, update the handoff file with actual outputs and begin Phase 4 payroll calculation rules.
+7. With MongoDB running, log in as admin and test `/admin/employees`: create synthetic employee, search/filter/page, edit, deactivate and reactivate. Confirm a duplicate employee code/email is rejected and the linked employee login works.
+8. Log in as the employee and verify `/employee` shows only their own profile. Attempt a direct request for another employee's ID and confirm the API returns 403. Test these DB-backed cases before marking Phase 3 fully verified.
+9. If all Phase 3 checks pass, update this file with the actual outputs and move to Phase 4 payroll logic.
 
 ## Future-session resume instructions
 Paste/upload this file and say:
