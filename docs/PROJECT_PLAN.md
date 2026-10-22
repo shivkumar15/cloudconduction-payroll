@@ -236,7 +236,7 @@ Expected: frontend `http://localhost:5173`; health endpoint `http://localhost:50
 - SMTP service uses env-based Nodemailer configuration. Actual SMTP credentials/delivery are not configured or verified yet; reset email cannot work until provider settings are set.
 - MongoDB pool configured with max 20/min 2 sockets per server process. Added bounded health-endpoint smoke test, defaults 25 concurrent workers and 250 requests; no load run/actual capacity is claimed yet. Future employee endpoints must be paginated; production multi-instance rate limiting needs a shared store.
 - Added tests for OTP helper/reset validation and Phase 3 employee schemas, unique-index definitions, role guard, ownership policy, malformed IDs and unauthenticated routes. The dedicated MongoDB-backed employee lifecycle test requires `INTEGRATION_TEST_MONGODB_URI` and refuses database names without `test`. CI run 76 at commit `81a16a79` passed. The user also reports all 26 unit/API tests, the frontend build, and the MongoDB integration test passed locally on 2026-10-22. A local browser smoke test remains outstanding.
-- Dependency security: the user's `npm install --prefix server` reported 1 high-severity vulnerability; package/advisory identity has not yet been captured. Do not run `npm audit fix --force` until the affected dependency and breaking-change path are reviewed.
+- Dependency security: user confirmed the high-severity advisories affect Nodemailer installed from `^7.0.10`; their npm audit recommends `nodemailer@10.2.1`. Updated `server/package.json` to `^10.2.1` in commit `4df8941b`. The project's mail service uses `createTransport()` and `sendMail()`, and CI runs Node 22 (Nodemailer 10 requires Node 20+ per upstream release notes). Local installation, `npm audit`, tests and CI for this dependency upgrade still need confirmation before marking the advisory cleared.
 
 
 ## Resume alignment (based on the uploaded one-page resume, reviewed 2026-10-22)
@@ -262,10 +262,12 @@ Expected: frontend `http://localhost:5173`; health endpoint `http://localhost:50
 - Final resume bullet points should be written only after the corresponding features and tests are complete. Do not claim production payroll or real payment processing.
 
 ## Immediate next task
-1. Run `npm audit --prefix server` and inspect the exact advisory, affected dependency path, installed version, and patched version recommendation. Do not use `npm audit fix --force` blindly. Share the audit output with any secrets (if any) removed.
-2. Start the app and complete a local browser smoke test: as admin, create a synthetic employee, search/filter/paginate, edit salary/profile, deactivate and reactivate; then log in as that employee and verify the profile page shows only that employee's own information.
-3. Confirm the browser cannot bypass backend ownership by requesting another employee's ID; API response should be 403.
-4. After the dependency advisory is triaged and UI smoke test is complete, mark Phase 3 verified and move to Phase 4 payroll calculations.
+1. Pull latest `main` (`git pull origin main`) to get the Nodemailer 10.2.1 dependency update.
+2. Run `npm install --prefix server`, then `npm audit --prefix server` to refresh installed packages and verify whether the reported high-severity advisories are resolved. Do not run `npm audit fix --force` because the manifest now specifies the patched major version directly.
+3. Run `npm test`, `npm run build`, and `npm run test:integration --prefix server`; investigate any incompatibility before confirming the dependency upgrade.
+4. Open the newest GitHub Actions run and confirm it passes for the dependency-upgrade commit.
+5. Complete a local browser smoke test: as admin create/search/filter/edit/deactivate/reactivate a synthetic employee; then log in as that employee and confirm only their profile is shown.
+6. Once the audit is clean, CI passes, and the browser smoke test is complete, update this handoff and continue to Phase 4 payroll calculations.
 
 ## Future-session resume instructions
 Paste/upload this file and say:
