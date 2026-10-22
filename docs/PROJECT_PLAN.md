@@ -213,15 +213,16 @@ Expected: frontend `http://localhost:5173`; health endpoint `http://localhost:50
 - Frontend login UI, Axios API client, session context, protected admin/employee routes and logout controls are committed.
 - `.github/workflows/ci.yml` runs backend tests and frontend production build on pushes and PRs.
 - No public signup is available. Employee/payroll API and features are still pending.
-- Auth code is committed but test/build and CI success are not yet verified in this assistant environment. No real `.env` values or employee data were committed.
+- GitHub Actions run #1 succeeded for all steps: checkout, Node setup, root/server/client dependency installation, API tests and client production build. The succeeding commit includes the published authentication backend and UI. No real `.env` values or employee data were committed.
+- Still unverified end-to-end: provisioning a local admin, valid login, persisted session after refresh, logout invalidation and unauthorized role redirect.
 
 ## Immediate next task
-1. Pull latest `main` (`git pull origin main`) so local files include the new authentication UI and backend.
-2. Confirm `server/.env` has a 32+ character `JWT_SECRET`, valid `MONGODB_URI`, and `CLIENT_ORIGIN=http://localhost:5173`.
-3. Run `npm test` and `npm run build`; check the GitHub Actions tab for the CI result. If anything fails, share the exact error output (never share `.env` values).
-4. Set `SEED_ADMIN_EMAIL` and `SEED_ADMIN_PASSWORD` in `server/.env` (unique password, at least 12 characters); run `npm run seed:admin --prefix server` once, then remove the seed password value.
-5. Open `http://localhost:5173/login`, sign in using the seeded admin, verify `/admin`, then sign out and verify protected routes send you back to login. Do not share the actual password or `.env` file.
-6. Fix all Phase 2 failures before moving to Phase 3 employee schema and CRUD APIs.
+1. Pull latest `main` (`git pull origin main`) so local files include the authentication backend and UI.
+2. In `server/.env`, confirm `JWT_SECRET` is 32+ characters, `MONGODB_URI` points to your running local MongoDB/Atlas DB, and `CLIENT_ORIGIN=http://localhost:5173`.
+3. Add `SEED_ADMIN_EMAIL` and `SEED_ADMIN_PASSWORD` (unique password at least 12 characters) to `server/.env`; run `npm run seed:admin --prefix server` once. Remove the seed password from `.env` after creation; never commit or share that file.
+4. Open `http://localhost:5173/login`, sign in with the email/password you configured, verify `/admin`, refresh to confirm the session remains, then sign out and verify `/admin` redirects to login.
+5. If local authentication fails, share only the error message/response (not credentials or `.env`). If it works, proceed to Phase 3 employee model and CRUD APIs.
+6. Keep this handoff updated after implementation/testing.
 
 ## Future-session resume instructions
 Paste/upload this file and say:
