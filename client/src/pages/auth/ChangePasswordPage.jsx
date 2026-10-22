@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowLeft, Banknote, CheckCircle2, CircleAlert, Eye, EyeOff, LoaderCircle, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Banknote, CircleAlert, Eye, EyeOff, LoaderCircle, ShieldCheck } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../../services/api.js";
 import { useAuth } from "../../contexts/AuthContext.jsx";
