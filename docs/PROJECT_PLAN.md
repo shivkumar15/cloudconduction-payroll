@@ -260,12 +260,13 @@ Expected: frontend `http://localhost:5173`; health endpoint `http://localhost:50
 - Final resume bullet points should be written only after the corresponding features and tests are complete. Do not claim production payroll or real payment processing.
 
 ## Immediate next task
-1. Pull latest `main` (`git pull origin main`) so the local clone contains the Phase 3 model, API, and UI.
+1. Pull latest `main` (`git pull origin main`) so the local clone contains the Phase 3 model, API, UI, and integration test.
 2. Run `npm install --prefix server`, `npm test`, and `npm run build`. Share error output only if a command fails; never share secrets.
-3. With MongoDB running and an admin account seeded, open `/admin/employees`. Create a synthetic employee, then test search, department/status filters, pagination, edit, deactivate, and reactivate.
-4. Verify duplicate employee code and work email are rejected and the linked employee account can log in. The admin-provided initial password is never stored in plaintext.
-5. Log in as that employee and verify `/employee` shows their own profile. Try reading a different employee's ID as that employee and confirm the API responds with 403.
-6. After these database-backed checks and the newest GitHub Actions run pass, update the recorded results and begin Phase 4 payroll calculation rules.
+3. With MongoDB running, run `npm run test:integration --prefix server` to exercise employee creation, duplicate rejection, login links, authorization, status changes, and session invalidation.
+4. With MongoDB running and an admin account seeded, open `/admin/employees`. Create a synthetic employee, then test search, department/status filters, pagination, edit, deactivate, and reactivate.
+5. Verify duplicate employee code/work email is rejected and the linked employee account can log in. The admin-provided initial password is never stored in plaintext.
+6. Log in as that employee and verify `/employee` shows their own profile. Try reading a different employee's ID as that employee and confirm the API responds with 403.
+7. After the newest GitHub Actions run and local browser smoke test pass, update the recorded results and begin Phase 4 payroll calculation rules.
 
 ## Future-session resume instructions
 Paste/upload this file and say:
