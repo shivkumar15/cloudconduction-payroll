@@ -1,11 +1,87 @@
 import { User } from "../models/User.js";
-import { loginSchema } from "../validators/authSchemas.js";
+import { changePasswordSchema, loginSchema } from "../validators/authSchemas.js";
 import {
   sessionCookieName,
   sessionCookieOptions,
   signSessionToken,
   verifySessionToken
 } from "../utils/sessionToken.js";
+
+export async function changePassword(req, res, next) {
+  const parsed = changePasswordSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({
+      success: false,
+      message: "Enter your current password and a new password with at least 12 characters."
+    });
+  }
+
+  try {
+    const user = await User.findById(req.authUser._id).select("+passwordHash");
+    if (!user || !user.isActive) {
+      return res.status(401).json({
+        success: false,
+        message: "Authentication required"
+      });
+    }
+
+    const currentPasswordMatches = await user.comparePassword(parsed.data.currentPassword);
+    if (!currentPasswordMatches) {
+      return res.status(400).json({
+        success: false,
+        message: "Current password is incorrect."
+      });
+    }
+
+    const isSamePassword = await user.comparePassword(parsed.data.newPassword);
+    if (isSamePassword) {
+      return res.status(400).json({
+        success: false,
+        message: "Choose a new password that differs from your current password."
+      });
+    }
+
+    const passwordHash = await User.hashPassword(parsed.data.newPassword);
+    // Atomically update only if this session still represents the current account version.
+    // This invalidates other sessions; the current browser receives a fresh session cookie.
+    const updatedUser = await User.findOneAndUpdate(
+      {
+        _id: user._id,
+        tokenVersion: req.authUser.tokenVersion,
+        isActive: true
+      },
+      {
+        $set: {
+          passwordHash,
+          mustChangePassword: false
+        },
+        $inc: { tokenVersion: 1 }
+      },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedUser) {
+      return res.status(409).json({
+        success: false,
+        message: "Your session changed. Please sign in again and retry."
+      });
+    }
+
+    res.cookie(
+      sessionCookieName,
+      signSessionToken(updatedUser),
+      sessionCookieOptions
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Password changed successfully.",
+      user: updatedUser.toPublicJSON()
+    });
+  } catch (error) {
+    return next(error);
+  }
+}
 
 export async function login(req, res, next) {
   const parsed = loginSchema.safeParse(req.body);
