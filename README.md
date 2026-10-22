@@ -113,7 +113,7 @@ From the repository root:
 npm test
 npm run build
 ```
-The API unit/route tests load the backend environment config, so ensure `server/.env` is configured first. The database-backed employee lifecycle test is separate and requires MongoDB to be running and reachable through `MONGODB_URI`:
+The API unit/route tests load the backend environment config, so ensure `server/.env` is configured first. The database-backed employee lifecycle test is separate and requires MongoDB to be running and reachable through `INTEGRATION_TEST_MONGODB_URI`. Set this to a dedicated database name containing `test` (for example, `mongodb://127.0.0.1:27017/cloudconduction_payroll_test`) in your local `server/.env`. The test refuses a target database whose name does not include `test`; do not point it at a real/application database:
 
 ```bash
 npm run test:integration --prefix server
