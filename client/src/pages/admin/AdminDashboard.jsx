@@ -1,8 +1,9 @@
-import { Activity, Banknote, LogOut, ShieldCheck, Users } from "lucide-react";
+import { Activity, Banknote, LogOut, ShieldCheck, Users, UserRoundCog } from "lucide-react";
+import { Link } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext.jsx";
 
 const metrics = [
-  { label: "Total employees", value: "—", note: "Available after employee setup", icon: Users },
+  { label: "Total employees", value: "—", note: "Employee count will be connected to the API next", icon: Users },
   { label: "Payroll this month", value: "₹—", note: "No payroll processed yet", icon: Banknote },
   { label: "Simulated transactions", value: "—", note: "Payment engine not configured", icon: Activity }
 ];
@@ -74,14 +75,22 @@ export default function AdminDashboard() {
           ))}
         </div>
 
-        <section className="mt-6 rounded-2xl border border-dashed border-slate-300 bg-white p-8">
-          <h2 className="text-lg font-semibold">Phase 2: authentication connected</h2>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-            You are signed in with an administrator account. Employee records, payroll processing, analytics, and transaction data will appear here as the next phases are implemented.
-          </p>
-          <p className="mt-4 rounded-lg bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800">
-            Demo environment: financial metrics are placeholders until backed by real application records. Simulated payments do not move money.
-          </p>
+        <section className="mt-6 grid gap-4 md:grid-cols-[1.5fr_1fr]">
+          <article className="rounded-2xl border border-slate-200 bg-white p-6">
+            <div className="flex items-start gap-3">
+              <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-indigo-50 text-indigo-600"><UserRoundCog size={22} /></span>
+              <div>
+                <h2 className="text-lg font-semibold">Employee management</h2>
+                <p className="mt-2 text-sm leading-6 text-slate-600">Create employee records with linked employee logins, manage salary structures, search and filter records, and deactivate access when an employee leaves.</p>
+                <Link to="/admin/employees" className="mt-4 inline-flex rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700">Manage employees</Link>
+              </div>
+            </div>
+          </article>
+          <article className="rounded-2xl border border-slate-200 bg-white p-6">
+            <h2 className="text-lg font-semibold">Demo boundary</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-600">Salary values are synthetic demo data. Statutory tax calculations and real salary transfers are not implemented.</p>
+            <p className="mt-4 rounded-lg bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800">Payroll totals and transaction cards remain placeholders until later phases.</p>
+          </article>
         </section>
       </section>
     </main>
