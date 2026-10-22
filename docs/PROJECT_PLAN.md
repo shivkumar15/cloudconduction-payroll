@@ -73,10 +73,13 @@ cloudconduction-payroll/
 ### Authentication/session
 - [ ] Password hashing, never plaintext.
 - [ ] Login errors do not unnecessarily reveal account existence.
-- [ ] HTTP-only cookie; Secure in production; appropriate SameSite.
-- [ ] CSRF protections for cookie-authenticated mutations.
-- [ ] Login rate limits and reasonable password policy.
-- [ ] Expiry, logout invalidation and secret rotation guidance.
+- [x] HTTP-only cookie; Secure in production; SameSite=Lax.
+- [x] Exact trusted-Origin check for unsafe cookie-authenticated requests.
+- [x] Login rate limit and generic credential error.
+- [x] Eight-hour token expiry and version-based session invalidation on logout/password reset.
+- [x] Email password reset with six-digit OTP, HMAC digest, 10-minute expiry, attempt limit, resend cooldown and atomic single-use consume.
+- [ ] Validate CSRF/origin strategy for actual deployment topology; never loosen it just to make cross-origin cookies work.
+- [ ] Configure and verify an actual SMTP provider with an owned test mailbox.
 - [ ] Admin provisioned through secure seed/admin workflow; no public role self-selection.
 ### Authorization/privacy
 - [ ] Central requireAuth and requireRole middleware.
@@ -142,17 +145,22 @@ Apply role/ownership rules to all endpoints. Enforce all state transitions and m
 - [ ] Add lint/format commands if useful.
 - Acceptance: start command, client build, health endpoint and tests all pass. Local startup is user-reported; production build/test evidence is not yet captured.
 ### Phase 2 — authentication and authorization
-- [ ] User model/indexes.
-- [ ] Admin seed/provisioning script.
-- [ ] Login/logout/current-user routes.
-- [ ] Secure cookie and CSRF approach.
-- [ ] Auth/role middleware.
-- [ ] Tests: invalid/valid login, anonymous access, forbidden role, ownership, logout.
-- Acceptance: protected routes reject unauthorized requests; client cannot elevate role.
+- [x] User model with unique normalized email, password hash, role, active flag and session token version.
+- [x] Admin seed/provisioning script; no public registration endpoint.
+- [x] Login/logout/current-user routes.
+- [x] HttpOnly session cookie, eight-hour expiry, SameSite and Secure-in-production settings.
+- [x] Session token verification and role middleware.
+- [x] Trusted-Origin enforcement on unsafe API methods.
+- [x] Email password-reset OTP: SMTP adapter, HMAC code hash, ten-minute expiry, cooldown, attempt limit, single-use reset and invalidation of existing sessions.
+- [x] Frontend show/hide password toggle, forgot-password route, reset form, and admin/employee role routes.
+- [x] Tests cover anonymous access, malformed login/reset input, OTP shape/HMAC, missing/untrusted origin and absent SMTP configuration.
+- [ ] Verify actual SMTP delivery and login/reset flow with a local test mailbox.
+- [ ] Add broader tests for successful login, password reset end-to-end, forbidden role and ownership during protected resource development.
+- Acceptance: baseline checks pass in CI; real email and full auth smoke test must be verified by developer.
 ### Phase 3 — employee management
 - [ ] Employee model and validation.
 - [ ] Admin list/create/update/deactivate APIs and UI.
-- [ ] Pagination/filtering and strict writable fields.
+- [ ] Pagination/filtering and strict writable fields (pagination is required to prevent unbounded list responses).
 - [ ] Employee self-service route.
 - [ ] Tests for validation, uniqueness, roles and ownership.
 - Acceptance: admin manages synthetic employees; employee sees only own record.
@@ -183,6 +191,8 @@ Apply role/ownership rules to all endpoints. Enforce all state transitions and m
 - Acceptance: no misleading data, failure handling, server authorization.
 ### Phase 7 — quality and release
 - [ ] Unit and API integration suite.
+- [x] Bounded concurrency smoke-test script (default 25 concurrent workers / 250 health requests); execute and record actual metrics before claiming a capacity number.
+- [ ] Add authenticated API performance test with synthetic employees/payroll after those features exist.
 - [ ] Client production build/lint.
 - [ ] Security regression checklist.
 - [ ] Seed script with obviously synthetic data.
@@ -213,16 +223,19 @@ Expected: frontend `http://localhost:5173`; health endpoint `http://localhost:50
 - Frontend login UI, Axios API client, session context, protected admin/employee routes and logout controls are committed.
 - `.github/workflows/ci.yml` runs backend tests and frontend production build on pushes and PRs.
 - No public signup is available. Employee/payroll API and features are still pending.
-- GitHub Actions run #1 succeeded for all steps: checkout, Node setup, root/server/client dependency installation, API tests and client production build. The succeeding commit includes the published authentication backend and UI. No real `.env` values or employee data were committed.
-- Still unverified end-to-end: provisioning a local admin, valid login, persisted session after refresh, logout invalidation and unauthorized role redirect.
+- Password visibility toggle was added to sign-in form; a forgot-password UI now supports requesting an email OTP and setting a new password.
+- OTP codes are generated with cryptographic randomness, stored as user-bound HMAC digests, expire after 10 minutes, accept at most 5 wrong code attempts, apply a 60-second resend cooldown, and are consumed via a conditional atomic update. Successful reset increments session version.
+- SMTP service uses env-based Nodemailer configuration. Actual SMTP credentials/delivery are not configured or verified yet; reset email cannot work until provider settings are set.
+- MongoDB pool configured with max 20/min 2 sockets per server process. Added bounded health-endpoint smoke test, defaults 25 concurrent workers and 250 requests; no load run/actual capacity is claimed yet. Future employee endpoints must be paginated; production multi-instance rate limiting needs a shared store.
+- Added tests for OTP helper and reset validation. The latest CI for these new commits is still pending; verify via Actions before claiming the newest changes pass.
 
 ## Immediate next task
-1. Pull latest `main` (`git pull origin main`) so local files include the authentication backend and UI.
-2. In `server/.env`, confirm `JWT_SECRET` is 32+ characters, `MONGODB_URI` points to your running local MongoDB/Atlas DB, and `CLIENT_ORIGIN=http://localhost:5173`.
-3. Add `SEED_ADMIN_EMAIL` and `SEED_ADMIN_PASSWORD` (unique password at least 12 characters) to `server/.env`; run `npm run seed:admin --prefix server` once. Remove the seed password from `.env` after creation; never commit or share that file.
-4. Open `http://localhost:5173/login`, sign in with the email/password you configured, verify `/admin`, refresh to confirm the session remains, then sign out and verify `/admin` redirects to login.
-5. If local authentication fails, share only the error message/response (not credentials or `.env`). If it works, proceed to Phase 3 employee model and CRUD APIs.
-6. Keep this handoff updated after implementation/testing.
+1. Pull latest `main` (`git pull origin main`) so local files include the password toggle, password-reset page/API, and load smoke test.
+2. Run `npm install --prefix server` (for Nodemailer), `npm test`, and `npm run build`; check GitHub Actions after the latest commit and share failures only, not secret values.
+3. Test the show/hide password toggle on `/login`.
+4. Configure SMTP using your provider's values in local `server/.env`, then request a reset code from `/forgot-password` and verify valid, expired and incorrect OTP behavior. Do not share OTPs or provider credentials.
+5. Run `npm run load:test --prefix server` while the backend is running and record the actual result. This tests health endpoint concurrency only, not full payroll capacity.
+6. Then implement Phase 3 employee schema and paginated CRUD APIs, employee provisioning/role attachment, and owner-only self-service endpoints.
 
 ## Future-session resume instructions
 Paste/upload this file and say:
