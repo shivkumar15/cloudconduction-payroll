@@ -53,6 +53,14 @@ export function requireRole(...allowedRoles) {
       });
     }
 
+    if (req.authUser.mustChangePassword) {
+      return res.status(403).json({
+        success: false,
+        code: "PASSWORD_CHANGE_REQUIRED",
+        message: "Change your temporary password before accessing the workspace"
+      });
+    }
+
     if (!allowedRoles.includes(req.authUser.role)) {
       return res.status(403).json({
         success: false,
