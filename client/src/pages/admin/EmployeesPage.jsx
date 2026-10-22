@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { ArrowLeft, CheckCircle2, ChevronLeft, ChevronRight, Pencil, Plus, Search, UserX, Users } from "lucide-react";
+import { ArrowLeft, CheckCircle2, ChevronLeft, ChevronRight, Eye, EyeOff, Pencil, Plus, Search, UserX, Users } from "lucide-react";
 import { Link } from "react-router-dom";
 import api from "../../services/api.js";
 
@@ -44,6 +44,8 @@ const emptyCreateForm = {
 };
 
 function EmployeeFields({ form, setForm, includeAccountPassword = false }) {
+  const [showInitialPassword, setShowInitialPassword] = useState(false);
+
   function change(event) {
     setForm((current) => ({ ...current, [event.target.name]: event.target.value }));
   }
@@ -93,8 +95,31 @@ function EmployeeFields({ form, setForm, includeAccountPassword = false }) {
       {includeAccountPassword && (
         <label>
           <span className={labelClass}>Initial password</span>
-          <input className={fieldClass} type="password" name="initialPassword" value={form.initialPassword || ""} onChange={change} minLength={12} maxLength={128} autoComplete="new-password" required />
-          <span className="mt-1 block text-xs text-slate-500">At least 12 characters. Share this with the employee through a separate secure channel.</span>
+          <span className="relative block">
+            <input
+              className={fieldClass + " pr-12"}
+              type={showInitialPassword ? "text" : "password"}
+              name="initialPassword"
+              value={form.initialPassword || ""}
+              onChange={change}
+              minLength={12}
+              maxLength={128}
+              autoComplete="new-password"
+              required
+            />
+            <button
+              type="button"
+              onClick={() => setShowInitialPassword((current) => !current)}
+              aria-label={showInitialPassword ? "Hide initial password" : "Show initial password"}
+              aria-pressed={showInitialPassword}
+              className="absolute inset-y-0 right-0 inline-flex items-center justify-center rounded-r-lg px-3 text-slate-500 hover:text-indigo-600 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500"
+            >
+              {showInitialPassword
+                ? <EyeOff size={18} aria-hidden="true" />
+                : <Eye size={18} aria-hidden="true" />}
+            </button>
+          </span>
+          <span className="mt-1 block text-xs text-slate-500">At least 12 characters. Use the eye button to verify your entry. Share it with the employee through a separate secure channel.</span>
         </label>
       )}
     </div>
