@@ -130,9 +130,7 @@ export async function createEmployee(req, res, next) {
     if (existingEmployee) {
       return res.status(409).json({
         success: false,
-        message: existingEmployee.employeeCode === employeeData.employeeCode
-          ? "Employee code or work email is already in use"
-          : "Employee code or work email is already in use"
+        message: "Employee code or work email is already in use"
       });
     }
     if (existingUser) {
