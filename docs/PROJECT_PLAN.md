@@ -141,7 +141,7 @@ Apply role/ownership rules to all endpoints. Enforce all state transitions and m
 ### Phase 1 — foundation
 - [x] Initial starter scaffold generated locally (React/Vite/Tailwind, Express/Mongoose connection, health endpoint, baseline security middleware, one health test).
 - [x] User reports local app/URLs opened successfully without errors.
-- [ ] Confirm client production build and `npm test` results specifically.
+- [x] Confirm client production build and `npm test` results specifically (user verified locally on 2026-10-23: 32 tests passed and the Vite production build succeeded).
 - [ ] Add lint/format commands if useful.
 - Acceptance: start command, client build, health endpoint and tests all pass. Local startup is user-reported; production build/test evidence is not yet captured.
 ### Phase 2 — authentication and authorization
@@ -157,11 +157,11 @@ Apply role/ownership rules to all endpoints. Enforce all state transitions and m
 - [x] Email password-reset OTP: SMTP adapter, HMAC code hash, ten-minute expiry, cooldown, attempt limit, single-use reset and invalidation of existing sessions.
 - [x] Accessible show/hide password toggles on login, password-reset, reset-confirmation, and admin-created employee initial-password inputs.
 - [x] Tests cover anonymous access, malformed login/reset input, OTP shape/HMAC, missing/untrusted origin and absent SMTP configuration.
-- [ ] Verify actual SMTP delivery and login/reset flow with a local test mailbox.
+- [x] Verify actual SMTP delivery and password-reset flow with a user-controlled test mailbox (user confirmed code delivery and successful password reset on 2026-10-23).
 - [x] Add tests for change-password validation and anonymous-route denial; MongoDB integration verifies mandatory first-login change, blocked workspace access, incorrect/reused password rejection, session invalidation and successful new-password login.
-- [ ] Verify SMTP delivery with a test mailbox after configuring provider settings.
+- [x] Verify SMTP delivery with a test mailbox after configuring provider settings (completed 2026-10-23).
 - [x] GitHub Actions CI passed for the password-reset UI, OTP utility/API validation tests, Nodemailer dependency and connection-pool/load-test commits; the latest documented-plan run also passed tests and build.
-- Acceptance: current automated test/build baseline passes in CI; actual SMTP delivery, true local auth smoke test and load metrics must be verified by developer.
+- Acceptance: automated tests/build pass in CI, and the user confirmed actual SMTP delivery plus successful password reset. The broader local login/change-password/admin/employee browser smoke test and database-backed load metrics remain to be verified.
 ### Phase 3 — employee management
 - [x] Employee model with unique employee code/work email, explicit INR currency, status, timestamps and salary structure stored in integer paise.
 - [x] Zod create/update/query validation, including no unknown fields and deductions not exceeding gross earnings.
@@ -228,7 +228,7 @@ Expected: frontend `http://localhost:5173`; health endpoint `http://localhost:50
 
 ## Current status — 2026-10-23
 - GitHub repository: `https://github.com/shivkumar15/cloudconduction-payroll` (public, default branch `main`; connected account has push/admin access).
-- User locally verified Phase 3 on 2026-10-22: `npm test` passed all 26 tests (0 failures); `npm run build` passed (Vite transformed 1,655 modules); and `npm run test:integration --prefix server` passed its MongoDB-backed employee lifecycle test (1 passed, 0 failed).
+- User locally verified Phase 3 on 2026-10-22: `npm test` passed all 32 tests (0 failures and no Mongoose timeout after the deterministic SMTP test fix); `npm run build` passed (Vite transformed 1,656 modules); and `npm run test:integration --prefix server` passed its MongoDB-backed employee lifecycle test (1 passed, 0 failed). The user also confirmed receiving the password-reset OTP email and successfully completing the reset.
 - Foundation files are committed. Phase 3 adds `server/src/models/Employee.js`, `server/src/utils/money.js`, `server/src/validators/employeeSchemas.js`, `server/src/controllers/employeeController.js`, `server/src/routes/employeeRoutes.js`, and ownership middleware. Routes are mounted at `/api/employees`.
 - Authentication API files are committed: `server/src/models/User.js`, `server/src/utils/sessionToken.js`, `server/src/validators/authSchemas.js`, `server/src/middleware/auth.js`, `server/src/middleware/trustedOrigin.js`, `server/src/controllers/authController.js`, `server/src/routes/authRoutes.js`, and `server/src/scripts/seedAdmin.js`.
 - Auth routes are mounted in `server/src/app.js`; tests cover anonymous `/me`, malformed login input, missing Origin and untrusted Origin. Ephemeral test servers now await listening/close correctly.
@@ -238,13 +238,13 @@ Expected: frontend `http://localhost:5173`; health endpoint `http://localhost:50
 - No public signup is available. Phase 3 employee API/UI is now implemented on main; payroll and transactions remain pending.
 - Password visibility toggle was added to sign-in form; a forgot-password UI now supports requesting an email OTP and setting a new password.
 - OTP codes are generated with cryptographic randomness, stored as user-bound HMAC digests, expire after 10 minutes, accept at most 5 wrong code attempts, apply a 60-second resend cooldown, and are consumed via a conditional atomic update. Successful reset increments session version.
-- SMTP service uses env-based Nodemailer configuration. Actual SMTP credentials/delivery are not configured or verified yet; reset email cannot work until provider settings are set.
+- SMTP service uses env-based Nodemailer configuration. User confirmed SMTP delivery to a controlled test mailbox and successfully completed password reset on 2026-10-23. Do not store live SMTP credentials in the repository; full provider-specific failure/recovery testing may still be expanded.
 - MongoDB pool configured with max 20/min 2 sockets per server process. Added bounded health-endpoint smoke test, defaults 25 concurrent workers and 250 requests; no load run/actual capacity is claimed yet. Employee APIs are paginated; production multi-instance rate limiting needs a shared store.
 - Added tests for OTP helper/reset validation and Phase 3 employee schemas, unique-index definitions, role guard, ownership policy, malformed IDs and unauthenticated routes. The dedicated MongoDB-backed employee lifecycle test requires `INTEGRATION_TEST_MONGODB_URI` and refuses database names without `test`. CI run 76 at commit `81a16a79` passed. The user also reports all 26 unit/API tests, the frontend build, and the MongoDB integration test passed locally on 2026-10-22. A local browser smoke test remains outstanding.
-- Dependency security: user verified `nodemailer@10.2.1` installed locally, `npm audit --prefix server` reported `found 0 vulnerabilities`, all 26 unit/API tests passed, the frontend build succeeded, and the MongoDB-backed integration test passed. GitHub Actions run 79 passed after the Nodemailer version update. SMTP credentials/delivery remain unconfigured.
+- Dependency security: user verified `nodemailer@10.2.1` installed locally, `npm audit --prefix server` reported `found 0 vulnerabilities`, all 26 unit/API tests passed, the frontend build succeeded, and the MongoDB-backed integration test passed. GitHub Actions run 79 passed after the Nodemailer version update. SMTP delivery and password reset are now locally verified by the user.
 - Password-change workflow was added: new and legacy employee accounts without an explicit flag require a first-login change, backend role guards block protected workspace APIs until the temporary password changes, and authenticated users can change passwords from `/change-password` or their dashboard. Change-password validation and lifecycle integration tests were added. GitHub Actions run 110 at commit `4536cc44` passed, including the legacy-user default test; subsequent commits only update README, `.env.example`, and this plan. The user's local tests/build after pulling these changes and a browser smoke test are still pending.
-- Forgot-password UX was refined after noticing that unknown addresses receive no email but the UI could imply a code had definitely been sent. The API intentionally keeps the response generic to prevent account enumeration; the reset-code screen now explains conditional delivery, suggests checking spam and verifying the address/contacting the payroll administrator, and no longer says the code was definitely sent. Added a regression test asserting an unknown address and an active account in resend cooldown receive the same public status/body. This change still needs local test/build/integration verification and a fresh CI result.
-- Local test output on 2026-10-23 exposed a Mongoose buffering-timeout log despite all unit tests passing: the missing-SMTP unit test depended on `process.env.SMTP_HOST`, so a developer's local `.env` could accidentally exercise the database path. Updated the test to temporarily clear the parsed SMTP config, assert the 503 response unconditionally, and restore the original config afterward. Awaiting CI and a local rerun to confirm the timeout is gone.
+- Forgot-password UX was refined after noticing that unknown addresses receive no email but the UI could imply a code had definitely been sent. The API intentionally keeps the response generic to prevent account enumeration; the reset-code screen now explains conditional delivery, suggests checking spam and verifying the address/contacting the payroll administrator, and no longer says the code was definitely sent. Added a regression test asserting an unknown address and an active account in resend cooldown receive the same public status/body. The user verified the reset flow locally; GitHub Actions runs 119–121 passed.
+- Local test output on 2026-10-23 exposed a Mongoose buffering-timeout log despite all unit tests passing: the missing-SMTP unit test depended on `process.env.SMTP_HOST`, so a developer's local `.env` could accidentally exercise the database path. Updated the test to temporarily clear the parsed SMTP config, assert the 503 response unconditionally, and restore the original config afterward. The user reran `npm test`: all 32 passed with no timeout log; CI runs 120 and 121 also passed.
 
 
 ## Resume alignment (based on the uploaded one-page resume, reviewed 2026-10-22)
@@ -270,12 +270,11 @@ Expected: frontend `http://localhost:5173`; health endpoint `http://localhost:50
 - Final resume bullet points should be written only after the corresponding features and tests are complete. Do not claim production payroll or real payment processing.
 
 ## Immediate next task
-1. Pull latest `main` and run `npm install --prefix server`, `npm test`, `npm run build`, and `npm run test:integration --prefix server`.
-2. Confirm the latest GitHub Actions run also passes after the documentation/environment example commits.
-3. Create a new synthetic employee and confirm first login redirects to `/change-password`; verify role-protected employee API requests are blocked until the password changes.
-4. Change the password, confirm the employee reaches their workspace, sign out/in with the new password, and verify the old temporary password no longer works. Test a voluntary password change from the employee workspace too.
-5. Configure SMTP in local `server/.env` if email-based Forgot password should work. After a test email is delivered, verify valid/expired/incorrect OTP paths. Never share the SMTP app password or OTPs.
-6. Once CI and local checks pass, update this handoff and continue to Phase 4 payroll calculations.
+1. Complete the remaining local browser smoke test for admin/employee workflows, especially mandatory first-login password change, employee workspace access, and the old temporary password becoming invalid.
+2. Begin Phase 4 — payroll logic. First document the demo salary formula and rounding rules, then implement a pure integer-paise calculator with unit tests before creating payroll-run APIs/models.
+3. Add payroll periods and enforce valid status transitions, duplicate-run prevention and authorization in the backend.
+4. Once payroll logic and integration tests pass, proceed to Phase 5 simulated transactions, then finish the payroll-facing admin/employee dashboards and reports in Phase 6.
+5. Keep Phase 7 release hardening (security regression checks, synthetic seed data, authenticated load tests, README/deployment review) as the final gate. SMTP delivery and the forgot-password reset flow have already been verified locally; never commit SMTP credentials or share OTPs.
 
 ## Future-session resume instructions
 Paste/upload this file and say:
