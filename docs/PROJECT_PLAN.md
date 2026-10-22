@@ -236,7 +236,7 @@ Expected: frontend `http://localhost:5173`; health endpoint `http://localhost:50
 - SMTP service uses env-based Nodemailer configuration. Actual SMTP credentials/delivery are not configured or verified yet; reset email cannot work until provider settings are set.
 - MongoDB pool configured with max 20/min 2 sockets per server process. Added bounded health-endpoint smoke test, defaults 25 concurrent workers and 250 requests; no load run/actual capacity is claimed yet. Future employee endpoints must be paginated; production multi-instance rate limiting needs a shared store.
 - Added tests for OTP helper/reset validation and Phase 3 employee schemas, unique-index definitions, role guard, ownership policy, malformed IDs and unauthenticated routes. The dedicated MongoDB-backed employee lifecycle test requires `INTEGRATION_TEST_MONGODB_URI` and refuses database names without `test`. CI run 76 at commit `81a16a79` passed. The user also reports all 26 unit/API tests, the frontend build, and the MongoDB integration test passed locally on 2026-10-22. A local browser smoke test remains outstanding.
-- Dependency security: user confirmed the high-severity advisories affect Nodemailer installed from `^7.0.10`; their npm audit recommends `nodemailer@10.2.1`. Updated `server/package.json` to `^10.2.1` in commit `4df8941b`. The project's mail service uses `createTransport()` and `sendMail()`, and CI runs Node 22 (Nodemailer 10 requires Node 20+ per upstream release notes). Local installation, `npm audit`, tests and CI for this dependency upgrade still need confirmation before marking the advisory cleared.
+- Dependency security: user verified `nodemailer@10.2.1` installed locally, `npm audit --prefix server` reported `found 0 vulnerabilities`, all 26 unit/API tests passed, `npm run build` succeeded, and `npm run test:integration --prefix server` passed (1 test, 0 failures). GitHub Actions run 79 at commit `4df8941b` passed after the Nodemailer version update. The SMTP provider/delivery itself has not been tested because SMTP credentials are not configured. A local admin/employee browser smoke test remains outstanding.
 
 
 ## Resume alignment (based on the uploaded one-page resume, reviewed 2026-10-22)
@@ -262,12 +262,10 @@ Expected: frontend `http://localhost:5173`; health endpoint `http://localhost:50
 - Final resume bullet points should be written only after the corresponding features and tests are complete. Do not claim production payroll or real payment processing.
 
 ## Immediate next task
-1. Pull latest `main` (`git pull origin main`) to get the Nodemailer 10.2.1 dependency update.
-2. Run `npm install --prefix server`, then `npm audit --prefix server` to refresh installed packages and verify whether the reported high-severity advisories are resolved. Do not run `npm audit fix --force` because the manifest now specifies the patched major version directly.
-3. Run `npm test`, `npm run build`, and `npm run test:integration --prefix server`; investigate any incompatibility before confirming the dependency upgrade.
-4. Open the newest GitHub Actions run and confirm it passes for the dependency-upgrade commit.
-5. Complete a local browser smoke test: as admin create/search/filter/edit/deactivate/reactivate a synthetic employee; then log in as that employee and confirm only their profile is shown.
-6. Once the audit is clean, CI passes, and the browser smoke test is complete, update this handoff and continue to Phase 4 payroll calculations.
+1. Complete a local browser smoke test with the latest code: start MongoDB and the app, log in as admin, and open `/admin/employees`.
+2. Create a synthetic employee, test searching/filtering/pagination, edit salary/profile, deactivate and reactivate the record.
+3. Log in with the linked employee credentials and confirm `/employee` shows only that employee's profile; try accessing another employee's ID and verify the API denies it.
+4. If the browser smoke test passes, mark Phase 3 complete and move to Phase 4 payroll calculations. SMTP delivery remains a separate auth setup task and requires local provider configuration before it can be verified.
 
 ## Future-session resume instructions
 Paste/upload this file and say:
