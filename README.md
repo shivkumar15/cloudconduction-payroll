@@ -119,7 +119,7 @@ The API unit/route tests load the backend environment config, so ensure `server/
 npm run test:integration --prefix server
 ```
 
-GitHub Actions runs the unit/route tests, MongoDB-backed employee lifecycle integration test, and frontend production build on pushes and pull requests. Check the Actions tab for the latest run result, then test the admin/employee browser flow locally.
+GitHub Actions run 76 at commit `81a16a79` passed the unit/route tests, MongoDB-backed employee lifecycle integration test, and frontend production build. The developer also reported locally passing all 26 unit/API tests, the production build, and the 1-test MongoDB integration suite on 2026-10-22. The local admin/employee browser smoke test remains outstanding. A server install reported one high-severity npm audit item; run `npm audit --prefix server` to identify the advisory and affected dependency before selecting an update. Do not use `npm audit fix --force` without reviewing breaking changes.
 
 
 ## Password reset email configuration
