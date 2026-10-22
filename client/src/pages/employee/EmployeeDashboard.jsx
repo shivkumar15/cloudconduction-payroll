@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Banknote, LogOut, ShieldCheck, UserRound } from "lucide-react";
+import { Link } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext.jsx";
 import api from "../../services/api.js";
 
@@ -55,9 +56,12 @@ export default function EmployeeDashboard() {
               <p className="text-xs text-slate-500">Employee workspace</p>
             </div>
           </div>
+          <div className="flex items-center gap-2">
+            <Link to="/change-password" className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium hover:bg-slate-50">Change password</Link>
           <button onClick={handleLogout} className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium hover:bg-slate-50" type="button">
             <LogOut size={16} aria-hidden="true" /> Sign out
           </button>
+          </div>
         </div>
       </header>
 
