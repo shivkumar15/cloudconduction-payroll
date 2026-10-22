@@ -81,7 +81,7 @@ Example request body (all people and numbers below are synthetic demo values):
 }
 ```
 
-Monetary fields are integer paise at the API/database boundary (₹25,000 is 2,500,000 paise). The UI accepts rupee input and converts it to paise. Deductions cannot exceed base salary plus allowances. This is a demo salary structure—not a statutory tax calculation or final payslip.
+Monetary fields are integer paise at the API/database boundary (₹25,000 is 2,500,000 paise). The UI accepts rupee input and converts it to paise. Employee records explicitly store currency as INR, which is the only supported currency in this version. Deductions cannot exceed base salary plus allowances. This is a demo salary structure—not a statutory tax calculation or final payslip.
 
 Employee code and work email are normalized and unique. The work email is also the linked login identity and is immutable through the employee update endpoint. Employee listing is bounded to at most 100 records per page. Search input is escaped before being used as a regular expression. Employee self-service resolves the linked employee ID from the authenticated account; the API does not trust a client-supplied employee ID for `/me`.
 
