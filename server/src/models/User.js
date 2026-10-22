@@ -34,7 +34,10 @@ const userSchema = new mongoose.Schema({
   },
   mustChangePassword: {
     type: Boolean,
-    default: false,
+    // Legacy employee records without this field still require the first-login password change.
+    default: function defaultMustChangePassword() {
+      return this.role === "employee";
+    },
     required: true
   },
   tokenVersion: {
