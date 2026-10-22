@@ -156,7 +156,8 @@ Apply role/ownership rules to all endpoints. Enforce all state transitions and m
 - [x] Tests cover anonymous access, malformed login/reset input, OTP shape/HMAC, missing/untrusted origin and absent SMTP configuration.
 - [ ] Verify actual SMTP delivery and login/reset flow with a local test mailbox.
 - [ ] Add broader tests for successful login, password reset end-to-end, forbidden role and ownership during protected resource development.
-- Acceptance: baseline checks pass in CI; real email and full auth smoke test must be verified by developer.
+- [x] GitHub Actions CI passed for the password-reset UI, OTP utility/API validation tests, Nodemailer dependency and connection-pool/load-test commits; the latest documented-plan run also passed tests and build.
+- Acceptance: current automated test/build baseline passes in CI; actual SMTP delivery, true local auth smoke test and load metrics must be verified by developer.
 ### Phase 3 — employee management
 - [ ] Employee model and validation.
 - [ ] Admin list/create/update/deactivate APIs and UI.
@@ -231,7 +232,7 @@ Expected: frontend `http://localhost:5173`; health endpoint `http://localhost:50
 
 ## Immediate next task
 1. Pull latest `main` (`git pull origin main`) so local files include the password toggle, password-reset page/API, and load smoke test.
-2. Run `npm install --prefix server` (for Nodemailer), `npm test`, and `npm run build`; check GitHub Actions after the latest commit and share failures only, not secret values.
+2. Run `npm install --prefix server` (for Nodemailer), `npm test`, and `npm run build`; if anything fails, share errors only, not secret values.
 3. Test the show/hide password toggle on `/login`.
 4. Configure SMTP using your provider's values in local `server/.env`, then request a reset code from `/forgot-password` and verify valid, expired and incorrect OTP behavior. Do not share OTPs or provider credentials.
 5. Run `npm run load:test --prefix server` while the backend is running and record the actual result. This tests health endpoint concurrency only, not full payroll capacity.
