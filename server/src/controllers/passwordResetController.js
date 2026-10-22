@@ -13,7 +13,7 @@ import {
 const OTP_TTL_MS = 10 * 60 * 1000;
 const OTP_RESEND_COOLDOWN_MS = 60 * 1000;
 const MAX_OTP_ATTEMPTS = 5;
-const GENERIC_REQUEST_MESSAGE = "If an active account exists for that email, a reset code will be sent.";
+const GENERIC_REQUEST_MESSAGE = "If an active account exists for that email, a reset code will be sent. Check spam/junk; if no code arrives within a few minutes, verify the address or contact your payroll administrator.";
 const INVALID_OTP_MESSAGE = "The reset code is invalid or expired. Request a new code and try again.";
 
 export async function requestPasswordReset(req, res, next) {
