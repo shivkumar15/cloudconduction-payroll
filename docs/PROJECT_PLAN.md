@@ -208,19 +208,20 @@ Expected: frontend `http://localhost:5173`; health endpoint `http://localhost:50
 - User reports initial local app/URLs opened successfully without errors. Exact npm test and production build output has not yet been captured.
 - Foundation files are committed: root package/README/gitignore; server app/startup/config/middleware/env example/health test; client Vite config and initial dashboard.
 - Authentication API files are committed: `server/src/models/User.js`, `server/src/utils/sessionToken.js`, `server/src/validators/authSchemas.js`, `server/src/middleware/auth.js`, `server/src/middleware/trustedOrigin.js`, `server/src/controllers/authController.js`, `server/src/routes/authRoutes.js`, and `server/src/scripts/seedAdmin.js`.
-- Auth routes are mounted in `server/src/app.js`; `server/test/auth.test.js` tests anonymous `/me`, malformed login input, missing Origin and untrusted Origin.
-- `server/package.json` contains `seed:admin`. `.env.example` documents optional seed variables; do not commit actual secrets.
-- README explains local admin provisioning and auth endpoints.
-- No public signup is available. Frontend login UI is not connected yet.
-- Auth code has been committed but is not verified by running tests in the user's local environment yet. No real `.env` values or employee data were committed.
+- Auth routes are mounted in `server/src/app.js`; tests cover anonymous `/me`, malformed login input, missing Origin and untrusted Origin. Ephemeral test servers now await listening/close correctly.
+- `server/package.json` contains `seed:admin`. `.env.example` documents optional seed variables; no actual secret values were committed.
+- Frontend login UI, Axios API client, session context, protected admin/employee routes and logout controls are committed.
+- `.github/workflows/ci.yml` runs backend tests and frontend production build on pushes and PRs.
+- No public signup is available. Employee/payroll API and features are still pending.
+- Auth code is committed but test/build and CI success are not yet verified in this assistant environment. No real `.env` values or employee data were committed.
 
 ## Immediate next task
-1. Pull latest `main` (`git pull origin main`) so local files include Phase 2 auth commits.
+1. Pull latest `main` (`git pull origin main`) so local files include the new authentication UI and backend.
 2. Confirm `server/.env` has a 32+ character `JWT_SECRET`, valid `MONGODB_URI`, and `CLIENT_ORIGIN=http://localhost:5173`.
-3. Run `npm test` and `npm run build`; report results and fix failures first.
+3. Run `npm test` and `npm run build`; check the GitHub Actions tab for the CI result. If anything fails, share the exact error output (never share `.env` values).
 4. Set `SEED_ADMIN_EMAIL` and `SEED_ADMIN_PASSWORD` in `server/.env` (unique password, at least 12 characters); run `npm run seed:admin --prefix server` once, then remove the seed password value.
-5. Verify login/logout/current-user API; the frontend login form is the next planned UI addition. Do not share the actual password or `.env` file.
-6. Update this handoff with commit/test evidence and exact next task.
+5. Open `http://localhost:5173/login`, sign in using the seeded admin, verify `/admin`, then sign out and verify protected routes send you back to login. Do not share the actual password or `.env` file.
+6. Fix all Phase 2 failures before moving to Phase 3 employee schema and CRUD APIs.
 
 ## Future-session resume instructions
 Paste/upload this file and say:
