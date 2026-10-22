@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { app } from "../src/app.js";
+import { env } from "../src/config/env.js";
 import {
   generatePasswordResetOtp,
   hashPasswordResetOtp,
@@ -56,6 +57,24 @@ test("password reset confirmation rejects invalid code shape without database ac
 });
 
 test("password reset request explains global SMTP setup is required", async (t) => {
+  // Force the no-SMTP case even when a developer has SMTP values in their local .env.
+  // This endpoint should return before touching MongoDB when SMTP is unavailable.
+  const originalSmtpConfig = {
+    SMTP_HOST: env.SMTP_HOST,
+    SMTP_PORT: env.SMTP_PORT,
+    SMTP_USER: env.SMTP_USER,
+    SMTP_PASS: env.SMTP_PASS,
+    MAIL_FROM: env.MAIL_FROM
+  };
+  Object.assign(env, {
+    SMTP_HOST: undefined,
+    SMTP_PORT: undefined,
+    SMTP_USER: undefined,
+    SMTP_PASS: undefined,
+    MAIL_FROM: undefined
+  });
+  t.after(() => Object.assign(env, originalSmtpConfig));
+
   const baseUrl = await withServer(t);
   const response = await fetch(`${baseUrl}/api/auth/password-reset/request`, {
     method: "POST",
@@ -67,9 +86,6 @@ test("password reset request explains global SMTP setup is required", async (t) 
   });
   const body = await response.json();
 
-  // CI deliberately has no SMTP credentials; the endpoint must fail before querying users.
-  if (!process.env.SMTP_HOST) {
-    assert.equal(response.status, 503);
-    assert.match(body.message, /email is not configured/i);
-  }
+  assert.equal(response.status, 503);
+  assert.match(body.message, /email is not configured/i);
 });
