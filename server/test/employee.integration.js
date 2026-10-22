@@ -26,14 +26,13 @@ test("MongoDB employee lifecycle enforces login links, roles, duplicates and own
 
   async function request(baseUrl, path, options = {}) {
     const headers = {};
-    if (options.body !== undefined) {
-      headers["Content-Type"] = "application/json";
-      headers.Origin = "http://localhost:5173";
-    }
+    const method = options.method || "GET";
+    if (options.body !== undefined) headers["Content-Type"] = "application/json";
+    if (!["GET", "HEAD", "OPTIONS"].includes(method)) headers.Origin = "http://localhost:5173";
     if (options.cookie) headers.Cookie = options.cookie;
 
     return fetch(baseUrl + path, {
-      method: options.method || "GET",
+      method,
       headers,
       body: options.body === undefined ? undefined : JSON.stringify(options.body)
     });
