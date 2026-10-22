@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Banknote, CircleAlert, LoaderCircle, ShieldCheck } from "lucide-react";
+import { Banknote, CircleAlert, Eye, EyeOff, LoaderCircle, ShieldCheck } from "lucide-react";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext.jsx";
 
@@ -9,6 +9,7 @@ export default function LoginPage() {
   const location = useLocation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
@@ -114,18 +115,31 @@ export default function LoginPage() {
                 <label htmlFor="password" className="mb-2 block text-sm font-medium text-slate-700">
                   Password
                 </label>
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  autoComplete="current-password"
-                  maxLength={128}
-                  required
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                  className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-3 text-sm outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
-                  placeholder="Enter your password"
-                />
+                <div className="relative">
+                  <input
+                    id="password"
+                    name="password"
+                    type={showPassword ? "text" : "password"}
+                    autoComplete="current-password"
+                    maxLength={128}
+                    required
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                    className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-3 pr-12 text-sm outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
+                    placeholder="Enter your password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((current) => !current)}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    aria-pressed={showPassword}
+                    className="absolute inset-y-0 right-0 inline-flex items-center justify-center rounded-r-xl px-3 text-slate-500 hover:text-indigo-600 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500"
+                  >
+                    {showPassword
+                      ? <EyeOff size={18} aria-hidden="true" />
+                      : <Eye size={18} aria-hidden="true" />}
+                  </button>
+                </div>
               </div>
 
               {error && (
@@ -143,6 +157,11 @@ export default function LoginPage() {
                 {submitting && <LoaderCircle size={17} className="animate-spin" aria-hidden="true" />}
                 {submitting ? "Signing in…" : "Sign in"}
               </button>
+              <div className="text-right">
+                <Link to="/forgot-password" className="text-sm font-medium text-indigo-600 hover:text-indigo-700">
+                  Forgot password?
+                </Link>
+              </div>
             </form>
           </div>
 
