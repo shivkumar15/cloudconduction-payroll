@@ -123,3 +123,27 @@ test("employee accounts default to a required password change while admins do no
   assert.equal(employee.mustChangePassword, true);
   assert.equal(admin.mustChangePassword, false);
 });
+
+
+test("hydrated legacy employee records without the flag require a password change", () => {
+  const legacyEmployee = User.hydrate({
+    _id: "507f1f77bcf86cd799439011",
+    email: "legacy-employee@example.test",
+    passwordHash: "not-a-real-hash",
+    role: "employee",
+    isActive: true,
+    tokenVersion: 0
+  });
+
+  const legacyAdmin = User.hydrate({
+    _id: "507f1f77bcf86cd799439012",
+    email: "legacy-admin@example.test",
+    passwordHash: "not-a-real-hash",
+    role: "admin",
+    isActive: true,
+    tokenVersion: 0
+  });
+
+  assert.equal(legacyEmployee.mustChangePassword, true);
+  assert.equal(legacyAdmin.mustChangePassword, false);
+});
