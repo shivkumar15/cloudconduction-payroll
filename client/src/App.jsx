@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from "./contexts/AuthContext.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import LoginPage from "./pages/auth/LoginPage.jsx";
 import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage.jsx";
+import ChangePasswordPage from "./pages/auth/ChangePasswordPage.jsx";
 import AdminDashboard from "./pages/admin/AdminDashboard.jsx";
 import EmployeesPage from "./pages/admin/EmployeesPage.jsx";
 import EmployeeDashboard from "./pages/employee/EmployeeDashboard.jsx";
@@ -19,7 +20,13 @@ function HomeRedirect() {
     );
   }
 
-  return <Navigate to={user ? (user.role === "admin" ? "/admin" : "/employee") : "/login"} replace />;
+  const destination = !user
+    ? "/login"
+    : user.mustChangePassword
+      ? "/change-password"
+      : user.role === "admin" ? "/admin" : "/employee";
+
+  return <Navigate to={destination} replace />;
 }
 
 function AppRoutes() {
@@ -28,6 +35,10 @@ function AppRoutes() {
       <Route path="/" element={<HomeRedirect />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+
+      <Route element={<ProtectedRoute />}>
+        <Route path="/change-password" element={<ChangePasswordPage />} />
+      </Route>
       <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
       <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
