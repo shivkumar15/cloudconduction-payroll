@@ -133,11 +133,11 @@ Apply role/ownership rules to all endpoints. Enforce all state transitions and m
 ### Phase 0 — repo and plan
 - [x] Agree project name, stack, simulated payment scope, end-to-end approach.
 - [x] Create `shivkumar15/cloudconduction-payroll` GitHub repository (verified by connector on 2026-10-22).
-- [ ] Commit starter scaffold, this plan and README.
-- Acceptance: cloneable monorepo, documented setup, no secrets.
+- [x] Commit starter scaffold, this plan and README to `main`.
+- Acceptance: repository contains the initial scaffold and documented setup; no real secrets are committed.
 ### Phase 1 — foundation
 - [x] Initial starter scaffold generated locally (React/Vite/Tailwind, Express/Mongoose connection, health endpoint, baseline security middleware, one health test).
-- [ ] Install dependencies and verify.
+- [ ] User installs dependencies locally and verifies setup.
 - [ ] Verify Node/npm/MongoDB setup.
 - [ ] Run client and API.
 - [ ] Client production build and API test.
@@ -206,21 +206,22 @@ npm run build
 Expected: frontend `http://localhost:5173`; health endpoint `http://localhost:5001/api/health`. MongoDB must run for backend startup, while the health test imports the app without starting DB connection.
 
 ## Current status — 2026-10-22
-- Starter scaffold exists in the current artifact workspace and was packaged as `cloudconduction-payroll-complete-plan.zip`.
-- Expected starter files include root package/readme/gitignore; server env example, app/server/config/middleware and health test; client Vite config, HTML, main, App and CSS.
+- Initial scaffold bundle was generated locally as `cloudconduction-payroll-complete-plan.zip`.
+- GitHub repository exists: `https://github.com/shivkumar15/cloudconduction-payroll` (public, default branch `main`; connected account has push/admin access).
+- Committed `docs/PROJECT_PLAN.md` first, then published the starter scaffold to `main`.
+- Published files include root `.gitignore`, root `package.json`, `README.md`; server package/env example/app/startup/config/middleware/health test; client package, Vite config, HTML entry, React bootstrap, initial dashboard and global CSS.
 - Initial frontend metrics are placeholders intentionally; no fake salary totals shown.
 - Base middleware: Helmet, exact-origin CORS via env, request size limits, cookie-parser, API rate limiter.
 - Auth and payroll features are not implemented yet.
-- Not verified: npm install, startup, test result, production build, browser behavior.
-- GitHub repository verified existing and currently empty as of initial inspection; authenticated account has admin/push access.
-- This file itself has been committed as the first repository file; publish starter source files next.
+- Not verified: npm install, startup, test result, production build, browser behavior. Do not represent the scaffold as tested.
+- No `.env` secret or real employee data was committed.
 
 ## Immediate next task
-1. Publish the starter application files and root README/.gitignore/package.json to the GitHub `main` branch, avoiding secrets.
-2. Verify each uploaded file on GitHub.
-3. User clones repo or extracts ZIP, installs dependencies, configures env and runs app/tests.
-4. Capture exact errors/logs and fix Phase 1 before authentication.
-5. Update this document after every phase with changed paths, commit reference, test evidence, known issues and next task.
+1. Clone `https://github.com/shivkumar15/cloudconduction-payroll` or download the ZIP.
+2. Install dependencies, copy `server/.env.example` to `server/.env`, create a valid random JWT secret, and ensure MongoDB is running (local or Atlas URI).
+3. Run `npm run dev`, open the frontend and `/api/health`; then run `npm test` and `npm run build`.
+4. Share the exact terminal output if any step fails; fix all Phase 1 issues before implementing authentication.
+5. Update this document after each phase with changed paths, commit reference, test evidence, known issues and the exact next task.
 
 ## Future-session resume instructions
 Paste/upload this file and say:
