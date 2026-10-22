@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { requireEmployeeReadAccess, validateEmployeeIdParam } from "../src/middleware/employeeAccess.js";
+import { requireRole } from "../src/middleware/auth.js";
 
 function runMiddleware(middleware, req) {
   let statusCode = 200;
@@ -52,5 +53,14 @@ test("employee route rejects malformed MongoDB IDs before querying the database"
     params: { id: "not-a-mongo-id" }
   });
   assert.equal(result.statusCode, 400);
+  assert.equal(result.nextCalled, false);
+});
+
+
+test("employee role cannot pass an admin-only role guard", () => {
+  const result = runMiddleware(requireRole("admin"), {
+    authUser: { role: "employee" }
+  });
+  assert.equal(result.statusCode, 403);
   assert.equal(result.nextCalled, false);
 });
