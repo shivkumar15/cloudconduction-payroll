@@ -226,7 +226,7 @@ npm run build
 ```
 Expected: frontend `http://localhost:5173`; health endpoint `http://localhost:5001/api/health`. MongoDB must run for backend startup, while the health test imports the app without starting DB connection.
 
-## Current status — 2026-10-22
+## Current status — 2026-10-23
 - GitHub repository: `https://github.com/shivkumar15/cloudconduction-payroll` (public, default branch `main`; connected account has push/admin access).
 - User locally verified Phase 3 on 2026-10-22: `npm test` passed all 26 tests (0 failures); `npm run build` passed (Vite transformed 1,655 modules); and `npm run test:integration --prefix server` passed its MongoDB-backed employee lifecycle test (1 passed, 0 failed).
 - Foundation files are committed. Phase 3 adds `server/src/models/Employee.js`, `server/src/utils/money.js`, `server/src/validators/employeeSchemas.js`, `server/src/controllers/employeeController.js`, `server/src/routes/employeeRoutes.js`, and ownership middleware. Routes are mounted at `/api/employees`.
@@ -243,6 +243,7 @@ Expected: frontend `http://localhost:5173`; health endpoint `http://localhost:50
 - Added tests for OTP helper/reset validation and Phase 3 employee schemas, unique-index definitions, role guard, ownership policy, malformed IDs and unauthenticated routes. The dedicated MongoDB-backed employee lifecycle test requires `INTEGRATION_TEST_MONGODB_URI` and refuses database names without `test`. CI run 76 at commit `81a16a79` passed. The user also reports all 26 unit/API tests, the frontend build, and the MongoDB integration test passed locally on 2026-10-22. A local browser smoke test remains outstanding.
 - Dependency security: user verified `nodemailer@10.2.1` installed locally, `npm audit --prefix server` reported `found 0 vulnerabilities`, all 26 unit/API tests passed, the frontend build succeeded, and the MongoDB-backed integration test passed. GitHub Actions run 79 passed after the Nodemailer version update. SMTP credentials/delivery remain unconfigured.
 - Password-change workflow was added: new and legacy employee accounts without an explicit flag require a first-login change, backend role guards block protected workspace APIs until the temporary password changes, and authenticated users can change passwords from `/change-password` or their dashboard. Change-password validation and lifecycle integration tests were added. GitHub Actions run 110 at commit `4536cc44` passed, including the legacy-user default test; subsequent commits only update README, `.env.example`, and this plan. The user's local tests/build after pulling these changes and a browser smoke test are still pending.
+- Forgot-password UX was refined after noticing that unknown addresses receive no email but the UI could imply a code had definitely been sent. The API intentionally keeps the response generic to prevent account enumeration; the reset-code screen now explains conditional delivery, suggests checking spam and verifying the address/contacting the payroll administrator, and no longer says the code was definitely sent. Added a regression test asserting an unknown address and an active account in resend cooldown receive the same public status/body. This change still needs local test/build/integration verification and a fresh CI result.
 
 
 ## Resume alignment (based on the uploaded one-page resume, reviewed 2026-10-22)
