@@ -4,7 +4,13 @@ import { app } from "../src/app.js";
 
 test("health endpoint responds without database access", async (t) => {
   const server = app.listen(0);
-  t.after(() => server.close());
+  await new Promise((resolve, reject) => {
+    server.once("listening", resolve);
+    server.once("error", reject);
+  });
+  t.after(() => new Promise((resolve, reject) => {
+    server.close((error) => error ? reject(error) : resolve());
+  }));
 
   const { port } = server.address();
   const response = await fetch(`http://127.0.0.1:${port}/api/health`);
