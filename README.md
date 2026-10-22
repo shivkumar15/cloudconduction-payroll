@@ -36,14 +36,34 @@ See [`docs/PROJECT_PLAN.md`](docs/PROJECT_PLAN.md) for the full roadmap, securit
 
 ## Current capabilities
 - Foundation: React/Vite/Tailwind dashboard and Express/Mongoose API health endpoint.
-- Authentication API: login, logout, current-user lookup, password hashing, role middleware, trusted-origin checks, and one-time admin provisioning.
-- All frontend password-entry fields have accessible show/hide controls: sign-in password, reset password, confirmation password, and the initial password entered when an admin creates an employee. Protected routes separate admin and employee workspaces.
-- Email OTP password reset is implemented: six-digit code, 10-minute expiry, HMAC-stored code hash, resend cooldown, attempt limit, generic account response, and session invalidation after reset.
+- Authentication API: login, logout, current-user lookup, password hashing, role middleware, trusted-origin checks, one-time admin provisioning, and authenticated password change.
+- All frontend password-entry fields have accessible show/hide controls: sign-in, password reset, confirmation, employee initial password, and password change. New employee logins are forced to change the admin-issued temporary password before accessing protected employee APIs.
+- Email OTP password reset is implemented: six-digit code, 10-minute expiry, HMAC-stored code hash, resend cooldown, attempt limit, generic account response, and session invalidation after reset. SMTP must be configured separately for emails to be delivered.
+- A newly created employee receives a temporary initial password and is required to change it at first sign-in. Employee/admin users can also change their password later from their workspace. Password changes require the current password, a new password of at least 12 characters, invalidate other sessions, and issue a fresh session to the current browser.
 - SMTP must be configured before password-reset email delivery can work. With no SMTP configuration, the request endpoint returns an explicit server-configuration error.
 - Phase 3 employee management: employee model, salary-structure validation, admin list/create/update/deactivate APIs, paginated/searchable/filterable results, employee login provisioning, and employee self-service profile API/UI are implemented. A MongoDB-backed API lifecycle integration test is included; still verify the latest CI run and complete a local browser smoke test.
 - Payroll runs, simulated transaction execution, payslips, and analytics APIs are not implemented yet.
 
 
+
+## Password change and temporary employee passwords
+
+When an admin creates an employee, the system stores a bcrypt password hash in the separate `users` collection and marks the account `mustChangePassword: true`. The employee can sign in with the temporary password, but the frontend sends them to `/change-password`, and role-protected employee APIs reject workspace access until the password is changed.
+
+The employee or admin can later select **Change password** from their workspace. The form requires the current password, a new password (minimum 12 characters), and confirmation. The API verifies the current password, rejects reuse of the same password, stores a new hash, clears the mandatory-change flag, increments the session version to invalidate other active sessions, and sets a fresh session cookie in the current browser. The administrator cannot retrieve the resulting password.
+
+Endpoint: `POST /api/auth/change-password`
+
+```json
+{
+  "currentPassword": "the-current-temporary-or-personal-password",
+  "newPassword": "a-new-unique-password"
+}
+```
+
+The confirmation field is validated in the UI and is not sent to the server. Password change is authenticated and does not depend on SMTP.
+
+**Forgot password is different:** the user is not signed in, so the application sends a one-time email code before allowing a reset. That flow will return a configuration error until SMTP variables are filled in the local `server/.env`. Never commit or share the SMTP app password.
 
 ## Phase 3 — employee management
 
