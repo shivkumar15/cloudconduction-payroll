@@ -152,7 +152,7 @@ Apply role/ownership rules to all endpoints. Enforce all state transitions and m
 - [x] Session token verification and role middleware.
 - [x] Trusted-Origin enforcement on unsafe API methods.
 - [x] Email password-reset OTP: SMTP adapter, HMAC code hash, ten-minute expiry, cooldown, attempt limit, single-use reset and invalidation of existing sessions.
-- [x] Frontend show/hide password toggle, forgot-password route, reset form, and admin/employee role routes.
+- [x] Accessible show/hide password toggles on login, password-reset, reset-confirmation, and admin-created employee initial-password inputs.
 - [x] Tests cover anonymous access, malformed login/reset input, OTP shape/HMAC, missing/untrusted origin and absent SMTP configuration.
 - [ ] Verify actual SMTP delivery and login/reset flow with a local test mailbox.
 - [ ] Add broader tests for successful login, password reset end-to-end, forbidden role and ownership during protected resource development.
@@ -165,6 +165,7 @@ Apply role/ownership rules to all endpoints. Enforce all state transitions and m
 - [x] Pagination (maximum 100 per page), escaped search, department/status filters and deterministic sorting.
 - [x] Employee self-service profile route and admin-or-owner single-record read guard.
 - [x] Admin UI for employee creation, salary details, search, filters, pagination, edit, reactivate and deactivate.
+- [x] Accessible eye/eye-off toggle for the initial employee password; audited all frontend password-entry forms, and login/reset/confirm-password fields already had toggles.
 - [x] Employee workspace now fetches and displays its own profile and salary inputs.
 - [x] Unit tests for request validation, unique-index definitions, admin-only role guard, ownership decisions, malformed IDs, and unauthenticated API denial.
 - [x] Dedicated MongoDB-backed API lifecycle test covers create, duplicate code/email rejection, paginated search, linked login, role denial, owner vs. other employee reads, update, deactivation/session invalidation, and reactivation.
@@ -228,7 +229,7 @@ Expected: frontend `http://localhost:5173`; health endpoint `http://localhost:50
 - Authentication API files are committed: `server/src/models/User.js`, `server/src/utils/sessionToken.js`, `server/src/validators/authSchemas.js`, `server/src/middleware/auth.js`, `server/src/middleware/trustedOrigin.js`, `server/src/controllers/authController.js`, `server/src/routes/authRoutes.js`, and `server/src/scripts/seedAdmin.js`.
 - Auth routes are mounted in `server/src/app.js`; tests cover anonymous `/me`, malformed login input, missing Origin and untrusted Origin. Ephemeral test servers now await listening/close correctly.
 - `server/package.json` contains `seed:admin`. `.env.example` documents optional seed variables; no actual secret values were committed.
-- Frontend login UI, Axios API client, session context, protected routes and logout controls are committed. Admin `/admin/employees` supports create/edit/deactivate/reactivate, pagination/search/filters; employee `/employee` loads the linked user's own profile.
+- Frontend login UI, Axios API client, session context, protected routes and logout controls are committed. Admin `/admin/employees` supports create/edit/deactivate/reactivate, pagination/search/filters and an initial-password visibility toggle; employee `/employee` loads the linked user's own profile. All current UI password fields now have show/hide controls.
 - `.github/workflows/ci.yml` runs backend tests and frontend production build on pushes and PRs.
 - No public signup is available. Phase 3 employee API/UI is now implemented on main; payroll and transactions remain pending.
 - Password visibility toggle was added to sign-in form; a forgot-password UI now supports requesting an email OTP and setting a new password.
