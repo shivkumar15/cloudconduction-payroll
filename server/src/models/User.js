@@ -65,6 +65,11 @@ const userSchema = new mongoose.Schema({
   versionKey: false
 });
 
+userSchema.index(
+  { employeeId: 1 },
+  { unique: true, partialFilterExpression: { employeeId: { $type: "objectId" } } }
+);
+
 userSchema.statics.hashPassword = async function hashPassword(password) {
   return bcrypt.hash(password, 12);
 };
