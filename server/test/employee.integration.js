@@ -30,6 +30,7 @@ test("MongoDB employee lifecycle enforces login links, roles, duplicates and own
   const secondEmail = "qa-second-" + runId + "@example.test";
   const adminPassword = "qa-admin-password-" + runId;
   const employeePassword = "qa-employee-password-" + runId;
+  const employeeNewPassword = "qa-employee-new-password-" + runId;
   const secondPassword = "qa-second-password-" + runId;
   const employeeCode = "IT-" + runId.toUpperCase() + "A";
   const secondCode = "IT-" + runId.toUpperCase() + "B";
@@ -52,18 +53,22 @@ test("MongoDB employee lifecycle enforces login links, roles, duplicates and own
     });
   }
 
+  function sessionCookieFrom(response) {
+    const rawCookies = typeof response.headers.getSetCookie === "function"
+      ? response.headers.getSetCookie()
+      : [response.headers.get("set-cookie")];
+    const cookieLine = rawCookies.find((value) => value?.startsWith("ccp_session="));
+    assert.ok(cookieLine, "response should set the session cookie");
+    return cookieLine.split(";")[0];
+  }
+
   async function login(baseUrl, email, password) {
     const response = await request(baseUrl, "/api/auth/login", {
       method: "POST",
       body: { email, password }
     });
     assert.equal(response.status, 200, "expected test account login to succeed");
-    const rawCookies = typeof response.headers.getSetCookie === "function"
-      ? response.headers.getSetCookie()
-      : [response.headers.get("set-cookie")];
-    const cookieLine = rawCookies.find((value) => value?.startsWith("ccp_session="));
-    assert.ok(cookieLine, "login response should set the session cookie");
-    return cookieLine.split(";")[0];
+    return sessionCookieFrom(response);
   }
 
   function employeePayload(code, email, password) {
@@ -149,7 +154,73 @@ test("MongoDB employee lifecycle enforces login links, roles, duplicates and own
     assert.equal(listBody.pagination.total, 1);
     assert.equal(listBody.data[0].id, firstEmployee.id);
 
-    const employeeCookie = await login(baseUrl, employeeEmail, employeePassword);
+    let employeeCookie = await login(baseUrl, employeeEmail, employeePassword);
+    const initialEmployeeCookie = employeeCookie;
+
+    const currentUserBeforeChange = await request(baseUrl, "/api/auth/me", {
+      cookie: employeeCookie
+    });
+    assert.equal(currentUserBeforeChange.status, 200);
+    assert.equal((await currentUserBeforeChange.json()).user.mustChangePassword, true);
+
+    const blockedProfileBeforeChange = await request(baseUrl, "/api/employees/me", {
+      cookie: employeeCookie
+    });
+    assert.equal(blockedProfileBeforeChange.status, 403);
+    assert.equal((await blockedProfileBeforeChange.json()).code, "PASSWORD_CHANGE_REQUIRED");
+
+    const wrongCurrentPassword = await request(baseUrl, "/api/auth/change-password", {
+      method: "POST",
+      cookie: employeeCookie,
+      body: {
+        currentPassword: "definitely-the-wrong-password",
+        newPassword: employeeNewPassword
+      }
+    });
+    assert.equal(wrongCurrentPassword.status, 400);
+
+    const unchangedPassword = await request(baseUrl, "/api/auth/change-password", {
+      method: "POST",
+      cookie: employeeCookie,
+      body: {
+        currentPassword: employeePassword,
+        newPassword: employeePassword
+      }
+    });
+    assert.equal(unchangedPassword.status, 400);
+
+    const passwordChangeResponse = await request(baseUrl, "/api/auth/change-password", {
+      method: "POST",
+      cookie: employeeCookie,
+      body: {
+        currentPassword: employeePassword,
+        newPassword: employeeNewPassword
+      }
+    });
+    assert.equal(passwordChangeResponse.status, 200);
+    const changedUser = (await passwordChangeResponse.json()).user;
+    assert.equal(changedUser.mustChangePassword, false);
+    employeeCookie = sessionCookieFrom(passwordChangeResponse);
+
+    const invalidatedTemporarySession = await request(baseUrl, "/api/auth/me", {
+      cookie: initialEmployeeCookie
+    });
+    assert.equal(invalidatedTemporarySession.status, 401);
+
+    const oldPasswordLogin = await request(baseUrl, "/api/auth/login", {
+      method: "POST",
+      body: { email: employeeEmail, password: employeePassword }
+    });
+    assert.equal(oldPasswordLogin.status, 401);
+
+    const newPasswordLoginCookie = await login(baseUrl, employeeEmail, employeeNewPassword);
+    const changedProfileCheck = await request(baseUrl, "/api/auth/me", {
+      cookie: newPasswordLoginCookie
+    });
+    assert.equal(changedProfileCheck.status, 200);
+    assert.equal((await changedProfileCheck.json()).user.mustChangePassword, false);
+    employeeCookie = newPasswordLoginCookie;
+
     const ownProfileResponse = await request(baseUrl, "/api/employees/me", {
       cookie: employeeCookie
     });
@@ -204,7 +275,7 @@ test("MongoDB employee lifecycle enforces login links, roles, duplicates and own
     });
     assert.equal(oldSessionAfterReactivation.status, 401);
 
-    const freshEmployeeCookie = await login(baseUrl, employeeEmail, employeePassword);
+    const freshEmployeeCookie = await login(baseUrl, employeeEmail, employeeNewPassword);
     const freshProfile = await request(baseUrl, "/api/employees/me", {
       cookie: freshEmployeeCookie
     });
