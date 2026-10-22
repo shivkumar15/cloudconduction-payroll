@@ -37,7 +37,7 @@ See [`docs/PROJECT_PLAN.md`](docs/PROJECT_PLAN.md) for the full roadmap, securit
 ## Current capabilities
 - Foundation: React/Vite/Tailwind dashboard and Express/Mongoose API health endpoint.
 - Authentication API: login, logout, current-user lookup, password hashing, role middleware, trusted-origin checks, and one-time admin provisioning.
-- Frontend sign-in has an accessible show/hide password toggle. Protected routes separate admin and employee workspaces.
+- All frontend password-entry fields have accessible show/hide controls: sign-in password, reset password, confirmation password, and the initial password entered when an admin creates an employee. Protected routes separate admin and employee workspaces.
 - Email OTP password reset is implemented: six-digit code, 10-minute expiry, HMAC-stored code hash, resend cooldown, attempt limit, generic account response, and session invalidation after reset.
 - SMTP must be configured before password-reset email delivery can work. With no SMTP configuration, the request endpoint returns an explicit server-configuration error.
 - Phase 3 employee management: employee model, salary-structure validation, admin list/create/update/deactivate APIs, paginated/searchable/filterable results, employee login provisioning, and employee self-service profile API/UI are implemented. A MongoDB-backed API lifecycle integration test is included; still verify the latest CI run and complete a local browser smoke test.
