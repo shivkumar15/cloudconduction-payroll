@@ -35,4 +35,33 @@ A portfolio-focused MERN payroll management application. The initial scaffold in
 See [`docs/PROJECT_PLAN.md`](docs/PROJECT_PLAN.md) for the full roadmap, security checklist, acceptance criteria, and instructions for resuming in future sessions.
 
 ## Current capabilities
-This is the starter scaffold only. Authentication, employee records, payroll processing, payment transactions, and analytics APIs are not implemented yet.
+- Foundation: React/Vite/Tailwind dashboard and Express/Mongoose API health endpoint.
+- Authentication API foundation: login, logout, current-user lookup, password hashing, role middleware, origin checking, and a one-time admin provisioning script.
+- Employee management, payroll processing, simulated transaction execution, and analytics APIs are not implemented yet.
+- The frontend login form is not connected yet; authentication currently needs API testing or a client UI added in the next frontend phase.
+
+## Authentication API (development)
+There is no public registration endpoint. Create a development admin explicitly:
+
+1. Add these values only to your local `server/.env` file (not GitHub):
+   ```dotenv
+   SEED_ADMIN_EMAIL=admin@example.com
+   SEED_ADMIN_PASSWORD=use-a-unique-password-at-least-12-chars
+   ```
+2. Run once from the repository root:
+   ```bash
+   npm run seed:admin --prefix server
+   ```
+3. Remove the `SEED_ADMIN_PASSWORD` value from `server/.env` after successful provisioning.
+4. Login endpoint: `POST /api/auth/login` with JSON `{ "email": "...", "password": "..." }`.
+5. Current user: `GET /api/auth/me` using the session cookie. Logout: `POST /api/auth/logout`.
+
+Unsafe methods require an `Origin` header that exactly matches `CLIENT_ORIGIN`; browser requests from the configured frontend should include it. Cookies are HttpOnly, have SameSite=Lax, and are marked Secure when `NODE_ENV=production`. For deployment, keep frontend/API same-site when feasible, use HTTPS, and review CSRF/session settings before real user data is introduced.
+
+## Verification
+From the repository root:
+```bash
+npm test
+npm run build
+```
+The API tests load the backend environment config, so ensure `server/.env` is configured first. The user reported that the initial app opened locally; authentication behavior still needs to be tested on the updated code.
