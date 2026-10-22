@@ -59,7 +59,7 @@ function EmployeeFields({ form, setForm, includeAccountPassword = false }) {
 
   return (
     <div className="grid gap-4 sm:grid-cols-2">
-      {textFields.map(([name, label, placeholder]) => (
+      {textFields.filter(([name]) => includeAccountPassword || name !== "employeeCode").map(([name, label, placeholder]) => (
         <label key={name} className={name === "workEmail" && !includeAccountPassword ? "sm:col-span-2" : ""}>
           <span className={labelClass}>{label}</span>
           <input
@@ -69,7 +69,7 @@ function EmployeeFields({ form, setForm, includeAccountPassword = false }) {
             placeholder={placeholder}
             onChange={change}
             required
-            maxLength={name === "workEmail" ? 254 : 80}
+            maxLength={name === "employeeCode" ? 20 : name === "workEmail" ? 254 : 80}
             autoComplete="off"
             disabled={!includeAccountPassword && name === "workEmail"}
           />
