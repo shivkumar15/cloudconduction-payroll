@@ -40,7 +40,54 @@ See [`docs/PROJECT_PLAN.md`](docs/PROJECT_PLAN.md) for the full roadmap, securit
 - Frontend sign-in has an accessible show/hide password toggle. Protected routes separate admin and employee workspaces.
 - Email OTP password reset is implemented: six-digit code, 10-minute expiry, HMAC-stored code hash, resend cooldown, attempt limit, generic account response, and session invalidation after reset.
 - SMTP must be configured before password-reset email delivery can work. With no SMTP configuration, the request endpoint returns an explicit server-configuration error.
-- Employee management, payroll processing, simulated transaction execution, and analytics APIs are not implemented yet.
+- Phase 3 employee management: employee model, salary-structure validation, admin list/create/update/deactivate APIs, paginated/searchable/filterable results, employee login provisioning, and employee self-service profile API/UI are implemented. Database-backed local end-to-end verification is still required.
+- Payroll runs, simulated transaction execution, payslips, and analytics APIs are not implemented yet.
+
+
+
+## Phase 3 — employee management
+
+Open the admin workspace and choose **Manage employees**, or navigate to `/admin/employees` after admin login.
+
+### API routes
+
+| Method | Route | Permission | Purpose |
+|---|---|---|---|
+| GET | `/api/employees?page=1&pageSize=10&q=rahul&department=Engineering&employmentStatus=active` | Admin | Paginated list/search/filter |
+| POST | `/api/employees` | Admin | Create an employee and linked employee login |
+| GET | `/api/employees/me` | Employee | Return the signed-in employee's own profile |
+| GET | `/api/employees/:id` | Admin or that employee | Read one record with server-side ownership enforcement |
+| PATCH | `/api/employees/:id` | Admin | Update name, department, designation, salary structure or status |
+| DELETE | `/api/employees/:id` | Admin | Deactivate employee and invalidate their active sessions |
+
+Employee creation requires `employeeCode`, `firstName`, `lastName`, `workEmail`, `department`, `designation`, `salaryStructure`, and an `initialPassword` of at least 12 characters. The new account is always assigned the employee role by the server; request bodies cannot assign admin access. There is no public registration endpoint.
+
+Example request body (all people and numbers below are synthetic demo values):
+
+```json
+{
+  "employeeCode": "EMP-1001",
+  "firstName": "Rahul",
+  "lastName": "Kumar",
+  "workEmail": "rahul@example.com",
+  "department": "Engineering",
+  "designation": "Software Engineer",
+  "salaryStructure": {
+    "baseSalaryPaise": 2500000,
+    "monthlyAllowancesPaise": 300000,
+    "monthlyDeductionsPaise": 200000
+  },
+  "initialPassword": "use-a-unique-password"
+}
+```
+
+Monetary fields are integer paise at the API/database boundary (₹25,000 is 2,500,000 paise). The UI accepts rupee input and converts it to paise. Deductions cannot exceed base salary plus allowances. This is a demo salary structure—not a statutory tax calculation or final payslip.
+
+Employee code and work email are normalized and unique. The work email is also the linked login identity and is immutable through the employee update endpoint. Employee listing is bounded to at most 100 records per page. Search input is escaped before being used as a regular expression. Employee self-service resolves the linked employee ID from the authenticated account; the API does not trust a client-supplied employee ID for `/me`.
+
+Deactivation sets the employee record to inactive, disables its linked login, and increments the account's token version to invalidate existing sessions. An admin can reactivate a record from its edit form. Account provisioning uses compensating cleanup if creating the login fails; it is not a multi-document MongoDB transaction, so production-grade provisioning would need transaction-capable infrastructure or a durable reconciliation workflow.
+
+Do not use real employee data. Share an initial password separately, never through logs or source control. Email-based password reset requires the SMTP setup described above.
 
 ## Authentication API (development)
 There is no public registration endpoint. Create a development admin explicitly:
