@@ -62,6 +62,5 @@ userSchema.methods.toPublicJSON = function toPublicJSON() {
   };
 };
 
-userSchema.index({ email: 1 }, { unique: true });
 
 export const User = mongoose.models.User || mongoose.model("User", userSchema);
