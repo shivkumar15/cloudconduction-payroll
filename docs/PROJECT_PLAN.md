@@ -167,8 +167,9 @@ Apply role/ownership rules to all endpoints. Enforce all state transitions and m
 - [x] Admin UI for employee creation, salary details, search, filters, pagination, edit, reactivate and deactivate.
 - [x] Employee workspace now fetches and displays its own profile and salary inputs.
 - [x] Unit tests for request validation, unique-index definitions, admin-only role guard, ownership decisions, malformed IDs, and unauthenticated API denial.
-- [ ] Run local MongoDB-backed end-to-end tests for successful create/update/deactivate/reactivate, duplicate records, linked login, and an employee attempting to read another employee's ID.
-- Acceptance: implementation is committed; do not mark Phase 3 fully verified until CI and local database-backed flows pass.
+- [x] Dedicated MongoDB-backed API lifecycle test covers create, duplicate code/email rejection, paginated search, linked login, role denial, owner vs. other employee reads, update, deactivation/session invalidation, and reactivation.
+- [ ] Confirm the new MongoDB-backed integration run passes in CI and test the admin/employee browser workflow locally.
+- Acceptance: implementation and database-backed test are committed; do not mark Phase 3 fully verified until the newest CI result and local browser smoke test pass.
 ### Phase 4 — payroll logic
 - [ ] Document salary formula and inputs.
 - [ ] Pure unit-testable currency service using integer paise.
@@ -233,7 +234,7 @@ Expected: frontend `http://localhost:5173`; health endpoint `http://localhost:50
 - OTP codes are generated with cryptographic randomness, stored as user-bound HMAC digests, expire after 10 minutes, accept at most 5 wrong code attempts, apply a 60-second resend cooldown, and are consumed via a conditional atomic update. Successful reset increments session version.
 - SMTP service uses env-based Nodemailer configuration. Actual SMTP credentials/delivery are not configured or verified yet; reset email cannot work until provider settings are set.
 - MongoDB pool configured with max 20/min 2 sockets per server process. Added bounded health-endpoint smoke test, defaults 25 concurrent workers and 250 requests; no load run/actual capacity is claimed yet. Future employee endpoints must be paginated; production multi-instance rate limiting needs a shared store.
-- Added tests for OTP helper/reset validation and Phase 3 employee schemas, unique-index definitions, role guard, ownership policy, malformed IDs and unauthenticated routes. The latest CI run for Phase 3 changes is queued/pending as of this update; check GitHub Actions before claiming CI passed. Successful DB-backed employee CRUD, duplicate races and cross-employee route denial still require a local end-to-end pass.
+- Added tests for OTP helper/reset validation and Phase 3 employee schemas, unique-index definitions, role guard, ownership policy, malformed IDs and unauthenticated routes. Added `server/test/employee.integration.js`, a dedicated MongoDB-backed API lifecycle test; `server/package.json` exposes it as `test:integration`, and GitHub Actions provisions MongoDB 7 to run it. The latest workflow update is queued as of this handoff, so verify the newest CI result before claiming the integration job passes. A local browser smoke test is still outstanding.
 
 
 ## Resume alignment (based on the uploaded one-page resume, reviewed 2026-10-22)
