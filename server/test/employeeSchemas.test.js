@@ -103,3 +103,10 @@ test("employee login reference uses a unique partial index without colliding on 
     employeeId: { $type: "objectId" }
   });
 });
+
+
+test("employee records default to the only supported currency, INR", () => {
+  const employee = new Employee({});
+  assert.equal(employee.currency, "INR");
+  assert.deepEqual(Employee.schema.path("currency").enumValues, ["INR"]);
+});
