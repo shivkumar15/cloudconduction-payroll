@@ -7,8 +7,22 @@ import { Employee } from "../src/models/Employee.js";
 import { User } from "../src/models/User.js";
 
 test("MongoDB employee lifecycle enforces login links, roles, duplicates and ownership", async () => {
-  const mongoUri = process.env.MONGODB_URI;
-  assert.ok(mongoUri, "MONGODB_URI must be configured for the integration test");
+  const mongoUri = process.env.INTEGRATION_TEST_MONGODB_URI;
+  assert.ok(
+    mongoUri,
+    "Set INTEGRATION_TEST_MONGODB_URI to a dedicated test database; this test must not use the application database"
+  );
+  let testDatabaseName = "";
+  try {
+    testDatabaseName = decodeURIComponent(new URL(mongoUri).pathname.slice(1).split("/")[0] || "");
+  } catch {
+    assert.fail("INTEGRATION_TEST_MONGODB_URI must be a valid MongoDB URI");
+  }
+  assert.match(
+    testDatabaseName,
+    /test/i,
+    "Integration test database name must include 'test' so application data is not modified"
+  );
 
   const runId = randomBytes(4).toString("hex");
   const adminEmail = "qa-admin-" + runId + "@example.test";
