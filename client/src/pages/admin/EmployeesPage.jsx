@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { ArrowLeft, CheckCircle2, ChevronLeft, ChevronRight, Pencil, Plus, Search, UserRoundX, Users } from "lucide-react";
+import { ArrowLeft, CheckCircle2, ChevronLeft, ChevronRight, Pencil, Plus, Search, UserX, Users } from "lucide-react";
 import { Link } from "react-router-dom";
 import api from "../../services/api.js";
 
@@ -385,7 +385,7 @@ export default function EmployeesPage() {
                       <div className="flex justify-end gap-2">
                         <button type="button" onClick={() => startEditing(employee)} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-white"><Pencil size={14} /> Edit</button>
                         {employee.employmentStatus === "active" && (
-                          <button type="button" onClick={() => void deactivate(employee)} className="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-50"><UserRoundX size={14} /> Deactivate</button>
+                          <button type="button" onClick={() => void deactivate(employee)} className="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-50"><UserX size={14} /> Deactivate</button>
                         )}
                       </div>
                     </td>
