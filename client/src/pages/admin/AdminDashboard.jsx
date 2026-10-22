@@ -53,6 +53,7 @@ export default function AdminDashboard() {
               <p className="max-w-56 truncate text-sm font-medium">{user?.email}</p>
               <p className="text-xs capitalize text-slate-500">{user?.role}</p>
             </div>
+            <Link to="/change-password" className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium hover:bg-slate-50">Change password</Link>
             <button onClick={handleLogout} className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium hover:bg-slate-50" type="button">
               <LogOut size={16} aria-hidden="true" />
               <span className="hidden sm:inline">Sign out</span>
