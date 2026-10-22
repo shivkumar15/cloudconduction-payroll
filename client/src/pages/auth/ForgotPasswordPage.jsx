@@ -25,7 +25,7 @@ export default function ForgotPasswordPage() {
       const normalizedEmail = email.trim().toLowerCase();
       const { data } = await api.post("/auth/password-reset/request", { email: normalizedEmail });
       setEmail(normalizedEmail);
-      setNotice(data.message || "If an active account exists for that email, a reset code will be sent.");
+      setNotice(data.message || "If an active account exists for that email, a reset code will be sent. Check spam/junk; if no code arrives within a few minutes, verify the address or contact your payroll administrator.");
       setStep("confirm");
     } catch (requestError) {
       if (requestError?.response?.status === 503) {
@@ -161,7 +161,10 @@ export default function ForgotPasswordPage() {
                 </div>
                 <h2 className="mt-5 text-2xl font-bold tracking-tight">Enter your reset code</h2>
                 <p className="mt-2 text-sm leading-6 text-slate-600">
-                  Enter the 6-digit code sent to <span className="font-medium text-slate-800">{email}</span>. It expires in 10 minutes.
+                  If a code arrives for <span className="font-medium text-slate-800">{email}</span>, enter it below. A code expires 10 minutes after it is issued.
+                </p>
+                <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-3 text-sm leading-6 text-amber-950">
+                  For security, we cannot confirm whether an address belongs to an account. Check your inbox and spam/junk folder. If no code arrives within a few minutes, verify the spelling or contact your payroll administrator. Use “Use a different email” below to go back.
                 </p>
                 <form className="mt-7 space-y-5" onSubmit={handleConfirmReset}>
                   <div>
