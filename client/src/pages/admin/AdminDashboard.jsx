@@ -1,15 +1,31 @@
+import { useEffect, useState } from "react";
 import { Activity, Banknote, LogOut, ShieldCheck, Users, UserCog } from "lucide-react";
 import { Link } from "react-router-dom";
+import api from "../../services/api.js";
 import { useAuth } from "../../contexts/AuthContext.jsx";
 
-const metrics = [
-  { label: "Total employees", value: "—", note: "Employee count will be connected to the API next", icon: Users },
-  { label: "Payroll this month", value: "₹—", note: "No payroll processed yet", icon: Banknote },
-  { label: "Simulated transactions", value: "—", note: "Payment engine not configured", icon: Activity }
-];
 
 export default function AdminDashboard() {
   const { user, logout } = useAuth();
+  const [employeeCount, setEmployeeCount] = useState(null);
+
+  useEffect(() => {
+    let mounted = true;
+    api.get("/employees", { params: { page: 1, pageSize: 1 } })
+      .then((response) => {
+        if (mounted) setEmployeeCount(response.data.pagination.total);
+      })
+      .catch(() => {
+        if (mounted) setEmployeeCount(null);
+      });
+    return () => { mounted = false; };
+  }, []);
+
+  const metrics = [
+    { label: "Total employees", value: employeeCount === null ? "—" : String(employeeCount), note: employeeCount === null ? "Unable to load employee count" : "From saved employee records", icon: Users },
+    { label: "Payroll this month", value: "₹—", note: "No payroll processed yet", icon: Banknote },
+    { label: "Simulated transactions", value: "—", note: "Payment engine not configured", icon: Activity }
+  ];
 
   async function handleLogout() {
     try {
