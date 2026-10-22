@@ -48,7 +48,7 @@ See [`docs/PROJECT_PLAN.md`](docs/PROJECT_PLAN.md) for the full roadmap, securit
 
 ## Password change and temporary employee passwords
 
-When an admin creates an employee, the system stores a bcrypt password hash in the separate `users` collection and marks the account `mustChangePassword: true`. The employee can sign in with the temporary password, but the frontend sends them to `/change-password`, and role-protected employee APIs reject workspace access until the password is changed.
+When an admin creates an employee, the system stores a bcrypt password hash in the separate `users` collection and marks the account `mustChangePassword: true`. Legacy employee records without this field also receive a role-aware default that requires a password change; admins default to no forced change. The employee can sign in with the temporary password, but the frontend sends them to `/change-password`, and role-protected employee APIs reject workspace access until the password is changed.
 
 The employee or admin can later select **Change password** from their workspace. The form requires the current password, a new password (minimum 12 characters), and confirmation. The API verifies the current password, rejects reuse of the same password, stores a new hash, clears the mandatory-change flag, increments the session version to invalidate other active sessions, and sets a fresh session cookie in the current browser. The administrator cannot retrieve the resulting password.
 
@@ -141,6 +141,23 @@ npm run test:integration --prefix server
 
 GitHub Actions run 76 at commit `81a16a79` passed the unit/route tests, MongoDB-backed employee lifecycle integration test, and frontend production build. The developer also reported locally passing all 26 unit/API tests, the production build, and the 1-test MongoDB integration suite on 2026-10-22. The local admin/employee browser smoke test remains outstanding. The user identified high-severity advisories affecting Nodemailer in version 7.x. `server/package.json` was updated to `^10.2.1`. The user verified `npm ls nodemailer --prefix server` reports `nodemailer@10.2.1`, `npm audit --prefix server` reports 0 vulnerabilities, all 26 unit/API tests pass, the frontend production build succeeds, and the MongoDB-backed employee integration test passes. GitHub Actions run 79 at the dependency-upgrade commit also passed. SMTP delivery remains unverified until actual provider settings are configured; the local admin/employee browser smoke test is the remaining Phase 3 check.
 
+
+### Example: Gmail or Google Workspace SMTP
+
+For a Gmail sender account, enable 2-Step Verification and create an **App Password** in the Google Account security settings. App Passwords require 2-Step Verification and may not be available on some managed/advanced-protection accounts. Use the generated app password, not your ordinary Google account password. See [Google's App Password help](https://support.google.com/accounts/answer/185833) and [Gmail SMTP setup](https://support.google.com/a/answer/176600).
+
+Example values for your local `server/.env`:
+
+```dotenv
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=your-sender-address@gmail.com
+SMTP_PASS=your-16-character-app-password
+MAIL_FROM=your-sender-address@gmail.com
+```
+
+Save the file and restart the server. The `SMTP_USER` and `MAIL_FROM` should be the authorized sender account/address. Keep the real app password only in your ignored local `server/.env`; never commit it, paste it into chat, or use your normal Google password.
 
 ## Password reset email configuration
 
