@@ -14,7 +14,7 @@ export default function LoginPage() {
   const [error, setError] = useState("");
 
   if (!loading && user) {
-    return <Navigate to={user.role === "admin" ? "/admin" : "/employee"} replace />;
+    return <Navigate to={user.mustChangePassword ? "/change-password" : user.role === "admin" ? "/admin" : "/employee"} replace />;
   }
 
   async function handleSubmit(event) {
@@ -30,6 +30,10 @@ export default function LoginPage() {
     setSubmitting(true);
     try {
       const signedInUser = await login({ email: normalizedEmail, password });
+      if (signedInUser.mustChangePassword) {
+        navigate("/change-password", { replace: true });
+        return;
+      }
       const fallback = signedInUser.role === "admin" ? "/admin" : "/employee";
       const requestedPath = location.state?.from?.pathname;
       const safePath = requestedPath?.startsWith("/") && !requestedPath.startsWith("//")
