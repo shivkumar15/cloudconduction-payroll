@@ -6,8 +6,8 @@
   "scripts": {
     "dev": "node --watch src/server.js",
     "start": "node src/server.js",
-    "test": "node --test test/health.test.js test/auth.test.js test/passwordReset.test.js test/employeeSchemas.test.js test/employeeAccess.test.js test/employees.test.js",
-    "test:integration": "node --test test/employee.integration.js",
+    "test": "node --test test/health.test.js test/auth.test.js test/passwordReset.test.js test/employeeSchemas.test.js test/employeeAccess.test.js test/employees.test.js test/payroll.test.js",
+    "test:integration": "node --test test/employee.integration.js test/payroll.integration.js",
     "seed:admin": "node src/scripts/seedAdmin.js",
     "load:test": "node src/scripts/loadTest.js"
   },

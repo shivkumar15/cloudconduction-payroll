@@ -177,12 +177,13 @@ Apply role/ownership rules to all endpoints. Enforce all state transitions and m
 - [ ] Complete a local browser smoke test of admin and employee workflows.
 - Acceptance: implementation and database-backed test are committed; do not mark Phase 3 fully verified until the newest CI result and local browser smoke test pass.
 ### Phase 4 — payroll logic
-- [ ] Document salary formula and inputs.
-- [ ] Pure unit-testable currency service using integer paise.
-- [ ] Period model and status transitions.
-- [ ] Preview/create/approve/process operations.
-- [ ] Unique constraints and concurrency/duplicate handling.
-- [ ] Tests for rounding, bad values, over-deductions, duplicates and invalid transitions.
+- [x] Document demo salary formula and inputs: gross = base salary + monthly allowances; net = gross - monthly deductions; no tax/EPF/overtime/bonus/proration is claimed.
+- [x] Pure unit-testable currency service using integer paise with unsafe/negative amounts and over-deductions rejected.
+- [x] PayrollRun model with a YYYY-MM period, immutable embedded salary snapshots, totals and audit actor/time fields.
+- [x] Preview/create/list/detail APIs plus draft → approved → finalized transitions; employee pay history returns only the employee's own finalized line item.
+- [x] Unique period constraint and conditional status updates prevent duplicate monthly runs and repeated/invalid transitions.
+- [x] Unit tests cover salary arithmetic, bad values, periods, status transitions, pagination and unique period index; MongoDB integration test covers preview, snapshot, duplicate period, admin authorization and employee ownership.
+- [ ] Confirm the new payroll test/build/integration suite passes in GitHub Actions and locally.
 - Acceptance: reproducible calculations and no unintended repeated payroll processing.
 ### Phase 5 — simulated transactions
 - [ ] Simulation adapter isolated from calculation service.
@@ -235,7 +236,7 @@ Expected: frontend `http://localhost:5173`; health endpoint `http://localhost:50
 - `server/package.json` contains `seed:admin`. `.env.example` documents optional seed variables; no actual secret values were committed.
 - Frontend login UI, Axios API client, session context, protected routes and logout controls are committed. Admin `/admin/employees` supports create/edit/deactivate/reactivate, pagination/search/filters and an initial-password visibility toggle; employee `/employee` loads the linked user's own profile. All current UI password fields now have show/hide controls.
 - `.github/workflows/ci.yml` runs backend tests and frontend production build on pushes and PRs.
-- No public signup is available. Phase 3 employee API/UI is now implemented on main; payroll and transactions remain pending.
+- No public signup is available. Phase 3 employee API/UI is implemented. Phase 4 payroll backend implementation is now committed for CI verification; simulated transactions and payroll-facing UI follow in Phases 5–6.
 - Password visibility toggle was added to sign-in form; a forgot-password UI now supports requesting an email OTP and setting a new password.
 - OTP codes are generated with cryptographic randomness, stored as user-bound HMAC digests, expire after 10 minutes, accept at most 5 wrong code attempts, apply a 60-second resend cooldown, and are consumed via a conditional atomic update. Successful reset increments session version.
 - SMTP service uses env-based Nodemailer configuration. User confirmed SMTP delivery to a controlled test mailbox and successfully completed password reset on 2026-10-23. Do not store live SMTP credentials in the repository; full provider-specific failure/recovery testing may still be expanded.
@@ -270,11 +271,10 @@ Expected: frontend `http://localhost:5173`; health endpoint `http://localhost:50
 - Final resume bullet points should be written only after the corresponding features and tests are complete. Do not claim production payroll or real payment processing.
 
 ## Immediate next task
-1. Complete the remaining local browser smoke test for admin/employee workflows, especially mandatory first-login password change, employee workspace access, and the old temporary password becoming invalid.
-2. Begin Phase 4 — payroll logic. First document the demo salary formula and rounding rules, then implement a pure integer-paise calculator with unit tests before creating payroll-run APIs/models.
-3. Add payroll periods and enforce valid status transitions, duplicate-run prevention and authorization in the backend.
-4. Once payroll logic and integration tests pass, proceed to Phase 5 simulated transactions, then finish the payroll-facing admin/employee dashboards and reports in Phase 6.
-5. Keep Phase 7 release hardening (security regression checks, synthetic seed data, authenticated load tests, README/deployment review) as the final gate. SMTP delivery and the forgot-password reset flow have already been verified locally; never commit SMTP credentials or share OTPs.
+1. Pull latest main and run npm test, npm run build, and npm run test:integration --prefix server to verify Phase 4 changes; confirm GitHub Actions is green.
+2. Complete the remaining local browser smoke test for admin/employee workflows, especially mandatory first-login password change, employee workspace access, and the old temporary password becoming invalid.
+3. If Phase 4 remains green, proceed to Phase 5 simulated transactions and then the payroll-facing admin/employee dashboards and reports in Phase 6.
+4. Keep Phase 7 release hardening (security regression checks, synthetic seed data, authenticated load tests, README/deployment review) as the final gate. SMTP delivery and the forgot-password reset flow have already been verified locally; never commit SMTP credentials or share OTPs.
 
 ## Future-session resume instructions
 Paste/upload this file and say:

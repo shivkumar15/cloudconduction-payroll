@@ -42,9 +42,29 @@ See [`docs/PROJECT_PLAN.md`](docs/PROJECT_PLAN.md) for the full roadmap, securit
 - A newly created employee receives a temporary initial password and is required to change it at first sign-in. Employee/admin users can also change their password later from their workspace. Password changes require the current password, a new password of at least 12 characters, invalidate other sessions, and issue a fresh session to the current browser.
 - SMTP must be configured before password-reset email delivery can work. With no SMTP configuration, the request endpoint returns an explicit server-configuration error.
 - Phase 3 employee management: employee model, salary-structure validation, admin CRUD/deactivation APIs, pagination/search/filtering, employee login provisioning, and employee self-service profile API/UI are implemented. A MongoDB-backed API lifecycle integration test is included. GitHub Actions run 110 passed the current password-change/test/build code at commit `4536cc44`; run local checks after pulling the latest documentation/env examples, and complete the browser smoke test.
-- Payroll runs, simulated transaction execution, payslips, and analytics APIs are not implemented yet.
+- Phase 4 payroll backend: integer-paise monthly salary calculations, payroll preview, immutable salary snapshots, one run per month, admin approval/finalization, and employee-only finalized pay history. Simulated payout execution, payslip export and payroll UI are still planned for later phases.
 
 
+
+## Payroll calculation demo rules
+
+This portfolio demo uses a deliberately simplified monthly formula:
+
+- Gross pay = base salary + monthly allowances.
+- Net pay = gross pay - monthly deductions.
+- All amounts are integer INR paise. API clients must not send calculated gross/net values; the server calculates them from stored employee salary structures.
+- Only active employees are included when a payroll run is created. Employee salary/name/department fields are snapshotted into the run, so later profile edits do not silently rewrite a previously created payroll period.
+- A period uses YYYY-MM format. Only one payroll run is allowed per period. The admin flow is draft → approved → finalized; finalization records an immutable payroll snapshot for the employee's own pay-history endpoint.
+- This demo formula does not calculate income tax, EPF, statutory deductions, overtime, bonuses or unpaid-leave proration. It is not a legal/tax-compliant payroll engine and does not transfer money.
+
+Payroll API endpoints:
+- GET /api/payroll?period=YYYY-MM — list payroll runs (admin).
+- POST /api/payroll/preview with { "period": "YYYY-MM" } — calculate without saving (admin).
+- POST /api/payroll/runs with { "period": "YYYY-MM" } — create a draft snapshot (admin).
+- GET /api/payroll/runs/:id — inspect a run (admin).
+- POST /api/payroll/runs/:id/approve — move draft to approved (admin).
+- POST /api/payroll/runs/:id/finalize — move approved to finalized (admin).
+- GET /api/payroll/me — read only the authenticated employee's finalized item.
 
 ## Password change and temporary employee passwords
 
