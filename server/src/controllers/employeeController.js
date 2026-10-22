@@ -46,6 +46,7 @@ function serializeEmployee(employee) {
     firstName: employee.firstName,
     lastName: employee.lastName,
     workEmail: employee.workEmail,
+    currency: employee.currency,
     department: employee.department,
     designation: employee.designation,
     salaryStructure: {
