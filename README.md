@@ -40,7 +40,7 @@ See [`docs/PROJECT_PLAN.md`](docs/PROJECT_PLAN.md) for the full roadmap, securit
 - Frontend sign-in has an accessible show/hide password toggle. Protected routes separate admin and employee workspaces.
 - Email OTP password reset is implemented: six-digit code, 10-minute expiry, HMAC-stored code hash, resend cooldown, attempt limit, generic account response, and session invalidation after reset.
 - SMTP must be configured before password-reset email delivery can work. With no SMTP configuration, the request endpoint returns an explicit server-configuration error.
-- Phase 3 employee management: employee model, salary-structure validation, admin list/create/update/deactivate APIs, paginated/searchable/filterable results, employee login provisioning, and employee self-service profile API/UI are implemented. Database-backed local end-to-end verification is still required.
+- Phase 3 employee management: employee model, salary-structure validation, admin list/create/update/deactivate APIs, paginated/searchable/filterable results, employee login provisioning, and employee self-service profile API/UI are implemented. A MongoDB-backed API lifecycle integration test is included; still verify the latest CI run and complete a local browser smoke test.
 - Payroll runs, simulated transaction execution, payslips, and analytics APIs are not implemented yet.
 
 
@@ -113,7 +113,13 @@ From the repository root:
 npm test
 npm run build
 ```
-The API tests load the backend environment config, so ensure `server/.env` is configured first. GitHub Actions runs the API tests and frontend production build on pushes and pull requests; check the Actions tab for verified results. The authentication changes still need local end-to-end verification.
+The API unit/route tests load the backend environment config, so ensure `server/.env` is configured first. The database-backed employee lifecycle test is separate and requires MongoDB to be running and reachable through `MONGODB_URI`:
+
+```bash
+npm run test:integration --prefix server
+```
+
+GitHub Actions runs the unit/route tests, MongoDB-backed employee lifecycle integration test, and frontend production build on pushes and pull requests. Check the Actions tab for the latest run result, then test the admin/employee browser flow locally.
 
 
 ## Password reset email configuration
