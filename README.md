@@ -105,3 +105,14 @@ npm run load:test --prefix server
 ```
 
 This is a basic health-endpoint concurrency smoke test, **not** a proof of production capacity or a full authenticated payroll benchmark. Record the results and later load-test authenticated employee/payroll APIs against synthetic data. The default per-process in-memory rate limiter is suitable only for a single-process demo; multi-instance production requires a shared rate-limit store (for example Redis) and measured deployment capacity.
+
+
+## Local health-endpoint smoke test
+
+The bounded script can be run with the backend serving `/api/health`:
+
+```bash
+npm run load:test --prefix server
+```
+
+A developer-reported run on a local Windows environment (2026-10-22) completed 250 requests at concurrency 25: 250 successful, 0 failed/non-2xx, 212 ms elapsed, reported 1,177.3 requests/second, p50 11.7 ms, p95 46.7 ms and p99 60.1 ms. This is a local health-endpoint smoke test only; it does not use MongoDB-backed routes and must not be interpreted as supported user capacity. Benchmark employee/payroll APIs separately after implementation.
