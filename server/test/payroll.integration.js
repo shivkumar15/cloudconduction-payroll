@@ -5,6 +5,7 @@ import { randomBytes } from "node:crypto";
 import { app } from "../src/app.js";
 import { Employee } from "../src/models/Employee.js";
 import { PayrollRun } from "../src/models/PayrollRun.js";
+import { PayrollTransaction } from "../src/models/PayrollTransaction.js";
 import { User } from "../src/models/User.js";
 
 test("MongoDB payroll lifecycle snapshots salaries, prevents duplicate periods and enforces access", async () => {
@@ -76,7 +77,7 @@ test("MongoDB payroll lifecycle snapshots salaries, prevents duplicate periods a
   try {
     await mongoose.connect(isolatedMongoUri, { serverSelectionTimeoutMS: 8_000 });
     connected = true;
-    await Promise.all([User.init(), Employee.init(), PayrollRun.init()]);
+    await Promise.all([User.init(), Employee.init(), PayrollRun.init(), PayrollTransaction.init()]);
 
     const adminPassword = "Payroll-admin-test-" + runId + "!A";
     const employeePassword = "Payroll-employee-test-" + runId + "!A";
@@ -204,6 +205,99 @@ test("MongoDB payroll lifecycle snapshots salaries, prevents duplicate periods a
     assert.equal(approveResponse.status, 200);
     assert.equal((await approveResponse.json()).data.status, "approved");
 
+    const employeeTransactionsArePrivate = await request(baseUrl, "/api/transactions", { cookie: employeeCookie });
+    assert.equal(employeeTransactionsArePrivate.status, 403);
+
+    const invalidFailureScenario = await request(baseUrl, runUrl + "/simulate-transactions", {
+      method: "POST",
+      cookie: adminCookie,
+      body: { failEmployeeCodes: ["NOT-IN-RUN"] }
+    });
+    assert.equal(invalidFailureScenario.status, 400);
+
+    const simulatedPayments = await request(baseUrl, runUrl + "/simulate-transactions", {
+      method: "POST",
+      cookie: adminCookie,
+      body: { failEmployeeCodes: [employeeCode] }
+    });
+    assert.equal(simulatedPayments.status, 200);
+    const simulationBody = await simulatedPayments.json();
+    assert.equal(simulationBody.simulatedOnly, true);
+    assert.equal(simulationBody.summary.count, 1);
+    assert.equal(simulationBody.summary.failed, 1);
+    assert.equal(simulationBody.data[0].status, "failed");
+    assert.equal(simulationBody.data[0].attemptCount, 1);
+    const transactionId = simulationBody.data[0].id;
+    const idempotencyKey = "payroll-run:" + created.id + ":employee:" + activeEmployee._id.toString();
+    const storedTransaction = await PayrollTransaction.findById(transactionId);
+    assert.equal(storedTransaction.idempotencyKey, idempotencyKey);
+    assert.equal(storedTransaction.provider, "simulation");
+    assert.equal(storedTransaction.amountPaise, 2_600_000);
+
+    const employeeTransactionsBeforeFinalization = await request(baseUrl, "/api/transactions/me", {
+      cookie: employeeCookie
+    });
+    assert.equal(employeeTransactionsBeforeFinalization.status, 200);
+    assert.deepEqual((await employeeTransactionsBeforeFinalization.json()).data, []);
+
+    const finalizeBeforePayments = await request(baseUrl, runUrl + "/finalize", {
+      method: "POST",
+      cookie: adminCookie
+    });
+    assert.equal(finalizeBeforePayments.status, 409);
+    assert.equal((await finalizeBeforePayments.json()).code, "SIMULATED_PAYMENTS_INCOMPLETE");
+
+    const duplicateSimulation = await request(baseUrl, runUrl + "/simulate-transactions", {
+      method: "POST",
+      cookie: adminCookie,
+      body: {}
+    });
+    assert.equal(duplicateSimulation.status, 200);
+    const duplicateSimulationBody = await duplicateSimulation.json();
+    assert.equal(duplicateSimulationBody.data[0].id, transactionId);
+    assert.equal(duplicateSimulationBody.data[0].status, "failed");
+    assert.equal(duplicateSimulationBody.data[0].attemptCount, 1);
+    assert.equal(await PayrollTransaction.countDocuments({ payrollRunId: created.id }), 1);
+
+    const employeeRetryForbidden = await request(baseUrl, "/api/transactions/" + transactionId + "/retry", {
+      method: "POST",
+      cookie: employeeCookie
+    });
+    assert.equal(employeeRetryForbidden.status, 403);
+
+    const transactionList = await request(baseUrl, "/api/transactions?period=" + period + "&status=failed", {
+      cookie: adminCookie
+    });
+    assert.equal(transactionList.status, 200);
+    const transactionListBody = await transactionList.json();
+    assert.equal(transactionListBody.simulatedOnly, true);
+    assert.equal(transactionListBody.pagination.total, 1);
+    assert.equal(transactionListBody.data[0].id, transactionId);
+
+    const transactionDetail = await request(baseUrl, "/api/transactions/" + transactionId, {
+      cookie: adminCookie
+    });
+    assert.equal(transactionDetail.status, 200);
+    assert.equal((await transactionDetail.json()).data.status, "failed");
+
+    const retryResponse = await request(baseUrl, "/api/transactions/" + transactionId + "/retry", {
+      method: "POST",
+      cookie: adminCookie
+    });
+    assert.equal(retryResponse.status, 200);
+    const retryBody = await retryResponse.json();
+    assert.equal(retryBody.simulatedOnly, true);
+    assert.equal(retryBody.data.status, "succeeded");
+    assert.equal(retryBody.data.attemptCount, 2);
+    assert.equal(retryBody.data.attemptHistory.length, 2);
+    assert.equal((await PayrollTransaction.findById(transactionId)).idempotencyKey, idempotencyKey);
+
+    const repeatRetry = await request(baseUrl, "/api/transactions/" + transactionId + "/retry", {
+      method: "POST",
+      cookie: adminCookie
+    });
+    assert.equal(repeatRetry.status, 409);
+
     const repeatApprove = await request(baseUrl, runUrl + "/approve", {
       method: "POST",
       cookie: adminCookie
@@ -216,6 +310,16 @@ test("MongoDB payroll lifecycle snapshots salaries, prevents duplicate periods a
     });
     assert.equal(finalizeResponse.status, 200);
     assert.equal((await finalizeResponse.json()).data.status, "finalized");
+
+    const employeeTransactionsAfterFinalization = await request(baseUrl, "/api/transactions/me", {
+      cookie: employeeCookie
+    });
+    assert.equal(employeeTransactionsAfterFinalization.status, 200);
+    const ownTransactions = (await employeeTransactionsAfterFinalization.json()).data;
+    assert.equal(ownTransactions.length, 1);
+    assert.equal(ownTransactions[0].id, transactionId);
+    assert.equal(ownTransactions[0].status, "succeeded");
+    assert.equal(ownTransactions[0].simulatedOnly, true);
 
     const repeatFinalize = await request(baseUrl, runUrl + "/finalize", {
       method: "POST",
@@ -248,6 +352,7 @@ test("MongoDB payroll lifecycle snapshots salaries, prevents duplicate periods a
   } finally {
     if (server) await new Promise((resolve) => server.close(() => resolve()));
     if (connected) {
+      await PayrollTransaction.deleteMany({ period });
       await PayrollRun.deleteMany({ period });
       await Employee.deleteMany({ employeeCode: { $in: codes } });
       await User.deleteMany({ email: { $in: emails } });

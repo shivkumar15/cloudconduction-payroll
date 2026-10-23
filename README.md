@@ -42,7 +42,8 @@ See [`docs/PROJECT_PLAN.md`](docs/PROJECT_PLAN.md) for the full roadmap, securit
 - A newly created employee receives a temporary initial password and is required to change it at first sign-in. Employee/admin users can also change their password later from their workspace. Password changes require the current password, a new password of at least 12 characters, invalidate other sessions, and issue a fresh session to the current browser.
 - SMTP must be configured before password-reset email delivery can work. With no SMTP configuration, the request endpoint returns an explicit server-configuration error.
 - Phase 3 employee management: employee model, salary-structure validation, admin CRUD/deactivation APIs, pagination/search/filtering, employee login provisioning, and employee self-service profile API/UI are implemented. A MongoDB-backed API lifecycle integration test is included. GitHub Actions run 110 passed the current password-change/test/build code at commit `4536cc44`; run local checks after pulling the latest documentation/env examples, and complete the browser smoke test.
-- Phase 4 payroll backend: integer-paise monthly salary calculations, payroll preview, immutable salary snapshots, one run per month, admin approval/finalization, and employee-only finalized pay history. Simulated payout execution, payslip export and payroll UI are still planned for later phases.
+- Phase 4 payroll backend: integer-paise monthly salary calculations, payroll preview, salary snapshots, one run per month, admin approval/finalization, and employee-only finalized pay history.
+- Phase 5 simulated transactions: idempotent simulated payment records, selectable failure scenarios for testing, recorded retry attempts, admin transaction listing/detail, and employee-only finalized transaction history. No money is transferred.
 
 
 
@@ -63,7 +64,12 @@ Payroll API endpoints:
 - POST /api/payroll/runs with { "period": "YYYY-MM" } — create a draft snapshot (admin).
 - GET /api/payroll/runs/:id — inspect a run (admin).
 - POST /api/payroll/runs/:id/approve — move draft to approved (admin).
-- POST /api/payroll/runs/:id/finalize — move approved to finalized (admin).
+- POST /api/payroll/runs/:id/simulate-transactions with optional { "failEmployeeCodes": ["EMP-001"] } — create or reuse simulated transactions for an approved run (admin; no real transfer).
+- POST /api/payroll/runs/:id/finalize — finalize only after all employee simulations have succeeded (admin).
+- GET /api/transactions?period=YYYY-MM&status=failed — list simulated transactions (admin).
+- GET /api/transactions/:id — inspect one simulated transaction (admin).
+- POST /api/transactions/:id/retry — retry a failed simulated record without creating a duplicate (admin).
+- GET /api/transactions/me — own transaction history once payroll is finalized (employee).
 - GET /api/payroll/me — read only the authenticated employee's finalized item.
 
 ## Password change and temporary employee passwords

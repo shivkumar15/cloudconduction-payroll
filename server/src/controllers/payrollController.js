@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import { Employee } from "../models/Employee.js";
 import { PayrollRun } from "../models/PayrollRun.js";
+import { PayrollTransaction } from "../models/PayrollTransaction.js";
 import { buildPayrollSnapshot, getPayrollTransition } from "../services/payrollService.js";
 import {
   payrollListQuerySchema,
@@ -170,6 +171,20 @@ async function transitionPayrollRun(req, res, next, action) {
         success: false,
         message: "Payroll run cannot be " + action + " from status " + run.status
       });
+    }
+
+    if (action === "finalize") {
+      const [transactionCount, succeededCount] = await Promise.all([
+        PayrollTransaction.countDocuments({ payrollRunId: run._id }),
+        PayrollTransaction.countDocuments({ payrollRunId: run._id, status: "succeeded" })
+      ]);
+      if (transactionCount !== run.employeeCount || succeededCount !== run.employeeCount) {
+        return res.status(409).json({
+          success: false,
+          code: "SIMULATED_PAYMENTS_INCOMPLETE",
+          message: "Every employee payment must have a successful simulation before finalizing payroll"
+        });
+      }
     }
 
     const now = new Date();

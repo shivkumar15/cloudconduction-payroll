@@ -10,6 +10,7 @@ import { requireTrustedOriginForUnsafeMethods } from "./middleware/trustedOrigin
 import authRoutes from "./routes/authRoutes.js";
 import employeeRoutes from "./routes/employeeRoutes.js";
 import payrollRoutes from "./routes/payrollRoutes.js";
+import transactionRoutes from "./routes/transactionRoutes.js";
 
 export const app = express();
 
@@ -46,6 +47,7 @@ app.get("/api/health", (req, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/employees", employeeRoutes);
 app.use("/api/payroll", payrollRoutes);
+app.use("/api/transactions", transactionRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

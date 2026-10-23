@@ -184,15 +184,18 @@ Apply role/ownership rules to all endpoints. Enforce all state transitions and m
 - [x] Unique period constraint and conditional status updates prevent duplicate monthly runs and repeated/invalid transitions.
 - [x] Unit tests cover salary arithmetic, bad values, periods, status transitions, pagination and unique period index; MongoDB integration test covers preview, snapshot, duplicate period, admin authorization and employee ownership.
 - [x] Confirm the new payroll unit tests, employee + payroll MongoDB integration tests, and frontend build passed GitHub Actions run #124 at commit `cbe3f189`.
-- [ ] User verifies the new Phase 4 test/build/integration suite locally after pulling the latest `main`.
+- [x] User verified Phase 4 locally on 2026-10-23: `npm test` passed all 40 tests; `npm run build` passed (Vite transformed 1,656 modules); and `npm run test:integration --prefix server` passed both MongoDB integration tests.
 - Acceptance: reproducible calculations and no unintended repeated payroll processing.
 ### Phase 5 — simulated transactions
-- [ ] Simulation adapter isolated from calculation service.
-- [ ] Transaction statuses and deterministic test mode.
-- [ ] Idempotency and DB constraints.
-- [ ] Audit events and failure/retry behavior.
-- [ ] Clear simulation labels in UI and README.
-- Acceptance: duplicate idempotency request does not duplicate payment; failures are testable/auditable.
+- [x] Simulation adapter isolated from payroll calculation service; it uses a simulation-only provider/reference and never connects to an external payment provider.
+- [x] Per-employee transaction records snapshot amount/currency and record succeeded/failed status, reference, failure reason, attempt count and attempt history.
+- [x] Idempotency keys are deterministic per payroll run + employee; unique indexes also prohibit duplicate run/employee transaction records.
+- [x] Admin API can simulate approved payroll, select employee codes for deterministic demo failures, list/filter transactions and inspect a transaction.
+- [x] Failed transaction retry updates the existing logical transaction and records another attempt; a repeated retry is rejected.
+- [x] Payroll finalization is blocked until every employee has exactly one successful simulated transaction; employee transaction history is restricted to their own finalized payroll.
+- [x] Unit/API and MongoDB integration tests added for simulation outcome, input validation, idempotency, duplicate/retry behavior, role checks and finalization gate.
+- [ ] Verify Phase 5 unit/API tests, MongoDB integration tests and frontend build in CI and locally.
+- Acceptance: repeating a simulation does not create duplicate transaction records, failures are testable/auditable, and no real transfers occur.
 ### Phase 6 — frontend
 - [ ] Login and protected routing.
 - [ ] Responsive app shell/navigation.
@@ -250,7 +253,8 @@ Expected: frontend `http://localhost:5173`; health endpoint `http://localhost:50
 
 
 - Phase 4 payroll backend is implemented in commits `6cadbf10` and `cbe3f189`. The salary service calculates gross = base salary + monthly allowances and net = gross - monthly deductions using integer INR paise. Active employees are snapshotted into one payroll run per `YYYY-MM` period. Admin APIs support preview, create, list, detail, approve (`draft → approved`) and finalize (`approved → finalized`); employee pay history returns only that employee's own finalized line item. This demo excludes tax, EPF, overtime, bonuses and leave proration, and does not transfer money.
-- CI run #123 initially exposed shared-database interference between parallel integration tests. The payroll integration test now uses its own disposable database with a `_payroll` suffix; CI run #124 at commit `cbe3f189` passed the API unit tests, both MongoDB integration tests and the frontend build. The user still needs to run Phase 4 checks locally.
+- CI run #123 initially exposed shared-database interference between parallel integration tests. The payroll integration test now uses its own disposable database with a `_payroll` suffix; CI run #124 at commit `cbe3f189` passed the API unit tests, both MongoDB integration tests and the frontend build. The user subsequently verified locally: all 40 tests passed, the frontend production build passed, and both MongoDB integration tests passed.
+- Phase 5 implementation is in progress: transaction model, simulation-only provider adapter, idempotent per-employee transaction records, explicit failure injection for tests, retry history, admin transaction API, employee own-transaction history, and a finalize gate requiring all transactions to succeed. CI/local verification for Phase 5 is pending.
 
 ## Resume alignment (based on the uploaded one-page resume, reviewed 2026-10-22)
 
@@ -275,9 +279,9 @@ Expected: frontend `http://localhost:5173`; health endpoint `http://localhost:50
 - Final resume bullet points should be written only after the corresponding features and tests are complete. Do not claim production payroll or real payment processing.
 
 ## Immediate next task
-1. Pull latest main and run `npm test`, `npm run build`, and `npm run test:integration --prefix server` to verify Phase 4 locally; CI run #124 is already green.
+1. Pull latest `main` and run `npm test`, `npm run build`, and `npm run test:integration --prefix server` to verify Phase 5 locally; then confirm GitHub Actions is green.
 2. Complete the remaining local browser smoke test for admin/employee workflows, especially mandatory first-login password change, employee workspace access, and the old temporary password becoming invalid.
-3. Once local Phase 4 checks pass, proceed to Phase 5 simulated transactions and then the payroll-facing admin/employee dashboards and reports in Phase 6.
+3. Finish the payroll/transaction admin and employee interfaces, payroll history, transaction status visibility and payslip view/export in Phase 6.
 4. Keep Phase 7 release hardening (security regression checks, synthetic seed data, authenticated load tests, README/deployment review) as the final gate. SMTP delivery and the forgot-password reset flow have already been verified locally; never commit SMTP credentials or share OTPs.
 
 ## Future-session resume instructions

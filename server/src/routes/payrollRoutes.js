@@ -7,7 +7,8 @@ import {
   getMyPayroll,
   getPayrollRun,
   listPayrollRuns,
-  previewPayroll
+  previewPayroll,
+  simulatePayrollTransactions
 } from "../controllers/payrollController.js";
 
 const router = Router();
@@ -19,6 +20,7 @@ router.post("/preview", requireRole("admin"), previewPayroll);
 router.post("/runs", requireRole("admin"), createPayrollRun);
 router.get("/runs/:id", requireRole("admin"), getPayrollRun);
 router.post("/runs/:id/approve", requireRole("admin"), approvePayrollRun);
+router.post("/runs/:id/simulate-transactions", requireRole("admin"), simulatePayrollTransactions);
 router.post("/runs/:id/finalize", requireRole("admin"), finalizePayrollRun);
 
 export default router;
