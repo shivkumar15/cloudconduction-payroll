@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Activity, ArrowRight, Banknote, LogOut, ShieldCheck, Users, UserCog, WalletCards } from "lucide-react";
+import { Activity, ArrowRight, Banknote, LogOut, ShieldCheck, Users, UserCog, Wallet } from "lucide-react";
 import { Link } from "react-router-dom";
 import api from "../../services/api.js";
 import { useAuth } from "../../contexts/AuthContext.jsx";
@@ -147,7 +147,7 @@ export default function AdminDashboard() {
         <div className="mt-6 grid gap-4 md:grid-cols-2">
           <article className="rounded-2xl border border-slate-200 bg-white p-6">
             <div className="flex items-start gap-3">
-              <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-indigo-50 text-indigo-600"><WalletCards size={22} aria-hidden="true" /></span>
+              <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-indigo-50 text-indigo-600"><Wallet size={22 aria-hidden="true" /></span>
               <div className="flex-1">
                 <h2 className="text-lg font-semibold">Payroll & simulated transactions</h2>
                 <p className="mt-2 text-sm leading-6 text-slate-600">Preview a period, create and approve a payroll snapshot, simulate payment outcomes, retry failed simulation attempts and finalize the run.</p>
