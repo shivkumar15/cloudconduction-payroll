@@ -334,7 +334,7 @@ export default function AdminPayrollPage() {
             <p className="mt-1 text-xs text-slate-500">{currentPeriodRun ? "Saved snapshot for " + currentPeriodRun.period : "No saved run for " + currentPeriod()}</p>
           </article>
           <article className={cardClass}>
-            <div className="flex items-center justify-between gap-3"><p className="text-sm text-slate-500">Visible transactions</p><Users size={19} className="text-indigo-600" aria-hidden="true" /></div>
+            <div className="flex items-center justify-between gap-3"><p className="text-sm text-slate-500">Period transactions</p><Users size={19} className="text-indigo-600" aria-hidden="true" /></div>
             <p className="mt-4 text-3xl font-bold">{loadingTransactions ? "…" : transactionPagination.total}</p>
             <p className="mt-1 text-xs text-slate-500">Matching {period} filters</p>
           </article>
@@ -373,9 +373,10 @@ export default function AdminPayrollPage() {
                     <FileCheck2 size={16} aria-hidden="true" /> {busyAction === "create" ? "Creating…" : "Create draft run"}
                   </button>
                 </div>
-                <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                <div className="mt-4 grid gap-3 sm:grid-cols-4">
                   <div className="rounded-lg bg-white p-3"><p className="text-xs text-slate-500">Employees</p><p className="mt-1 text-lg font-bold">{preview.employeeCount}</p></div>
                   <div className="rounded-lg bg-white p-3"><p className="text-xs text-slate-500">Gross payroll</p><p className="mt-1 text-lg font-bold">{money(preview.totalGrossPayPaise)}</p></div>
+                  <div className="rounded-lg bg-white p-3"><p className="text-xs text-slate-500">Deductions</p><p className="mt-1 text-lg font-bold">{money(preview.totalDeductionsPaise)}</p></div>
                   <div className="rounded-lg bg-white p-3"><p className="text-xs text-slate-500">Net payroll</p><p className="mt-1 text-lg font-bold">{money(preview.totalNetPayPaise)}</p></div>
                 </div>
                 <div className="mt-4 overflow-x-auto rounded-lg border border-slate-200 bg-white">
@@ -401,11 +402,12 @@ export default function AdminPayrollPage() {
               {!loadingRuns && runs.length > 0 && (
                 <div className="mt-3 overflow-x-auto rounded-xl border border-slate-200">
                   <table className="min-w-full text-left text-sm">
-                    <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500"><tr><th className="px-3 py-3">Period</th><th className="px-3 py-3">Employees</th><th className="px-3 py-3 text-right">Net pay</th><th className="px-3 py-3">Status</th><th className="px-3 py-3">Action</th></tr></thead>
+                    <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500"><tr><th className="px-3 py-3">Period</th><th className="px-3 py-3">Employees</th><th className="px-3 py-3 text-right">Deductions</th><th className="px-3 py-3 text-right">Net pay</th><th className="px-3 py-3">Status</th><th className="px-3 py-3">Action</th></tr></thead>
                     <tbody className="divide-y divide-slate-100 bg-white">
                       {runs.map((run) => <tr key={run.id} className={run.id === selectedRunId ? "bg-indigo-50/60" : ""}>
                         <td className="whitespace-nowrap px-3 py-3 font-semibold">{run.period}</td>
                         <td className="px-3 py-3">{run.employeeCount}</td>
+                        <td className="whitespace-nowrap px-3 py-3 text-right tabular-nums">{money(run.totalDeductionsPaise)}</td>
                         <td className="whitespace-nowrap px-3 py-3 text-right tabular-nums">{money(run.totalNetPayPaise)}</td>
                         <td className="px-3 py-3"><StatusBadge status={run.status} /></td>
                         <td className="px-3 py-3"><button type="button" className="text-sm font-semibold text-indigo-700 hover:underline" onClick={() => selectRun(run)}>View</button></td>
