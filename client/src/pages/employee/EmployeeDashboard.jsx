@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import {
-  Banknote, Download, FileDown, LogOut, ReceiptText, ShieldCheck, UserRound
+  Banknote, Download, LogOut, Receipt, ShieldCheck, UserRound
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext.jsx";
@@ -189,7 +189,7 @@ export default function EmployeeDashboard() {
         <section className={"no-print mt-6 " + cardClass}>
           <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
             <div>
-              <h2 className="flex items-center gap-2 text-lg font-semibold"><ReceiptText size={20} className="text-indigo-600" aria-hidden="true" /> Finalized pay history</h2>
+              <h2 className="flex items-center gap-2 text-lg font-semibold"><Receipt size={20 className="text-indigo-600" aria-hidden="true" /> Finalized pay history</h2>
               <p className="mt-1 text-sm text-slate-500">Only your own finalized payroll snapshots appear here. Draft and approved payroll remain hidden.</p>
             </div>
             <button type="button" disabled={payrollHistory.length === 0} onClick={exportPayrollHistory} className={buttonClass}><Download size={16} aria-hidden="true" /> Export CSV</button>
@@ -223,7 +223,7 @@ export default function EmployeeDashboard() {
                 <p className="mt-1 text-sm text-slate-500">Finalized on {formatDate(selectedPayslip.finalizedAt)}</p>
               </div>
               <div className="no-print flex flex-wrap gap-2">
-                <button type="button" onClick={() => window.print()} className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700"><FileDown size={16} aria-hidden="true" /> Print / Save PDF</button>
+                <button type="button" onClick={() => window.print()} className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700"><Download size={16 aria-hidden="true" /> Print / Save PDF</button>
                 <button type="button" className={buttonClass} onClick={() => setSelectedPayslip(null)}>Close</button>
               </div>
             </div>
