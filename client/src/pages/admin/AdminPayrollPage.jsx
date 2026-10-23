@@ -313,7 +313,7 @@ export default function AdminPayrollPage() {
 
         {(actionError || pageError) && (
           <div className="mt-5 flex items-start gap-3 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800" role="alert">
-            <AlertCircle size={18 className="mt-0.5 shrink-0" aria-hidden="true" />
+            <AlertCircle size={18} className="mt-0.5 shrink-0" aria-hidden="true" />
             <p>{actionError || pageError}</p>
           </div>
         )}
