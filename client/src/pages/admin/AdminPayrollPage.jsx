@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft, BarChart3, CheckCircle2, ChevronLeft, ChevronRight,
-  CircleAlert, Download, FileCheck2, Play, RefreshCw, ShieldAlert,
+  AlertCircle, Download, FileCheck, Play, RefreshCw, ShieldAlert,
   Users, Wallet
 } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -313,7 +313,7 @@ export default function AdminPayrollPage() {
 
         {(actionError || pageError) && (
           <div className="mt-5 flex items-start gap-3 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800" role="alert">
-            <CircleAlert size={18} className="mt-0.5 shrink-0" aria-hidden="true" />
+            <AlertCircle size={18 className="mt-0.5 shrink-0" aria-hidden="true" />
             <p>{actionError || pageError}</p>
           </div>
         )}
@@ -372,7 +372,7 @@ export default function AdminPayrollPage() {
                     disabled={busyAction !== "" || runs.some((run) => run.period === period)}
                     className={primaryButton}
                   >
-                    <FileCheck2 size={16} aria-hidden="true" /> {busyAction === "create" ? "Creating…" : "Create draft run"}
+                    <FileCheck size={16 aria-hidden="true" /> {busyAction === "create" ? "Creating…" : "Create draft run"}
                   </button>
                 </div>
                 <div className="mt-4 grid gap-3 sm:grid-cols-4">
