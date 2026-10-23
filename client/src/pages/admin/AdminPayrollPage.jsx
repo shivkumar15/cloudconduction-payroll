@@ -454,7 +454,7 @@ export default function AdminPayrollPage() {
                 <div className="mt-4 flex flex-wrap gap-2">
                   {selectedRun.status === "draft" && <button type="button" disabled={busyAction !== ""} onClick={approveRun} className={primaryButton}><CheckCircle2 size={16} /> {busyAction === "approve" ? "Approving…" : "Approve run"}</button>}
                   {selectedRun.status === "approved" && <button type="button" disabled={busyAction !== ""} onClick={simulateTransactions} className={primaryButton}><Play size={16} /> {busyAction === "simulate" ? "Simulating…" : "Simulate payments"}</button>}
-                  {selectedRun.status === "approved" && <button type="button" disabled={busyAction !== ""} onClick={finalizeRun} className={secondaryButton}><FileCheck2 size={16} /> {busyAction === "finalize" ? "Finalizing…" : "Finalize run"}</button>}
+                  {selectedRun.status === "approved" && <button type="button" disabled={busyAction !== ""} onClick={finalizeRun} className={secondaryButton}><FileCheck size={16} /> {busyAction === "finalize" ? "Finalizing…" : "Finalize run"}</button>}
                 </div>
                 {selectedRun.status === "approved" && <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3">
                   <label className="block text-sm font-semibold text-amber-950" htmlFor="failure-codes">Optional demo failure scenario</label>
