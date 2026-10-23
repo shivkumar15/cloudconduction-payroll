@@ -19,3 +19,29 @@ body {
 button, input, select, textarea {
   font: inherit;
 }
+
+
+@media print {
+  body * {
+    visibility: hidden !important;
+  }
+
+  .payroll-payslip,
+  .payroll-payslip * {
+    visibility: visible !important;
+  }
+
+  .payroll-payslip {
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 100%;
+    margin: 0 !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    background: #fff !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+}
