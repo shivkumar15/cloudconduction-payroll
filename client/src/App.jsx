@@ -6,6 +6,7 @@ import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage.jsx";
 import ChangePasswordPage from "./pages/auth/ChangePasswordPage.jsx";
 import AdminDashboard from "./pages/admin/AdminDashboard.jsx";
 import EmployeesPage from "./pages/admin/EmployeesPage.jsx";
+import AdminPayrollPage from "./pages/admin/AdminPayrollPage.jsx";
 import EmployeeDashboard from "./pages/employee/EmployeeDashboard.jsx";
 import UnauthorizedPage from "./pages/UnauthorizedPage.jsx";
 
@@ -44,6 +45,7 @@ function AppRoutes() {
       <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/admin/employees" element={<EmployeesPage />} />
+        <Route path="/admin/payroll" element={<AdminPayrollPage />} />
       </Route>
 
       <Route element={<ProtectedRoute allowedRoles={["employee"]} />}>
