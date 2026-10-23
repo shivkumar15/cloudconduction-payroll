@@ -1,36 +1,81 @@
 import { useEffect, useState } from "react";
-import { Activity, Banknote, LogOut, ShieldCheck, Users, UserCog } from "lucide-react";
+import { Activity, ArrowRight, Banknote, LogOut, ShieldCheck, Users, UserCog, WalletCards } from "lucide-react";
 import { Link } from "react-router-dom";
 import api from "../../services/api.js";
 import { useAuth } from "../../contexts/AuthContext.jsx";
 
+const currency = new Intl.NumberFormat("en-IN", {
+  style: "currency",
+  currency: "INR",
+  maximumFractionDigits: 2
+});
+
+function money(paise) {
+  return currency.format((Number(paise) || 0) / 100);
+}
+
+function currentPeriod() {
+  const now = new Date();
+  return now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0");
+}
 
 export default function AdminDashboard() {
   const { user, logout } = useAuth();
   const [employeeCount, setEmployeeCount] = useState(null);
+  const [currentPayroll, setCurrentPayroll] = useState(null);
+  const [transactionCount, setTransactionCount] = useState(null);
+  const [failedTransactionCount, setFailedTransactionCount] = useState(null);
 
   useEffect(() => {
     let mounted = true;
+    const period = currentPeriod();
+
     api.get("/employees", { params: { page: 1, pageSize: 1 } })
+      .then((response) => { if (mounted) setEmployeeCount(response.data.pagination.total); })
+      .catch(() => { if (mounted) setEmployeeCount(null); });
+
+    api.get("/payroll", { params: { page: 1, pageSize: 100 } })
       .then((response) => {
-        if (mounted) setEmployeeCount(response.data.pagination.total);
+        if (!mounted) return;
+        const runs = Array.isArray(response.data.data) ? response.data.data : [];
+        setCurrentPayroll(runs.find((run) => run.period === period) || null);
       })
-      .catch(() => {
-        if (mounted) setEmployeeCount(null);
-      });
+      .catch(() => { if (mounted) setCurrentPayroll(null); });
+
+    api.get("/transactions", { params: { page: 1, pageSize: 1, period } })
+      .then((response) => { if (mounted) setTransactionCount(response.data.pagination.total); })
+      .catch(() => { if (mounted) setTransactionCount(null); });
+
+    api.get("/transactions", { params: { page: 1, pageSize: 1, period, status: "failed" } })
+      .then((response) => { if (mounted) setFailedTransactionCount(response.data.pagination.total); })
+      .catch(() => { if (mounted) setFailedTransactionCount(null); });
+
     return () => { mounted = false; };
   }, []);
 
   const metrics = [
-    { label: "Total employees", value: employeeCount === null ? "—" : String(employeeCount), note: employeeCount === null ? "Unable to load employee count" : "From saved employee records", icon: Users },
-    { label: "Payroll this month", value: "₹—", note: "No payroll processed yet", icon: Banknote },
-    { label: "Simulated transactions", value: "—", note: "Payment engine not configured", icon: Activity }
+    {
+      label: "Total employees",
+      value: employeeCount === null ? "—" : String(employeeCount),
+      note: employeeCount === null ? "Unable to load employee count" : "From saved employee records",
+      icon: Users
+    },
+    {
+      label: "Current-month net payroll",
+      value: currentPayroll ? money(currentPayroll.totalNetPayPaise) : "—",
+      note: currentPayroll ? currentPayroll.period + " · " + currentPayroll.status : "No saved payroll run for " + currentPeriod(),
+      icon: Banknote
+    },
+    {
+      label: "Simulated transactions",
+      value: transactionCount === null ? "—" : String(transactionCount),
+      note: transactionCount === null ? "Unable to load transactions" : "Records for " + currentPeriod(),
+      icon: Activity
+    }
   ];
 
   async function handleLogout() {
-    try {
-      await logout();
-    } catch {
+    try { await logout(); } catch {
       // The local UI session is cleared even if the API cannot be reached.
     }
   }
@@ -68,11 +113,11 @@ export default function AdminDashboard() {
             <p className="text-sm font-semibold text-indigo-600">ADMIN OVERVIEW</p>
             <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">Payroll dashboard</h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-              Manage the payroll workflow, employee records and simulated transactions from one workspace.
+              Review saved payroll totals, manage employee records and operate the simulated payroll workflow.
             </p>
           </div>
           <div className="inline-flex items-center gap-2 self-start rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600 sm:self-auto">
-            <ShieldCheck size={17} className="text-emerald-600" />
+            <ShieldCheck size={17} className="text-emerald-600" aria-hidden="true" />
             Authenticated admin
           </div>
         </div>
@@ -92,23 +137,37 @@ export default function AdminDashboard() {
           ))}
         </div>
 
-        <section className="mt-6 grid gap-4 md:grid-cols-[1.5fr_1fr]">
+        {failedTransactionCount > 0 && (
+          <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">
+            <p>{failedTransactionCount} failed simulated transaction(s) exist for {currentPeriod()}.</p>
+            <Link to="/admin/payroll" className="inline-flex items-center gap-2 font-semibold underline">Review and retry <ArrowRight size={15} aria-hidden="true" /></Link>
+          </div>
+        )}
+
+        <div className="mt-6 grid gap-4 md:grid-cols-2">
           <article className="rounded-2xl border border-slate-200 bg-white p-6">
             <div className="flex items-start gap-3">
-              <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-indigo-50 text-indigo-600"><UserCog size={22} /></span>
-              <div>
-                <h2 className="text-lg font-semibold">Employee management</h2>
-                <p className="mt-2 text-sm leading-6 text-slate-600">Create employee records with linked employee logins, manage salary structures, search and filter records, and deactivate access when an employee leaves.</p>
-                <Link to="/admin/employees" className="mt-4 inline-flex rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700">Manage employees</Link>
+              <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-indigo-50 text-indigo-600"><WalletCards size={22} aria-hidden="true" /></span>
+              <div className="flex-1">
+                <h2 className="text-lg font-semibold">Payroll & simulated transactions</h2>
+                <p className="mt-2 text-sm leading-6 text-slate-600">Preview a period, create and approve a payroll snapshot, simulate payment outcomes, retry failed simulation attempts and finalize the run.</p>
+                <Link to="/admin/payroll" className="mt-4 inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700">Open payroll workspace <ArrowRight size={16} aria-hidden="true" /></Link>
               </div>
             </div>
           </article>
           <article className="rounded-2xl border border-slate-200 bg-white p-6">
-            <h2 className="text-lg font-semibold">Demo boundary</h2>
-            <p className="mt-2 text-sm leading-6 text-slate-600">Salary values are synthetic demo data. Statutory tax calculations and real salary transfers are not implemented.</p>
-            <p className="mt-4 rounded-lg bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800">Payroll totals and transaction cards remain placeholders until later phases.</p>
+            <div className="flex items-start gap-3">
+              <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-slate-100 text-slate-700"><UserCog size={22} aria-hidden="true" /></span>
+              <div className="flex-1">
+                <h2 className="text-lg font-semibold">Employee management</h2>
+                <p className="mt-2 text-sm leading-6 text-slate-600">Create employee records and linked logins, maintain salary inputs, search and filter records, and deactivate/reactivate access.</p>
+                <Link to="/admin/employees" className="mt-4 inline-flex rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">Manage employees</Link>
+              </div>
+            </div>
           </article>
-        </section>
+        </div>
+
+        <p className="mt-6 text-xs leading-5 text-slate-500">This is a portfolio demo using synthetic salary data. The salary formula is simplified and payment outcomes are simulated; no money is transferred. The dashboard metrics are fetched from stored employee, payroll and transaction records rather than placeholder numbers.</p>
       </section>
     </main>
   );
