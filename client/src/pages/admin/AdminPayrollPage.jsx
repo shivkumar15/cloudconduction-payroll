@@ -372,7 +372,7 @@ export default function AdminPayrollPage() {
                     disabled={busyAction !== "" || runs.some((run) => run.period === period)}
                     className={primaryButton}
                   >
-                    <FileCheck size={16 aria-hidden="true" /> {busyAction === "create" ? "Creating…" : "Create draft run"}
+                    <FileCheck size={16} aria-hidden="true" /> {busyAction === "create" ? "Creating…" : "Create draft run"}
                   </button>
                 </div>
                 <div className="mt-4 grid gap-3 sm:grid-cols-4">
