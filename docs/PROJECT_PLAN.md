@@ -198,15 +198,18 @@ Apply role/ownership rules to all endpoints. Enforce all state transitions and m
 - [ ] User runs the Phase 5 test/build/integration commands locally after pulling the latest `main`.
 - Acceptance: repeating a simulation does not create duplicate transaction records, failures are testable/auditable, and no real transfers occur.
 ### Phase 6 — frontend
-- [ ] Login and protected routing.
-- [ ] Responsive app shell/navigation.
-- [ ] API-driven admin dashboard.
-- [ ] Employee dashboard/pay history.
-- [ ] Tables, filters, loading/empty/error states.
-- [ ] Correctly labeled charts with accessible data equivalents.
-- [ ] Payslip view/export.
-- [ ] Accessible labels and responsive layouts.
-- Acceptance: no misleading data, failure handling, server authorization.
+- [x] Login and protected routing (reuses the existing authenticated route guards and roles).
+- [x] Responsive navigation links from the admin dashboard to employee management and payroll/transactions; employee page includes pay history.
+- [x] API-driven admin dashboard metrics from saved employee, payroll-run and transaction records.
+- [x] Admin payroll workspace: month preview, draft run creation, run selection/detail, approval, simulated payment execution, server-gated finalization and latest-period chart.
+- [x] Simulated transaction table with period/status filters, pagination, simulation reference, per-attempt history, failed-attempt retry, and CSV export for the visible page.
+- [x] Employee dashboard loads only the signed-in employee's profile, finalized payroll history and finalized transaction history from the existing /me APIs.
+- [x] Payslip statement for a selected finalized period with print / browser Save as PDF and CSV export of the employee's own payroll/transaction history.
+- [x] Loading, empty and API error states; accessible table headings, form labels and action/status text; responsive layouts and print-specific payslip styles.
+- [x] Chart uses saved payroll-run snapshots and includes period labels; the saved-run table presents the underlying payroll periods and amounts.
+- [ ] Confirm GitHub Actions tests and frontend production build pass on the Phase 6 changes.
+- [ ] User verifies local build and completes admin-to-employee browser smoke test with synthetic records.
+- Acceptance: no mock financial values, clear simulation-only wording, server-side authorization/state gates, and a successful CI/local/browser verification.
 ### Phase 7 — quality and release
 - [ ] Unit and API integration suite.
 - [x] Bounded concurrency smoke-test script (default 25 concurrent workers / 250 health requests).
@@ -241,7 +244,7 @@ Expected: frontend `http://localhost:5173`; health endpoint `http://localhost:50
 - `server/package.json` contains `seed:admin`. `.env.example` documents optional seed variables; no actual secret values were committed.
 - Frontend login UI, Axios API client, session context, protected routes and logout controls are committed. Admin `/admin/employees` supports create/edit/deactivate/reactivate, pagination/search/filters and an initial-password visibility toggle; employee `/employee` loads the linked user's own profile. All current UI password fields now have show/hide controls.
 - `.github/workflows/ci.yml` runs backend tests and frontend production build on pushes and PRs.
-- No public signup is available. Phase 3 employee API/UI is implemented. Phase 4 payroll backend is verified locally by the user and by CI. Phase 5 simulated transaction backend is committed; CI run #127 passed and local verification is pending. Payroll/transaction UI remains Phase 6 work.
+- No public signup is available. Phase 3 employee API/UI and Phase 4 payroll backend are implemented; Phase 4 was verified locally by the user and by CI. Phase 5 simulated transaction backend is committed; CI run #127 passed and local verification remains pending. Phase 6 admin payroll/transaction screens, API-driven dashboard metrics, employee finalized-pay history, payslip print/export and navigation are committed; Phase 6 CI and user browser smoke testing are pending.
 - Password visibility toggle was added to sign-in form; a forgot-password UI now supports requesting an email OTP and setting a new password.
 - OTP codes are generated with cryptographic randomness, stored as user-bound HMAC digests, expire after 10 minutes, accept at most 5 wrong code attempts, apply a 60-second resend cooldown, and are consumed via a conditional atomic update. Successful reset increments session version.
 - SMTP service uses env-based Nodemailer configuration. User confirmed SMTP delivery to a controlled test mailbox and successfully completed password reset on 2026-10-23. Do not store live SMTP credentials in the repository; full provider-specific failure/recovery testing may still be expanded.
@@ -280,13 +283,16 @@ Expected: frontend `http://localhost:5173`; health endpoint `http://localhost:50
 - Final resume bullet points should be written only after the corresponding features and tests are complete. Do not claim production payroll or real payment processing.
 
 ## Immediate next task
-1. Pull latest `main` and run `npm test`, `npm run build`, and `npm run test:integration --prefix server` to verify Phase 5 locally; GitHub Actions run #127 is green.
-2. Complete the remaining local browser smoke test for admin/employee workflows, especially mandatory first-login password change, employee workspace access, and the old temporary password becoming invalid.
-3. Finish the payroll/transaction admin and employee interfaces, payroll history, transaction status visibility and payslip view/export in Phase 6.
-4. Keep Phase 7 release hardening (security regression checks, synthetic seed data, authenticated load tests, README/deployment review) as the final gate. SMTP delivery and the forgot-password reset flow have already been verified locally; never commit SMTP credentials or share OTPs.
+1. Check the GitHub Actions CI run for the latest Phase 6 commits; fix any API integration or Vite build issues before calling Phase 6 verified.
+2. Pull latest `main`, run `npm test`, `npm run build`, and `npm run test:integration --prefix server` locally. The Phase 5 local rerun still needs user confirmation.
+3. Complete the browser smoke test using synthetic records: preview a new period, create/approve its run, simulate all-success and failure/retry flows, finalize, then sign in as the linked employee to verify own finalized history, transaction history and print/Save-as-PDF payslip.
+4. Continue Phase 7 release hardening (security regression checks, synthetic seed data, authenticated load tests, README/deployment review). SMTP delivery and forgot-password reset are already locally verified; never commit SMTP credentials or share OTPs.
 
 ## Future-session resume instructions
 Paste/upload this file and say:
 > Continue CloudConduction Payroll from `docs/PROJECT_PLAN.md`. Summarize current status and next task. Inspect actual repository and reconcile plan to files/commits before edits. Do not restart or repeat verified work. Implement the next incomplete task, test it, and update the handoff file with changes, results and unverified items.
 
 This document is continuity context, not a substitute for inspecting the real repository. Always reconcile it with repository state before coding.
+
+
+- Phase 6 UI implementation (CI pending): admin workspace file `client/src/pages/admin/AdminPayrollPage.jsx` connects directly to the payroll/transaction APIs for preview, run creation, approval, simulation, failed retry, finalization, saved-run chart, filters and transaction CSV. `client/src/pages/admin/AdminDashboard.jsx` reads current metrics from API records; `client/src/App.jsx` mounts the protected `/admin/payroll` route; `client/src/pages/employee/EmployeeDashboard.jsx` reads own finalized payroll/transaction history, includes payslip print / Save as PDF, and CSV exports. `client/src/index.css` includes print styles. README documents the workflow. Changes committed in `dbec5ce`, `6029cd0`, `3377680`, `185d844`, `2f63650`, `9d9f23d`, plus the documentation commit. Do not mark acceptance verified until the latest Actions run and user local/browser test are confirmed.
