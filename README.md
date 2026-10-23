@@ -232,3 +232,22 @@ npm run load:test --prefix server
 ```
 
 A developer-reported run on a local Windows environment (2026-10-22) completed 250 requests at concurrency 25: 250 successful, 0 failed/non-2xx, 212 ms elapsed, reported 1,177.3 requests/second, p50 11.7 ms, p95 46.7 ms and p99 60.1 ms. This is a local health-endpoint smoke test only; it does not use MongoDB-backed routes and must not be interpreted as supported user capacity. Benchmark employee/payroll APIs separately after implementation.
+
+
+## Phase 6 — payroll UI and employee self-service
+
+After admin sign-in, open **Payroll & simulated transactions** from the dashboard, or visit /admin/payroll.
+
+- Choose a month and select **Preview period** to calculate totals from the currently active employee salary structures without saving a run.
+- Use **Create draft run** to persist the snapshot for that month. Each period can have only one run.
+- Select a draft run and choose **Approve run**.
+- On an approved run, choose **Simulate payments**. Leave the failure-scenario field blank to simulate success for all employees, or enter comma-separated employee codes (for example, EMP-1001) to demonstrate a failure on the first simulation attempt.
+- In the simulated transaction table, inspect the generated reference and attempt history. Use **Retry simulation** for failed entries. Repeating the simulation request is idempotent; it does not retry an existing failed transaction.
+- Choose **Finalize run** only after the simulation records for every employee have succeeded. The server enforces this rule even if a user invokes the API directly.
+- The payroll page shows recent saved runs, a chart for net payroll and deductions, period/status filters, transaction attempt detail and CSV export for the currently visible transaction page.
+
+Employees sign in at /employee. The dashboard shows their own profile and current salary inputs, **finalized pay history**, own finalized transaction history, and a payslip statement for a selected finalized period. Use **Print / Save PDF** on the payslip and select the browser's **Save as PDF** destination to save it. Employee API queries resolve the employee identity from the authenticated session; they do not accept an arbitrary employee ID for the /me records.
+
+Amounts in the dashboard and payslip are based on the saved snapshot. The pay formula is intentionally simplified: gross = base salary + monthly allowances; net = gross - monthly deductions. Taxes, EPF, statutory deductions, overtime, bonuses and leave proration are not calculated. CSV and payslip exports are also demo records, not official payroll documents. All payment outcomes are simulated: no bank or payment provider is called and no money is transferred.
+
+Verify after pulling the latest main branch: run npm test, npm run build, and npm run test:integration --prefix server. Then complete a browser smoke test: sign in as admin, preview and create a period with synthetic employees, approve, run a successful simulation or a deliberate failure/retry, finalize, and sign in as the linked employee to confirm only their finalized history/payslip appears. Test empty states when there are no runs or finalized history. The local browser workflow has not been marked verified by CI alone.
