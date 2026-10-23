@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
-import { Banknote, LogOut, ShieldCheck, UserRound } from "lucide-react";
+import {
+  Banknote, Download, FileDown, LogOut, ReceiptText, ShieldCheck, UserRound
+} from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext.jsx";
 import api from "../../services/api.js";
@@ -14,95 +16,266 @@ function money(paise) {
   return currency.format((Number(paise) || 0) / 100);
 }
 
+function formatDate(value) {
+  if (!value) return "—";
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? "—" : parsed.toLocaleDateString("en-IN", { dateStyle: "medium" });
+}
+
+function responseMessage(error, fallback) {
+  return error?.response?.data?.message || fallback;
+}
+
+function csvCell(value) {
+  let text = String(value ?? "");
+  if (/^[-=+@]/.test(text)) text = "'" + text;
+  return "\"" + text.replace(/"/g, "\"\"") + "\"";
+}
+
+function downloadCsv(filename, rows) {
+  const csv = rows.map((row) => row.map(csvCell).join(",")).join("\r\n");
+  const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.click();
+  URL.revokeObjectURL(url);
+}
+
+function StatusBadge({ status }) {
+  const classes = {
+    finalized: "bg-emerald-50 text-emerald-700",
+    succeeded: "bg-emerald-50 text-emerald-700",
+    failed: "bg-rose-50 text-rose-700"
+  };
+  return <span className={"inline-flex rounded-full px-2.5 py-1 text-xs font-semibold " + (classes[status] || "bg-slate-100 text-slate-700")}>{status}</span>;
+}
+
+const cardClass = "rounded-2xl border border-slate-200 bg-white p-6 shadow-sm";
+const buttonClass = "inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50";
+
 export default function EmployeeDashboard() {
   const { user, logout } = useAuth();
   const [profile, setProfile] = useState(null);
+  const [payrollHistory, setPayrollHistory] = useState([]);
+  const [transactions, setTransactions] = useState([]);
+  const [selectedPayslip, setSelectedPayslip] = useState(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
+  const [loadingHistory, setLoadingHistory] = useState(true);
+  const [loadingTransactions, setLoadingTransactions] = useState(true);
   const [profileError, setProfileError] = useState("");
+  const [historyError, setHistoryError] = useState("");
+  const [transactionError, setTransactionError] = useState("");
 
   useEffect(() => {
     let mounted = true;
     api.get("/employees/me")
+      .then((response) => { if (mounted) setProfile(response.data.data); })
+      .catch((error) => { if (mounted) setProfileError(responseMessage(error, "Unable to load your employee profile.")); })
+      .finally(() => { if (mounted) setLoadingProfile(false); });
+
+    api.get("/payroll/me")
       .then((response) => {
-        if (mounted) setProfile(response.data.data);
+        if (!mounted) return;
+        const records = Array.isArray(response.data.data) ? response.data.data : [];
+        setPayrollHistory(records);
+        setSelectedPayslip((current) => current || records[0] || null);
       })
-      .catch((error) => {
-        if (mounted) setProfileError(error?.response?.data?.message || "Unable to load your employee profile.");
-      })
-      .finally(() => {
-        if (mounted) setLoadingProfile(false);
-      });
+      .catch((error) => { if (mounted) setHistoryError(responseMessage(error, "Unable to load your finalized payroll history.")); })
+      .finally(() => { if (mounted) setLoadingHistory(false); });
+
+    api.get("/transactions/me")
+      .then((response) => { if (mounted) setTransactions(Array.isArray(response.data.data) ? response.data.data : []); })
+      .catch((error) => { if (mounted) setTransactionError(responseMessage(error, "Unable to load your finalized transaction history.")); })
+      .finally(() => { if (mounted) setLoadingTransactions(false); });
+
     return () => { mounted = false; };
   }, []);
 
   async function handleLogout() {
-    try {
-      await logout();
-    } catch {
+    try { await logout(); } catch {
       // The local UI session is cleared even if the API cannot be reached.
     }
   }
 
+  function exportPayrollHistory() {
+    const rows = [
+      ["Period", "Employee code", "Department", "Base salary INR", "Allowances INR", "Gross pay INR", "Deductions INR", "Net pay INR", "Finalized date"],
+      ...payrollHistory.map((record) => [
+        record.period,
+        record.item.employeeCode,
+        record.item.department,
+        (record.item.baseSalaryPaise / 100).toFixed(2),
+        (record.item.monthlyAllowancesPaise / 100).toFixed(2),
+        (record.item.grossPayPaise / 100).toFixed(2),
+        (record.item.monthlyDeductionsPaise / 100).toFixed(2),
+        (record.item.netPayPaise / 100).toFixed(2),
+        record.finalizedAt
+      ])
+    ];
+    downloadCsv("my-finalized-payroll-history.csv", rows);
+  }
+
+  function exportTransactionHistory() {
+    const rows = [
+      ["Period", "Amount INR", "Status", "Simulated reference", "Attempts", "Last attempt"],
+      ...transactions.map((transaction) => [
+        transaction.period,
+        (transaction.amountPaise / 100).toFixed(2),
+        transaction.status,
+        transaction.simulatedReference,
+        transaction.attemptCount,
+        transaction.lastAttemptAt
+      ])
+    ];
+    downloadCsv("my-simulated-transaction-history.csv", rows);
+  }
+
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
-      <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4 lg:px-8">
+      <header className="no-print border-b border-slate-200 bg-white">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-5 py-4 lg:px-8">
           <div className="flex items-center gap-3">
-            <span className="grid size-10 place-items-center rounded-xl bg-indigo-600 text-white">
-              <Banknote size={22} aria-hidden="true" />
-            </span>
+            <span className="grid size-10 place-items-center rounded-xl bg-indigo-600 text-white"><Banknote size={22} aria-hidden="true" /></span>
             <div>
               <p className="font-bold tracking-tight">CloudConduction</p>
               <p className="text-xs text-slate-500">Employee workspace</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center justify-end gap-2">
             <Link to="/change-password" className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium hover:bg-slate-50">Change password</Link>
-          <button onClick={handleLogout} className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium hover:bg-slate-50" type="button">
-            <LogOut size={16} aria-hidden="true" /> Sign out
-          </button>
+            <button onClick={handleLogout} className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium hover:bg-slate-50" type="button">
+              <LogOut size={16} aria-hidden="true" /> Sign out
+            </button>
           </div>
         </div>
       </header>
 
-      <section className="mx-auto max-w-5xl px-5 py-10 lg:px-8">
-        <p className="text-sm font-semibold text-indigo-600">EMPLOYEE OVERVIEW</p>
-        <h1 className="mt-2 text-3xl font-bold tracking-tight">Your employee profile</h1>
-        <p className="mt-2 text-sm text-slate-600">{user?.email}</p>
+      <section className="mx-auto max-w-6xl px-5 py-8 lg:px-8">
+        <p className="no-print text-sm font-semibold text-indigo-600">EMPLOYEE OVERVIEW</p>
+        <h1 className="no-print mt-2 text-3xl font-bold tracking-tight sm:text-4xl">Your payroll workspace</h1>
+        <p className="no-print mt-2 text-sm text-slate-600">{user?.email}</p>
 
-        {loadingProfile && <p className="mt-6 rounded-xl border border-slate-200 bg-white p-5 text-sm text-slate-600" role="status">Loading your profile…</p>}
-        {profileError && <p className="mt-6 rounded-xl border border-rose-200 bg-rose-50 p-5 text-sm text-rose-700" role="alert">{profileError}</p>}
+        {loadingProfile && <p className="no-print mt-6 rounded-xl border border-slate-200 bg-white p-5 text-sm text-slate-600" role="status">Loading your employee profile…</p>}
+        {profileError && <p className="no-print mt-6 rounded-xl border border-rose-200 bg-rose-50 p-5 text-sm text-rose-700" role="alert">{profileError}</p>}
 
         {profile && (
-          <>
-            <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-              <div className="flex items-center gap-3">
-                <span className="grid size-12 place-items-center rounded-xl bg-indigo-50 text-indigo-600"><UserRound size={24} /></span>
-                <div>
-                  <h2 className="text-xl font-semibold">{profile.firstName} {profile.lastName}</h2>
-                  <p className="mt-1 text-sm text-slate-500">{profile.employeeCode} · {profile.designation}</p>
-                </div>
-                <span className="ml-auto rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">{profile.employmentStatus}</span>
+          <section className={"no-print mt-6 " + cardClass}>
+            <div className="flex items-center gap-3">
+              <span className="grid size-12 place-items-center rounded-xl bg-indigo-50 text-indigo-600"><UserRound size={24} aria-hidden="true" /></span>
+              <div>
+                <h2 className="text-xl font-semibold">{profile.firstName} {profile.lastName}</h2>
+                <p className="mt-1 text-sm text-slate-500">{profile.employeeCode} · {profile.designation}</p>
               </div>
-              <div className="mt-6 grid gap-4 border-t border-slate-100 pt-5 sm:grid-cols-2">
-                <div><p className="text-xs uppercase tracking-wide text-slate-500">Department</p><p className="mt-1 font-medium">{profile.department}</p></div>
-                <div><p className="text-xs uppercase tracking-wide text-slate-500">Work email</p><p className="mt-1 break-all font-medium">{profile.workEmail}</p></div>
-              </div>
-            </section>
-
-            <section className="mt-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-              <div className="flex items-center gap-2 font-semibold"><ShieldCheck size={18} className="text-emerald-600" /> Monthly salary structure (demo)</div>
+              <span className="ml-auto rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold capitalize text-emerald-700">{profile.employmentStatus}</span>
+            </div>
+            <div className="mt-6 grid gap-4 border-t border-slate-100 pt-5 sm:grid-cols-2">
+              <div><p className="text-xs uppercase tracking-wide text-slate-500">Department</p><p className="mt-1 font-medium">{profile.department}</p></div>
+              <div><p className="text-xs uppercase tracking-wide text-slate-500">Work email</p><p className="mt-1 break-all font-medium">{profile.workEmail}</p></div>
+            </div>
+            <div className="mt-5 border-t border-slate-100 pt-5">
+              <div className="flex items-center gap-2 font-semibold"><ShieldCheck size={18} className="text-emerald-600" aria-hidden="true" /> Current monthly salary structure (demo)</div>
               <p className="mt-1 text-sm text-slate-500">These are salary inputs, not a processed payslip or a promise of payment.</p>
-              <div className="mt-5 grid gap-4 sm:grid-cols-3">
+              <div className="mt-4 grid gap-3 sm:grid-cols-3">
                 <div className="rounded-xl bg-slate-50 p-4"><p className="text-sm text-slate-500">Base salary</p><p className="mt-2 text-xl font-bold">{money(profile.salaryStructure.baseSalaryPaise)}</p></div>
-                <div className="rounded-xl bg-slate-50 p-4"><p className="text-sm text-slate-500">Allowances</p><p className="mt-2 text-xl font-bold">{money(profile.salaryStructure.monthlyAllowancesPaise)}</p></div>
-                <div className="rounded-xl bg-slate-50 p-4"><p className="text-sm text-slate-500">Deductions</p><p className="mt-2 text-xl font-bold">{money(profile.salaryStructure.monthlyDeductionsPaise)}</p></div>
+                <div className="rounded-xl bg-slate-50 p-4"><p className="text-sm text-slate-500">Monthly allowances</p><p className="mt-2 text-xl font-bold">{money(profile.salaryStructure.monthlyAllowancesPaise)}</p></div>
+                <div className="rounded-xl bg-slate-50 p-4"><p className="text-sm text-slate-500">Monthly deductions</p><p className="mt-2 text-xl font-bold">{money(profile.salaryStructure.monthlyDeductionsPaise)}</p></div>
               </div>
-            </section>
-          </>
+            </div>
+          </section>
         )}
 
-        <p className="mt-5 text-xs leading-5 text-slate-500">You can see only your own employee profile. Payroll history and payslips will be added in later phases.</p>
+        <section className={"no-print mt-6 " + cardClass}>
+          <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
+            <div>
+              <h2 className="flex items-center gap-2 text-lg font-semibold"><ReceiptText size={20} className="text-indigo-600" aria-hidden="true" /> Finalized pay history</h2>
+              <p className="mt-1 text-sm text-slate-500">Only your own finalized payroll snapshots appear here. Draft and approved payroll remain hidden.</p>
+            </div>
+            <button type="button" disabled={payrollHistory.length === 0} onClick={exportPayrollHistory} className={buttonClass}><Download size={16} aria-hidden="true" /> Export CSV</button>
+          </div>
+          {historyError && <p className="mt-4 rounded-lg bg-rose-50 p-3 text-sm text-rose-700" role="alert">{historyError}</p>}
+          {loadingHistory && <p className="mt-4 text-sm text-slate-500" role="status">Loading finalized pay history…</p>}
+          {!loadingHistory && !historyError && payrollHistory.length === 0 && <p className="mt-4 rounded-xl bg-slate-50 p-5 text-sm text-slate-600">No finalized payroll history yet. Your admin must complete the payroll simulation and finalize the run before a payslip becomes available.</p>}
+          {!loadingHistory && payrollHistory.length > 0 && <div className="mt-4 overflow-x-auto rounded-xl border border-slate-200">
+            <table className="min-w-full text-left text-sm">
+              <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500"><tr><th className="px-4 py-3">Period</th><th className="px-4 py-3">Gross pay</th><th className="px-4 py-3">Deductions</th><th className="px-4 py-3 text-right">Net pay</th><th className="px-4 py-3">Finalized</th><th className="px-4 py-3">Payslip</th></tr></thead>
+              <tbody className="divide-y divide-slate-100 bg-white">
+                {payrollHistory.map((record) => <tr key={record.runId} className={selectedPayslip?.runId === record.runId ? "bg-indigo-50/50" : ""}>
+                  <td className="whitespace-nowrap px-4 py-3 font-semibold">{record.period}</td>
+                  <td className="whitespace-nowrap px-4 py-3">{money(record.item.grossPayPaise)}</td>
+                  <td className="whitespace-nowrap px-4 py-3">{money(record.item.monthlyDeductionsPaise)}</td>
+                  <td className="whitespace-nowrap px-4 py-3 text-right font-semibold">{money(record.item.netPayPaise)}</td>
+                  <td className="whitespace-nowrap px-4 py-3 text-slate-500">{formatDate(record.finalizedAt)}</td>
+                  <td className="px-4 py-3"><button type="button" className="font-semibold text-indigo-700 hover:underline" onClick={() => setSelectedPayslip(record)}>View payslip</button></td>
+                </tr>)}
+              </tbody>
+            </table>
+          </div>}
+        </section>
+
+        {selectedPayslip && (
+          <section className="payroll-payslip mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+            <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-widest text-indigo-600">CloudConduction · Demo statement</p>
+                <h2 className="mt-2 text-2xl font-bold">Payslip · {selectedPayslip.period}</h2>
+                <p className="mt-1 text-sm text-slate-500">Finalized on {formatDate(selectedPayslip.finalizedAt)}</p>
+              </div>
+              <div className="no-print flex flex-wrap gap-2">
+                <button type="button" onClick={() => window.print()} className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700"><FileDown size={16} aria-hidden="true" /> Print / Save PDF</button>
+                <button type="button" className={buttonClass} onClick={() => setSelectedPayslip(null)}>Close</button>
+              </div>
+            </div>
+            <div className="mt-6 grid gap-4 border-y border-slate-200 py-5 sm:grid-cols-2">
+              <div><p className="text-xs uppercase tracking-wide text-slate-500">Employee name</p><p className="mt-1 font-semibold">{selectedPayslip.item.employeeName}</p></div>
+              <div><p className="text-xs uppercase tracking-wide text-slate-500">Employee code</p><p className="mt-1 font-semibold">{selectedPayslip.item.employeeCode}</p></div>
+              <div><p className="text-xs uppercase tracking-wide text-slate-500">Department</p><p className="mt-1 font-semibold">{selectedPayslip.item.department}</p></div>
+              <div><p className="text-xs uppercase tracking-wide text-slate-500">Designation</p><p className="mt-1 font-semibold">{selectedPayslip.item.designation}</p></div>
+            </div>
+            <div className="mt-6 overflow-x-auto">
+              <table className="w-full text-sm">
+                <tbody className="divide-y divide-slate-100">
+                  <tr><th className="py-3 text-left font-medium text-slate-600">Base salary</th><td className="py-3 text-right font-semibold tabular-nums">{money(selectedPayslip.item.baseSalaryPaise)}</td></tr>
+                  <tr><th className="py-3 text-left font-medium text-slate-600">Monthly allowances</th><td className="py-3 text-right font-semibold tabular-nums">{money(selectedPayslip.item.monthlyAllowancesPaise)}</td></tr>
+                  <tr><th className="py-3 text-left font-medium text-slate-600">Gross pay</th><td className="py-3 text-right font-semibold tabular-nums">{money(selectedPayslip.item.grossPayPaise)}</td></tr>
+                  <tr><th className="py-3 text-left font-medium text-slate-600">Monthly deductions</th><td className="py-3 text-right font-semibold tabular-nums">− {money(selectedPayslip.item.monthlyDeductionsPaise)}</td></tr>
+                  <tr className="border-t-2 border-slate-300"><th className="py-4 text-left text-base font-bold">Net pay (demo)</th><td className="py-4 text-right text-xl font-bold tabular-nums">{money(selectedPayslip.item.netPayPaise)}</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p className="mt-5 border-t border-slate-200 pt-4 text-xs leading-5 text-slate-500">Portfolio demo statement only. This uses a simplified salary formula and excludes income tax, EPF, statutory deductions, overtime, bonuses and leave proration. Any related transaction status is simulated; no money is transferred. This statement is not a statutory or tax-compliant payslip.</p>
+          </section>
+        )}
+
+        <section className={"no-print mt-6 " + cardClass}>
+          <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
+            <div>
+              <h2 className="text-lg font-semibold">Simulated transaction history</h2>
+              <p className="mt-1 text-sm text-slate-500">Transaction records are visible only when their payroll run is finalized and always belong to your employee account.</p>
+            </div>
+            <button type="button" disabled={transactions.length === 0} onClick={exportTransactionHistory} className={buttonClass}><Download size={16} aria-hidden="true" /> Export CSV</button>
+          </div>
+          {transactionError && <p className="mt-4 rounded-lg bg-rose-50 p-3 text-sm text-rose-700" role="alert">{transactionError}</p>}
+          {loadingTransactions && <p className="mt-4 text-sm text-slate-500" role="status">Loading transaction history…</p>}
+          {!loadingTransactions && !transactionError && transactions.length === 0 && <p className="mt-4 rounded-xl bg-slate-50 p-5 text-sm text-slate-600">No finalized simulated transaction records are available yet.</p>}
+          {!loadingTransactions && transactions.length > 0 && <div className="mt-4 overflow-x-auto rounded-xl border border-slate-200">
+            <table className="min-w-full text-left text-sm">
+              <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500"><tr><th className="px-4 py-3">Period</th><th className="px-4 py-3 text-right">Amount</th><th className="px-4 py-3">Status</th><th className="px-4 py-3">Attempts</th><th className="px-4 py-3">Reference</th><th className="px-4 py-3">Last attempt</th></tr></thead>
+              <tbody className="divide-y divide-slate-100 bg-white">
+                {transactions.map((transaction) => <tr key={transaction.id}>
+                  <td className="whitespace-nowrap px-4 py-3 font-semibold">{transaction.period}</td>
+                  <td className="whitespace-nowrap px-4 py-3 text-right font-semibold">{money(transaction.amountPaise)}</td>
+                  <td className="px-4 py-3"><StatusBadge status={transaction.status} /><p className="mt-1 text-xs text-slate-500">Simulation only</p></td>
+                  <td className="px-4 py-3 text-center">{transaction.attemptCount}</td>
+                  <td className="max-w-48 break-all px-4 py-3 text-xs text-slate-500">{transaction.simulatedReference}</td>
+                  <td className="whitespace-nowrap px-4 py-3 text-slate-500">{formatDate(transaction.lastAttemptAt)}</td>
+                </tr>)}
+              </tbody>
+            </table>
+          </div>}
+          <p className="mt-4 text-xs leading-5 text-slate-500">If a finalized run has a failed simulation in this demo, contact the payroll administrator. This record is not proof of a bank transfer.</p>
+        </section>
       </section>
     </main>
   );
