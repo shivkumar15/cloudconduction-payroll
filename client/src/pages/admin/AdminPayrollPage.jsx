@@ -230,6 +230,8 @@ export default function AdminPayrollPage() {
 
   async function finalizeRun() {
     if (!selectedRun) return;
+    const confirmed = window.confirm("Finalize " + selectedRun.period + " payroll? This is a one-way demo workflow transition after all simulated transactions succeed.");
+    if (!confirmed) return;
     await runAction(
       "finalize",
       () => api.post("/payroll/runs/" + selectedRun.id + "/finalize", {}),
@@ -329,7 +331,7 @@ export default function AdminPayrollPage() {
             <p className="mt-1 text-xs text-slate-500">Most recent 100 saved runs</p>
           </article>
           <article className={cardClass}>
-            <div className="flex items-center justify-between gap-3"><p className="text-sm text-slate-500">Current-month net payroll</p><BarChart3 size={19} className="text-indigo-600" aria-hidden="true" /></div>
+            <div className="flex items-center justify-between gap-3"><p className="text-sm text-slate-500">Current-month payroll snapshot</p><BarChart3 size={19} className="text-indigo-600" aria-hidden="true" /></div>
             <p className="mt-4 text-2xl font-bold">{latestNetPay}</p>
             <p className="mt-1 text-xs text-slate-500">{currentPeriodRun ? "Saved snapshot for " + currentPeriodRun.period : "No saved run for " + currentPeriod()}</p>
           </article>
