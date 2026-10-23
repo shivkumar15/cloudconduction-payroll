@@ -97,7 +97,7 @@ export default function AdminPayrollPage() {
       setSelectedRunId((current) => {
         if (current && rows.some((run) => run.id === current)) return current;
         const samePeriod = rows.find((run) => run.period === period);
-        return samePeriod?.id || rows[0]?.id || "";
+        return samePeriod?.id || "";
       });
     } catch (error) {
       setPageError(responseMessage(error, "Unable to load payroll runs."));
@@ -336,7 +336,7 @@ export default function AdminPayrollPage() {
           <article className={cardClass}>
             <div className="flex items-center justify-between gap-3"><p className="text-sm text-slate-500">Visible transactions</p><Users size={19} className="text-indigo-600" aria-hidden="true" /></div>
             <p className="mt-4 text-3xl font-bold">{loadingTransactions ? "…" : transactionPagination.total}</p>
-            <p className="mt-1 text-xs text-slate-500">Matching " + period + " filters</p>
+            <p className="mt-1 text-xs text-slate-500">Matching {period} filters</p>
           </article>
           <article className={cardClass}>
             <div className="flex items-center justify-between gap-3"><p className="text-sm text-slate-500">Failed on this page</p><ShieldAlert size={19} className="text-rose-600" aria-hidden="true" /></div>
