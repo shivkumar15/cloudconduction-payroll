@@ -7,9 +7,9 @@ import {
   getMyPayroll,
   getPayrollRun,
   listPayrollRuns,
-  previewPayroll,
-  simulatePayrollTransactions
+  previewPayroll
 } from "../controllers/payrollController.js";
+import { simulatePayrollTransactions } from "../controllers/transactionController.js";
 
 const router = Router();
 
