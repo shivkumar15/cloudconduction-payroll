@@ -45,3 +45,82 @@ button, input, select, textarea {
     display: none !important;
   }
 }
+
+
+/* Payroll workspace toast motion: quick entrance, subtle icon pop, and a readable countdown. */
+@keyframes payroll-toast-enter {
+  0% {
+    opacity: 0;
+    transform: translate3d(22px, -10px, 0) scale(0.965);
+    filter: blur(4px);
+  }
+
+  68% {
+    opacity: 1;
+    transform: translate3d(-2px, 0, 0) scale(1.006);
+    filter: blur(0);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes payroll-toast-leave {
+  to {
+    opacity: 0;
+    transform: translate3d(12px, -5px, 0) scale(0.98);
+    filter: blur(2px);
+  }
+}
+
+@keyframes payroll-toast-icon-pop {
+  0% {
+    opacity: 0.25;
+    transform: scale(0.68) rotate(-18deg);
+  }
+
+  70% {
+    opacity: 1;
+    transform: scale(1.12) rotate(5deg);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0);
+  }
+}
+
+@keyframes payroll-toast-countdown {
+  from { transform: scaleX(1); }
+  to { transform: scaleX(0); }
+}
+
+.payroll-toast-enter {
+  animation: payroll-toast-enter 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  transform-origin: top right;
+}
+
+.payroll-toast-leave {
+  animation: payroll-toast-leave 300ms ease-in both;
+}
+
+.payroll-toast-icon-pop {
+  animation: payroll-toast-icon-pop 480ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.payroll-toast-progress {
+  transform-origin: left center;
+  animation: payroll-toast-countdown 6.5s linear both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .payroll-toast-enter,
+  .payroll-toast-leave,
+  .payroll-toast-icon-pop,
+  .payroll-toast-progress {
+    animation: none !important;
+  }
+}
