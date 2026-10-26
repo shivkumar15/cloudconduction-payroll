@@ -209,8 +209,8 @@ Apply role/ownership rules to all endpoints. Enforce all state transitions and m
 - [x] Payslip statement for a selected finalized period with print / browser Save as PDF and CSV export of the employee's own payroll/transaction history.
 - [x] Loading, empty and API error states; accessible table headings, form labels and action/status text; responsive layouts and print-specific payslip styles.
 - [x] Chart uses saved payroll-run snapshots and includes period labels; the saved-run table presents the underlying payroll periods and amounts.
-- [ ] Confirm GitHub Actions tests and frontend production build pass on the Phase 6 changes.
-- [x] User verified the local frontend production build after the JSX fixes (Vite 6.4.5, 2,275 modules transformed), all 46 unit/API tests, and both MongoDB integration tests on 2026-10-23.
+- [x] GitHub Actions CI passed the employment-start-date fix at commit `0b2c2d0`; API/unit tests, MongoDB-backed integration tests and frontend production build succeeded.
+- [x] User verified locally after the employment-start-date fix on 2026-10-26: `npm test` passed 47 tests, `npm run build` succeeded (Vite 6.4.5; 2,275 modules transformed), and `npm run test:integration --prefix server` passed both MongoDB integration tests. Vite's >500 kB minified-chunk warning is non-fatal.
 - [ ] User completes admin-to-employee browser smoke test with synthetic records.
 - Acceptance: no mock financial values, clear simulation-only wording, server-side authorization/state gates, and a successful CI/local/browser verification.
 ### Phase 7 — quality and release
@@ -286,8 +286,8 @@ Expected: frontend `http://localhost:5173`; health endpoint `http://localhost:50
 - Final resume bullet points should be written only after the corresponding features and tests are complete. Do not claim production payroll or real payment processing.
 
 ## Immediate next task
-1. Confirm GitHub Actions CI passes on the employment-start-date eligibility fix; fix any failing tests/builds before marking verified.
-2. Complete the browser smoke test using synthetic records: preview a month, create/approve its run, simulate all-success and failure/retry flows, finalize, then sign in as the linked employee to verify only that employee's finalized history, transaction history and print/Save-as-PDF payslip.
+1. Complete the browser smoke test using synthetic records: update Jag Jiwan (EMP-004) to employment start date `2026-12-01` in Admin → Manage Employees → Edit, verify October/November previews exclude him and December includes him; do not alter the already-finalized snapshots.
+2. Complete the remaining Phase 6 browser workflow: create/approve an unused payroll period, simulate all-success and failure/retry flows, finalize, then sign in as the linked employee to verify only their own finalized history, transaction history and print/Save-as-PDF payslip.
 3. Note the non-blocking Vite warning that the minified JavaScript bundle exceeds 500 kB; consider code-splitting the Recharts/payroll workspace if practical.
 4. Continue Phase 7 release hardening (security regression checks, synthetic seed data, authenticated load tests, README/deployment review). SMTP delivery and forgot-password reset are already locally verified; never commit SMTP credentials or share OTPs.
 
@@ -303,4 +303,4 @@ This document is continuity context, not a substitute for inspecting the real re
 - Local verification update (user-reported 2026-10-23): after `git pull origin main`, `npm run build` succeeded with Vite 6.4.5 and 2,275 modules transformed; output assets were 26.30 kB CSS and 802.64 kB JavaScript (230.98 kB gzip). Vite emitted a non-fatal warning because the minified JavaScript chunk exceeds 500 kB. `npm test` passed all 46 unit/API tests (0 failures); `npm run test:integration --prefix server` passed both MongoDB integration tests (employee lifecycle and payroll lifecycle). These results verify the JSX repair locally. GitHub Actions status for the latest Phase 6 changes and the manual browser workflows are still not confirmed.
 
 
-- Employment start-date/payroll eligibility correction (2026-10-26): new employees require a valid `YYYY-MM-DD` start date. Payroll preview and draft creation use the same selected-period server filter; employees qualify through the selected month's final millisecond. Legacy records without the new field use `createdAt` as their effective start. Changing a start date is rejected once the employee appears in any saved payroll snapshot, and existing snapshots are not recalculated or modified. Unit/integration/build and browser verification remain pending until CI/local runs are confirmed.
+- Employment start-date/payroll eligibility correction (2026-10-26): new employees require a valid `YYYY-MM-DD` start date. Payroll preview and draft creation use the same selected-period server filter; employees qualify through the selected month's final millisecond. Legacy records without the new field use `createdAt` as their effective start. Changing a start date is rejected once the employee appears in any saved payroll snapshot, and existing snapshots are not recalculated or modified. GitHub Actions passed at commit `0b2c2d0`; user locally verified 47 unit/API tests, successful Vite production build, and both MongoDB integration tests on 2026-10-26. Manual browser verification remains outstanding; the existing EMP-004 record must be explicitly updated to `2026-12-01` if that is his actual joining date.
