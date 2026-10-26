@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft, BarChart3, CheckCircle2, ChevronLeft, ChevronRight,
-  AlertCircle, Download, FileCheck, Play, RefreshCw, ShieldAlert,
+  AlertCircle, Download, FileCheck, Play, RefreshCw, ShieldAlert, X,
   Users, Wallet
 } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -151,6 +151,15 @@ export default function AdminPayrollPage() {
   const currentPeriodRun = runs.find((run) => run.period === currentPeriod());
   const latestNetPay = currentPeriodRun ? money(currentPeriodRun.totalNetPayPaise) : "—";
   const failedVisible = transactions.filter((transaction) => transaction.status === "failed").length;
+  const toastError = actionError || pageError || transactionError;
+  const toastMessage = toastError || notice;
+  const hasToastError = Boolean(toastError);
+
+  useEffect(() => {
+    if (!notice || actionError || pageError || transactionError) return undefined;
+    const timeoutId = window.setTimeout(() => setNotice(""), 6500);
+    return () => window.clearTimeout(timeoutId);
+  }, [notice, actionError, pageError, transactionError]);
 
   async function runAction(key, action, fallbackMessage) {
     setBusyAction(key);
@@ -311,16 +320,42 @@ export default function AdminPayrollPage() {
           </label>
         </div>
 
-        {(actionError || pageError) && (
-          <div className="mt-5 flex items-start gap-3 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800" role="alert">
-            <AlertCircle size={18} className="mt-0.5 shrink-0" aria-hidden="true" />
-            <p>{actionError || pageError}</p>
-          </div>
-        )}
-        {notice && (
-          <div className="mt-5 flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800" role="status">
-            <CheckCircle2 size={18} className="mt-0.5 shrink-0" aria-hidden="true" />
-            <p>{notice}</p>
+        {toastMessage && (
+          <div className="pointer-events-none fixed inset-x-0 top-4 z-[100] flex justify-center px-4 sm:justify-end sm:px-6">
+            <div
+              className={
+                "pointer-events-auto flex w-full max-w-md items-start gap-3 rounded-xl border p-4 text-sm shadow-xl shadow-slate-900/10 backdrop-blur-sm " +
+                (hasToastError
+                  ? "border-rose-200 bg-white/95 text-rose-900"
+                  : "border-emerald-200 bg-white/95 text-emerald-900")
+              }
+              role={hasToastError ? "alert" : "status"}
+              aria-live={hasToastError ? "assertive" : "polite"}
+              aria-atomic="true"
+            >
+              {hasToastError
+                ? <AlertCircle size={19} className="mt-0.5 shrink-0 text-rose-600" aria-hidden="true" />
+                : <CheckCircle2 size={19} className="mt-0.5 shrink-0 text-emerald-600" aria-hidden="true" />}
+              <div className="min-w-0 flex-1">
+                <p className="font-semibold">{hasToastError ? "Action needs attention" : "Success"}</p>
+                <p className="mt-1 break-words leading-5">{toastMessage}</p>
+                {!hasToastError && <p className="mt-1 text-xs text-slate-500">This message closes automatically.</p>}
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setActionError("");
+                  setPageError("");
+                  setTransactionError("");
+                  setNotice("");
+                }}
+                className="ml-1 inline-flex size-8 shrink-0 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                aria-label="Dismiss notification"
+                title="Dismiss notification"
+              >
+                <X size={17} aria-hidden="true" />
+              </button>
+            </div>
           </div>
         )}
 
@@ -498,7 +533,6 @@ export default function AdminPayrollPage() {
             </div>
           </div>
 
-          {transactionError && <p className="mt-4 rounded-lg bg-rose-50 p-3 text-sm text-rose-700" role="alert">{transactionError}</p>}
           {loadingTransactions && <p className="mt-4 text-sm text-slate-500" role="status">Loading transactions…</p>}
           {!loadingTransactions && !transactionError && transactions.length === 0 && <p className="mt-4 rounded-lg bg-slate-50 p-5 text-sm text-slate-600">No simulated transactions match this period and status. Approve a payroll run and choose Simulate payments to create records.</p>}
           {!loadingTransactions && transactions.length > 0 && <div className="mt-4 overflow-x-auto rounded-xl border border-slate-200">
