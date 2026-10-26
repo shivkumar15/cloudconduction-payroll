@@ -8,6 +8,23 @@ function addSafeAmounts(left, right, label) {
   return total;
 }
 
+export function getPayrollEligibilityFilter(period) {
+  if (typeof period !== "string" || !/^(20\d{2}|2100)-(0[1-9]|1[0-2])$/.test(period)) {
+    throw new TypeError("A valid YYYY-MM payroll period is required");
+  }
+
+  const [year, month] = period.split("-").map(Number);
+  const periodEnd = new Date(Date.UTC(year, month, 0, 23, 59, 59, 999));
+
+  return {
+    employmentStatus: "active",
+    $or: [
+      { employmentStartDate: { $lte: periodEnd } },
+      { employmentStartDate: { $exists: false }, createdAt: { $lte: periodEnd } }
+    ]
+  };
+}
+
 export function calculatePayrollItem(employee) {
   if (!employee || !employee._id) {
     throw new TypeError("An employee record with an ID is required");
