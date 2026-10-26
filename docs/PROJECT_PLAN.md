@@ -14,6 +14,7 @@
 - React + Vite, Tailwind CSS v4, React Router, Axios, Recharts.
 - Node.js + Express REST API, MongoDB + Mongoose.
 - Simulated payments only.
+- Employment start date is required and validated on employee creation; payroll preview and draft creation enforce period eligibility on the server. Legacy records without this field use `createdAt` as a compatibility fallback; a date is locked after the employee is captured in a saved payroll snapshot.
 - Use Zod validation, secure authentication, role-based access control, tests, clear setup steps and good documentation.
 - Maintain this plan as a continuity file; do not restart completed work.
 
@@ -164,6 +165,7 @@ Apply role/ownership rules to all endpoints. Enforce all state transitions and m
 - Acceptance: automated tests/build pass in CI, and the user confirmed actual SMTP delivery plus successful password reset. The broader local login/change-password/admin/employee browser smoke test and database-backed load metrics remain to be verified.
 ### Phase 3 — employee management
 - [x] Employee model with unique employee code/work email, explicit INR currency, status, timestamps and salary structure stored in integer paise.
+- [x] Employment start date capture, date-only validation, legacy fallback and server-side lock after payroll snapshots.
 - [x] Zod create/update/query validation, including no unknown fields and deductions not exceeding gross earnings.
 - [x] Admin list/create/update/deactivate APIs, including linked employee-login provisioning.
 - [x] Pagination (maximum 100 per page), escaped search, department/status filters and deterministic sorting.
@@ -284,7 +286,7 @@ Expected: frontend `http://localhost:5173`; health endpoint `http://localhost:50
 - Final resume bullet points should be written only after the corresponding features and tests are complete. Do not claim production payroll or real payment processing.
 
 ## Immediate next task
-1. Confirm GitHub Actions CI passes on the latest Phase 6 changes; fix any remaining frontend/API integration issues before marking CI verified.
+1. Confirm GitHub Actions CI passes on the employment-start-date eligibility fix; fix any failing tests/builds before marking verified.
 2. Complete the browser smoke test using synthetic records: preview a month, create/approve its run, simulate all-success and failure/retry flows, finalize, then sign in as the linked employee to verify only that employee's finalized history, transaction history and print/Save-as-PDF payslip.
 3. Note the non-blocking Vite warning that the minified JavaScript bundle exceeds 500 kB; consider code-splitting the Recharts/payroll workspace if practical.
 4. Continue Phase 7 release hardening (security regression checks, synthetic seed data, authenticated load tests, README/deployment review). SMTP delivery and forgot-password reset are already locally verified; never commit SMTP credentials or share OTPs.
@@ -299,3 +301,6 @@ This document is continuity context, not a substitute for inspecting the real re
 - Phase 6 UI implementation (CI pending): admin workspace file `client/src/pages/admin/AdminPayrollPage.jsx` connects directly to the payroll/transaction APIs for preview, run creation, approval, simulation, failed retry, finalization, saved-run chart, filters and transaction CSV. `client/src/pages/admin/AdminDashboard.jsx` reads current metrics from API records; `client/src/App.jsx` mounts the protected `/admin/payroll` route; `client/src/pages/employee/EmployeeDashboard.jsx` reads own finalized payroll/transaction history, includes payslip print / Save as PDF, and CSV exports. `client/src/index.css` includes print styles. README documents the workflow. Changes committed in `dbec5ce`, `6029cd0`, `3377680`, `185d844`, `2f63650`, `9d9f23d`, `27ddf70`, `9119561`, `c605ef0`, `8b9373f`, `d630bb6`, `f687555`, `d71ea9c`, `f7473cb`, `161c726`, `e492d20` and `54cff53`; README workflow docs in `f913f41`, and handoff updates in `58d142c` plus subsequent commits. User's build on 2026-10-23 found malformed JSX in icon size props in the admin dashboard; matching malformed props in the employee and payroll pages were also identified and repaired in these commits. `npm run build` must be rerun locally after pulling; no local build/CI green status is claimed for this fix yet. Do not mark acceptance verified until the latest Actions run and user local/browser test are confirmed.
 
 - Local verification update (user-reported 2026-10-23): after `git pull origin main`, `npm run build` succeeded with Vite 6.4.5 and 2,275 modules transformed; output assets were 26.30 kB CSS and 802.64 kB JavaScript (230.98 kB gzip). Vite emitted a non-fatal warning because the minified JavaScript chunk exceeds 500 kB. `npm test` passed all 46 unit/API tests (0 failures); `npm run test:integration --prefix server` passed both MongoDB integration tests (employee lifecycle and payroll lifecycle). These results verify the JSX repair locally. GitHub Actions status for the latest Phase 6 changes and the manual browser workflows are still not confirmed.
+
+
+- Employment start-date/payroll eligibility correction (2026-10-26): new employees require a valid `YYYY-MM-DD` start date. Payroll preview and draft creation use the same selected-period server filter; employees qualify through the selected month's final millisecond. Legacy records without the new field use `createdAt` as their effective start. Changing a start date is rejected once the employee appears in any saved payroll snapshot, and existing snapshots are not recalculated or modified. Unit/integration/build and browser verification remain pending until CI/local runs are confirmed.
