@@ -30,8 +30,15 @@ function responseMessage(error, fallback) {
 const fieldClass = "w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100";
 const labelClass = "mb-1.5 block text-sm font-medium text-slate-700";
 
+function localDateInput(value = new Date()) {
+  return value.getFullYear() + "-" +
+    String(value.getMonth() + 1).padStart(2, "0") + "-" +
+    String(value.getDate()).padStart(2, "0");
+}
+
 const emptyCreateForm = {
   employeeCode: "",
+  employmentStartDate: localDateInput(),
   firstName: "",
   lastName: "",
   workEmail: "",
@@ -80,6 +87,22 @@ function EmployeeFields({ form, setForm, includeAccountPassword = false }) {
       <div className="sm:col-span-2">
         <p className="text-xs leading-5 text-slate-500">Work email is the login identity and cannot be edited after the account is created. Employee codes are stored in uppercase.</p>
       </div>
+      <label className="sm:col-span-2">
+        <span className={labelClass}>Employment start date</span>
+        <input
+          className={fieldClass}
+          type="date"
+          name="employmentStartDate"
+          value={form.employmentStartDate || ""}
+          onChange={change}
+          min="1900-01-01"
+          max="2100-12-31"
+          required
+        />
+        <span className="mt-1 block text-xs leading-5 text-slate-500">
+          Included from the month containing this date. This demo pays a full month and does not prorate salary. The date is locked after the employee appears in a saved payroll run.
+        </span>
+      </label>
       <label>
         <span className={labelClass}>Base salary (₹ per month)</span>
         <input className={fieldClass} type="number" min="0" max="100000000" step="0.01" name="baseSalary" value={form.baseSalary || ""} onChange={change} required />
@@ -144,6 +167,7 @@ function EmployeeEditor({ employee, onCancel, onSaved }) {
     baseSalary: rupeesInput(employee.salaryStructure.baseSalaryPaise),
     allowances: rupeesInput(employee.salaryStructure.monthlyAllowancesPaise),
     deductions: rupeesInput(employee.salaryStructure.monthlyDeductionsPaise),
+    employmentStartDate: employee.employmentStartDate || employee.createdAt?.slice(0, 10) || localDateInput(),
     employmentStatus: employee.employmentStatus
   }));
   const [saving, setSaving] = useState(false);
@@ -160,6 +184,7 @@ function EmployeeEditor({ employee, onCancel, onSaved }) {
         department: form.department.trim(),
         designation: form.designation.trim(),
         salaryStructure: getSalaryStructure(form),
+        employmentStartDate: form.employmentStartDate,
         employmentStatus: form.employmentStatus
       });
       onSaved("Employee record updated.");
@@ -261,6 +286,7 @@ export default function EmployeesPage() {
         department: createForm.department.trim(),
         designation: createForm.designation.trim(),
         salaryStructure: getSalaryStructure(createForm),
+        employmentStartDate: createForm.employmentStartDate,
         initialPassword: createForm.initialPassword
       });
       setCreateForm(emptyCreateForm);
@@ -379,19 +405,20 @@ export default function EmployeesPage() {
             <p className="text-sm text-slate-500">{pagination.total} total record{pagination.total === 1 ? "" : "s"}</p>
           </div>
           <div className="overflow-x-auto">
-            <table className="min-w-[950px] w-full text-left text-sm">
+            <table className="min-w-[1100px] w-full text-left text-sm">
               <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                 <tr>
                   <th className="px-5 py-3 font-semibold">Employee</th>
                   <th className="px-5 py-3 font-semibold">Department</th>
+                  <th className="px-5 py-3 font-semibold">Start date</th>
                   <th className="px-5 py-3 font-semibold">Base salary</th>
                   <th className="px-5 py-3 font-semibold">Status</th>
                   <th className="px-5 py-3 text-right font-semibold">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {loading && <tr><td colSpan="5" className="px-5 py-12 text-center text-slate-500" role="status">Loading employee records…</td></tr>}
-                {!loading && employees.length === 0 && <tr><td colSpan="5" className="px-5 py-12 text-center text-slate-500">No employees found. Add a synthetic employee or adjust your filters.</td></tr>}
+                {loading && <tr><td colSpan="6" className="px-5 py-12 text-center text-slate-500" role="status">Loading employee records…</td></tr>}
+                {!loading && employees.length === 0 && <tr><td colSpan="6" className="px-5 py-12 text-center text-slate-500">No employees found. Add a synthetic employee or adjust your filters.</td></tr>}
                 {!loading && employees.map((employee) => (
                   <tr key={employee.id} className="hover:bg-slate-50/70">
                     <td className="px-5 py-4">
@@ -402,6 +429,7 @@ export default function EmployeesPage() {
                       <p className="font-medium text-slate-800">{employee.department}</p>
                       <p className="mt-1 text-xs text-slate-500">{employee.designation}</p>
                     </td>
+                    <td className="px-5 py-4 whitespace-nowrap text-slate-700">{employee.employmentStartDate || "—"}</td>
                     <td className="px-5 py-4 font-medium tabular-nums">{money(employee.salaryStructure.baseSalaryPaise)}</td>
                     <td className="px-5 py-4">
                       <span className={"rounded-full px-2.5 py-1 text-xs font-semibold " + (employee.employmentStatus === "active" ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-600")}>{employee.employmentStatus}</span>
