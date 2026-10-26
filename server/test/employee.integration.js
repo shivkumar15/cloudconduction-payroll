@@ -79,6 +79,7 @@ test("MongoDB employee lifecycle enforces login links, roles, duplicates and own
       workEmail: email,
       department: "Engineering",
       designation: "QA Engineer",
+      employmentStartDate: "2026-01-01",
       salaryStructure: {
         baseSalaryPaise: 2_500_000,
         monthlyAllowancesPaise: 300_000,
