@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft, BarChart3, CheckCircle2, ChevronLeft, ChevronRight,
-  AlertCircle, Download, FileCheck, Play, RefreshCw, ShieldAlert, X,
+  AlertCircle, Download, FileCheck, Play, RefreshCw, ShieldAlert, Sparkles, X,
   Users, Wallet
 } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -86,6 +86,7 @@ export default function AdminPayrollPage() {
   const [transactionError, setTransactionError] = useState("");
   const [actionError, setActionError] = useState("");
   const [notice, setNotice] = useState("");
+  const [toastLeaving, setToastLeaving] = useState(false);
 
   const loadRuns = useCallback(async () => {
     setLoadingRuns(true);
@@ -156,9 +157,19 @@ export default function AdminPayrollPage() {
   const hasToastError = Boolean(toastError);
 
   useEffect(() => {
-    if (!notice || actionError || pageError || transactionError) return undefined;
-    const timeoutId = window.setTimeout(() => setNotice(""), 6500);
-    return () => window.clearTimeout(timeoutId);
+    if (!notice || actionError || pageError || transactionError) {
+      setToastLeaving(false);
+      return undefined;
+    }
+
+    setToastLeaving(false);
+    const leaveTimeoutId = window.setTimeout(() => setToastLeaving(true), 6200);
+    const dismissTimeoutId = window.setTimeout(() => setNotice(""), 6500);
+
+    return () => {
+      window.clearTimeout(leaveTimeoutId);
+      window.clearTimeout(dismissTimeoutId);
+    };
   }, [notice, actionError, pageError, transactionError]);
 
   async function runAction(key, action, fallbackMessage) {
@@ -323,23 +334,54 @@ export default function AdminPayrollPage() {
         {toastMessage && (
           <div className="pointer-events-none fixed inset-x-0 top-4 z-[100] flex justify-center px-4 sm:justify-end sm:px-6">
             <div
+              key={(hasToastError ? "error-" : "success-") + toastMessage}
               className={
-                "pointer-events-auto flex w-full max-w-md items-start gap-3 rounded-xl border p-4 text-sm shadow-xl shadow-slate-900/10 backdrop-blur-sm " +
+                "payroll-toast-enter pointer-events-auto relative flex w-full max-w-md items-start gap-3 overflow-hidden rounded-2xl border p-4 pl-5 pr-3 text-sm shadow-2xl shadow-slate-950/15 ring-1 ring-white/70 backdrop-blur-xl " +
+                (toastLeaving ? "payroll-toast-leave " : "") +
                 (hasToastError
-                  ? "border-rose-200 bg-white/95 text-rose-900"
-                  : "border-emerald-200 bg-white/95 text-emerald-900")
+                  ? "border-rose-200 bg-gradient-to-br from-white via-white to-rose-50 text-rose-950"
+                  : "border-emerald-200 bg-gradient-to-br from-white via-white to-emerald-50 text-emerald-950")
               }
               role={hasToastError ? "alert" : "status"}
               aria-live={hasToastError ? "assertive" : "polite"}
               aria-atomic="true"
             >
-              {hasToastError
-                ? <AlertCircle size={19} className="mt-0.5 shrink-0 text-rose-600" aria-hidden="true" />
-                : <CheckCircle2 size={19} className="mt-0.5 shrink-0 text-emerald-600" aria-hidden="true" />}
-              <div className="min-w-0 flex-1">
-                <p className="font-semibold">{hasToastError ? "Action needs attention" : "Success"}</p>
-                <p className="mt-1 break-words leading-5">{toastMessage}</p>
-                {!hasToastError && <p className="mt-1 text-xs text-slate-500">This message closes automatically.</p>}
+              <span
+                aria-hidden="true"
+                className={
+                  "absolute inset-y-0 left-0 w-1 " +
+                  (hasToastError
+                    ? "bg-gradient-to-b from-rose-400 via-rose-500 to-orange-400"
+                    : "bg-gradient-to-b from-emerald-400 via-teal-500 to-indigo-500")
+                }
+              />
+              <div
+                className={
+                  "mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-xl shadow-sm " +
+                  (hasToastError
+                    ? "bg-rose-100 text-rose-700 ring-1 ring-rose-200/80"
+                    : "bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200/80")
+                }
+              >
+                {hasToastError
+                  ? <AlertCircle size={20} aria-hidden="true" />
+                  : <CheckCircle2 className="payroll-toast-icon-pop" size={20} aria-hidden="true" />}
+              </div>
+              <div className="min-w-0 flex-1 pt-0.5">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="font-semibold tracking-tight">{hasToastError ? "Action needs attention" : "All done!"}</p>
+                  <span
+                    className={
+                      "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] " +
+                      (hasToastError ? "bg-rose-100 text-rose-700" : "bg-emerald-100 text-emerald-700")
+                    }
+                  >
+                    {!hasToastError && <Sparkles size={11} aria-hidden="true" />}
+                    {hasToastError ? "Action required" : "Success"}
+                  </span>
+                </div>
+                <p className="mt-1.5 break-words leading-5 text-slate-700">{toastMessage}</p>
+                {!hasToastError && <p className="mt-2 text-[11px] font-medium text-slate-500">Closing automatically</p>}
               </div>
               <button
                 type="button"
@@ -348,13 +390,19 @@ export default function AdminPayrollPage() {
                   setPageError("");
                   setTransactionError("");
                   setNotice("");
+                  setToastLeaving(false);
                 }}
-                className="ml-1 inline-flex size-8 shrink-0 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="ml-0.5 inline-flex size-8 shrink-0 items-center justify-center rounded-lg text-slate-500 transition duration-200 hover:rotate-90 hover:bg-white hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 aria-label="Dismiss notification"
                 title="Dismiss notification"
               >
                 <X size={17} aria-hidden="true" />
               </button>
+              {!hasToastError && (
+                <div className="absolute inset-x-0 bottom-0 h-1 bg-emerald-100/80" aria-hidden="true">
+                  <div className="payroll-toast-progress h-full rounded-r-full bg-gradient-to-r from-emerald-400 via-teal-500 to-indigo-500" />
+                </div>
+              )}
             </div>
           </div>
         )}
