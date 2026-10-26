@@ -15,6 +15,7 @@ const validEmployee = {
   workEmail: "RAHUL@example.com",
   department: "Engineering",
   designation: "Software Engineer",
+  employmentStartDate: "2026-01-15",
   salaryStructure: {
     baseSalaryPaise: 2_500_000,
     monthlyAllowancesPaise: 300_000,
@@ -27,13 +28,18 @@ test("create employee validates and normalizes unique identifiers", () => {
   const result = createEmployeeSchema.parse(validEmployee);
   assert.equal(result.employeeCode, "EMP-1001");
   assert.equal(result.workEmail, "rahul@example.com");
+  assert.equal(result.employmentStartDate, "2026-01-15");
 });
 
-test("create employee rejects unknown fields and too-short initial passwords", () => {
+test("create employee rejects unknown fields, missing/invalid dates, and short passwords", () => {
   assert.equal(createEmployeeSchema.safeParse({
     ...validEmployee,
     role: "admin"
   }).success, false);
+  const { employmentStartDate, ...withoutStartDate } = validEmployee;
+  assert.equal(createEmployeeSchema.safeParse(withoutStartDate).success, false);
+  assert.equal(createEmployeeSchema.safeParse({ ...validEmployee, employmentStartDate: "2026-02-30" }).success, false);
+  assert.equal(createEmployeeSchema.safeParse({ ...validEmployee, employmentStartDate: "2026-2-03" }).success, false);
   assert.equal(createEmployeeSchema.safeParse({
     ...validEmployee,
     initialPassword: "short"
@@ -69,6 +75,8 @@ test("employee update rejects empty bodies, work-email changes, and role injecti
   assert.equal(updateEmployeeSchema.safeParse({ workEmail: "other@example.com" }).success, false);
   assert.equal(updateEmployeeSchema.safeParse({ role: "admin" }).success, false);
   assert.equal(updateEmployeeSchema.safeParse({ department: "Finance" }).success, true);
+  assert.equal(updateEmployeeSchema.safeParse({ employmentStartDate: "2026-12-01" }).success, true);
+  assert.equal(updateEmployeeSchema.safeParse({ employmentStartDate: "2026-02-30" }).success, false);
 });
 
 test("employee list query bounds page size and supports filters", () => {
@@ -91,6 +99,7 @@ test("employee list query bounds page size and supports filters", () => {
 test("employee code and work email have database unique-index definitions", () => {
   assert.equal(Employee.schema.path("employeeCode").options.unique, true);
   assert.equal(Employee.schema.path("workEmail").options.unique, true);
+  assert.equal(Employee.schema.path("employmentStartDate").instance, "Date");
 });
 
  
