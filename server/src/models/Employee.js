@@ -52,6 +52,8 @@ const employeeSchema = new mongoose.Schema({
   designation: { type: String, required: true, trim: true, minlength: 2, maxlength: 80 },
   currency: { type: String, enum: ["INR"], required: true, default: "INR" },
   salaryStructure: { type: salaryStructureSchema, required: true },
+  // Optional only to preserve legacy records. API-created employees require it.
+  employmentStartDate: { type: Date, default: undefined, index: true },
   employmentStatus: {
     type: String,
     enum: ["active", "inactive"],
@@ -66,6 +68,7 @@ const employeeSchema = new mongoose.Schema({
 });
 
 employeeSchema.index({ department: 1, employmentStatus: 1, createdAt: -1 });
+employeeSchema.index({ employmentStatus: 1, employmentStartDate: 1 });
 
 employeeSchema.methods.toPublicJSON = function toPublicJSON() {
   return {
@@ -83,6 +86,10 @@ employeeSchema.methods.toPublicJSON = function toPublicJSON() {
       monthlyDeductionsPaise: this.salaryStructure.monthlyDeductionsPaise
     },
     employmentStatus: this.employmentStatus,
+    // Legacy records use their original creation date until backfilled.
+    employmentStartDate: (this.employmentStartDate || this.createdAt)
+      ? (this.employmentStartDate || this.createdAt).toISOString().slice(0, 10)
+      : null,
     createdAt: this.createdAt,
     updatedAt: this.updatedAt
   };
