@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import mongoose from "mongoose";
 import { calculateSalaryAmounts } from "../src/utils/money.js";
-import { buildPayrollSnapshot, getPayrollTransition } from "../src/services/payrollService.js";
+import { buildPayrollSnapshot, getPayrollEligibilityFilter, getPayrollTransition } from "../src/services/payrollService.js";
 import { payrollPeriodSchema, payrollListQuerySchema } from "../src/validators/payrollSchemas.js";
 import { PayrollRun } from "../src/models/PayrollRun.js";
 import { app } from "../src/app.js";
@@ -128,6 +128,17 @@ test("payroll periods require YYYY-MM and a valid month", () => {
   assert.equal(payrollPeriodSchema.safeParse("2026-13").success, false);
   assert.equal(payrollPeriodSchema.safeParse("2026-2").success, false);
   assert.equal(payrollPeriodSchema.safeParse("1999-12").success, false);
+});
+
+test("payroll eligibility filter uses selected month end and legacy creation-date fallback", () => {
+  const filter = getPayrollEligibilityFilter("2026-11");
+  assert.equal(filter.employmentStatus, "active");
+  assert.equal(filter.$or[0].employmentStartDate.$lte.toISOString(), "2026-11-30T23:59:59.999Z");
+  assert.deepEqual(filter.$or[1], {
+    employmentStartDate: { $exists: false },
+    createdAt: { $lte: filter.$or[0].employmentStartDate.$lte }
+  });
+  assert.throws(() => getPayrollEligibilityFilter("2026-13"), /valid YYYY-MM/);
 });
 
 test("payroll run status transitions allow draft to approved to finalized only", () => {
