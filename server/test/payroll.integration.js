@@ -35,11 +35,16 @@ test("MongoDB payroll lifecycle snapshots salaries, prevents duplicate periods a
   const employeeEmail = "payroll-employee-" + runId + "@example.test";
   const employeeCode = "PR-" + runId.toUpperCase() + "A";
   const inactiveCode = "PR-" + runId.toUpperCase() + "B";
-  const emails = [adminEmail, employeeEmail];
-  const codes = [employeeCode, inactiveCode];
+  const futureCode = "PR-" + runId.toUpperCase() + "C";
+  const futureEmail = "payroll-future-" + runId + "@example.test";
+  const emails = [adminEmail, employeeEmail, futureEmail];
+  const codes = [employeeCode, inactiveCode, futureCode];
   const year = 2000 + (Number.parseInt(runId.slice(0, 2), 16) % 100);
   const month = (Number.parseInt(runId.slice(2, 4), 16) % 12) + 1;
   const period = String(year) + "-" + String(month).padStart(2, "0");
+  const nextYear = month === 12 ? year + 1 : year;
+  const nextMonth = month === 12 ? 1 : month + 1;
+  const nextPeriod = String(nextYear) + "-" + String(nextMonth).padStart(2, "0");
   let server;
   let connected = false;
 
@@ -100,6 +105,7 @@ test("MongoDB payroll lifecycle snapshots salaries, prevents duplicate periods a
         designation: "QA Engineer",
         currency: "INR",
         employmentStatus: "active",
+        employmentStartDate: new Date(period + "-01T00:00:00.000Z"),
         salaryStructure: {
           baseSalaryPaise: 2_500_000,
           monthlyAllowancesPaise: 300_000,
@@ -115,9 +121,26 @@ test("MongoDB payroll lifecycle snapshots salaries, prevents duplicate periods a
         designation: "Engineer",
         currency: "INR",
         employmentStatus: "inactive",
+        employmentStartDate: new Date(period + "-01T00:00:00.000Z"),
         salaryStructure: {
           baseSalaryPaise: 9_000_000,
           monthlyAllowancesPaise: 0,
+          monthlyDeductionsPaise: 0
+        }
+      },
+      {
+        employeeCode: futureCode,
+        firstName: "Future",
+        lastName: "Joiner",
+        workEmail: futureEmail,
+        department: "Engineering",
+        designation: "QA Engineer",
+        currency: "INR",
+        employmentStatus: "active",
+        employmentStartDate: new Date(nextPeriod + "-01T00:00:00.000Z"),
+        salaryStructure: {
+          baseSalaryPaise: 1_200_000,
+          monthlyAllowancesPaise: 100_000,
           monthlyDeductionsPaise: 0
         }
       }
@@ -167,6 +190,8 @@ test("MongoDB payroll lifecycle snapshots salaries, prevents duplicate periods a
     assert.equal(preview.totalGrossPayPaise, 2_800_000);
     assert.equal(preview.totalDeductionsPaise, 200_000);
     assert.equal(preview.totalNetPayPaise, 2_600_000);
+    assert.deepEqual(preview.items.map((item) => item.employeeCode), [employeeCode]);
+    assert.equal(preview.items.some((item) => item.employeeCode === futureCode), false);
 
     const createResponse = await request(baseUrl, "/api/payroll/runs", {
       method: "POST",
@@ -180,6 +205,14 @@ test("MongoDB payroll lifecycle snapshots salaries, prevents duplicate periods a
     assert.equal(created.items[0].employeeCode, employeeCode);
     assert.equal(created.items[0].netPayPaise, 2_600_000);
     const runUrl = "/api/payroll/runs/" + created.id;
+
+    const lockedStartDateUpdate = await request(baseUrl, "/api/employees/" + activeEmployee._id.toString(), {
+      method: "PATCH",
+      cookie: adminCookie,
+      body: { employmentStartDate: nextPeriod + "-01" }
+    });
+    assert.equal(lockedStartDateUpdate.status, 409);
+    assert.equal((await lockedStartDateUpdate.json()).code, "EMPLOYMENT_START_DATE_LOCKED");
 
     const duplicateResponse = await request(baseUrl, "/api/payroll/runs", {
       method: "POST",
@@ -349,6 +382,16 @@ test("MongoDB payroll lifecycle snapshots salaries, prevents duplicate periods a
     const listed = await listResponse.json();
     assert.equal(listed.pagination.total, 1);
     assert.equal(listed.data[0].id, created.id);
+
+    const nextPeriodPreviewResponse = await request(baseUrl, "/api/payroll/preview", {
+      method: "POST",
+      cookie: adminCookie,
+      body: { period: nextPeriod }
+    });
+    assert.equal(nextPeriodPreviewResponse.status, 200);
+    const nextPeriodPreview = (await nextPeriodPreviewResponse.json()).data;
+    assert.equal(nextPeriodPreview.employeeCount, 2);
+    assert.deepEqual(nextPeriodPreview.items.map((item) => item.employeeCode).sort(), [employeeCode, futureCode].sort());
   } finally {
     if (server) await new Promise((resolve) => server.close(() => resolve()));
     if (connected) {
