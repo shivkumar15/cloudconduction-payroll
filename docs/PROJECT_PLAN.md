@@ -286,8 +286,8 @@ Expected: frontend `http://localhost:5173`; health endpoint `http://localhost:50
 - Final resume bullet points should be written only after the corresponding features and tests are complete. Do not claim production payroll or real payment processing.
 
 ## Immediate next task
-1. Complete the browser smoke test using synthetic records: update Jag Jiwan (EMP-004) to employment start date `2026-12-01` in Admin → Manage Employees → Edit, verify October/November previews exclude him and December includes him; do not alter the already-finalized snapshots.
-2. Complete the remaining Phase 6 browser workflow: create/approve an unused payroll period, simulate all-success and failure/retry flows, finalize, then sign in as the linked employee to verify only their own finalized history, transaction history and print/Save-as-PDF payslip.
+1. [x] User confirmed in the browser on 2026-10-26 that the employment-start-date fix works. Keep existing October/November finalized snapshots unchanged.
+2. Continue Phase 6 browser smoke test in order: first run the all-success flow on an unused period (prefer 2026-12 if no saved run exists), then the failure/retry flow on a separate unused period (prefer 2027-01 if no saved run exists), and finally verify linked employee finalized history, transaction history and print/Save-as-PDF payslip.
 3. Note the non-blocking Vite warning that the minified JavaScript bundle exceeds 500 kB; consider code-splitting the Recharts/payroll workspace if practical.
 4. Continue Phase 7 release hardening (security regression checks, synthetic seed data, authenticated load tests, README/deployment review). SMTP delivery and forgot-password reset are already locally verified; never commit SMTP credentials or share OTPs.
 
@@ -304,3 +304,6 @@ This document is continuity context, not a substitute for inspecting the real re
 
 
 - Employment start-date/payroll eligibility correction (2026-10-26): new employees require a valid `YYYY-MM-DD` start date. Payroll preview and draft creation use the same selected-period server filter; employees qualify through the selected month's final millisecond. Legacy records without the new field use `createdAt` as their effective start. Changing a start date is rejected once the employee appears in any saved payroll snapshot, and existing snapshots are not recalculated or modified. GitHub Actions passed at commit `0b2c2d0`; user locally verified 47 unit/API tests, successful Vite production build, and both MongoDB integration tests on 2026-10-26. Manual browser verification remains outstanding; the existing EMP-004 record must be explicitly updated to `2026-12-01` if that is his actual joining date.
+
+
+- Browser verification update (user-confirmed 2026-10-26): the employment start date change for EMP-004 worked; October/November previews exclude the future joiner and December includes him, as expected. The general Phase 6 payroll workflow smoke test remains in progress. Next: test one all-success run on an unused period, then a separate failure/retry run, and finally employee self-service. Do not recreate or modify finalized October/November runs.
