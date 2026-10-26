@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 import { Employee } from "../models/Employee.js";
 import { PayrollRun } from "../models/PayrollRun.js";
 import { PayrollTransaction } from "../models/PayrollTransaction.js";
-import { buildPayrollSnapshot, getPayrollTransition } from "../services/payrollService.js";
+import { buildPayrollSnapshot, getPayrollEligibilityFilter, getPayrollTransition } from "../services/payrollService.js";
 import {
   payrollListQuerySchema,
   payrollPeriodBodySchema
@@ -23,8 +23,8 @@ function respondRun(run) {
   return run.toPublicJSON();
 }
 
-async function getActiveEmployeeSnapshot() {
-  return Employee.find({ employmentStatus: "active" })
+async function getActiveEmployeeSnapshot(period) {
+  return Employee.find(getPayrollEligibilityFilter(period))
     .sort({ employeeCode: 1 })
     .lean();
 }
@@ -36,7 +36,7 @@ export async function previewPayroll(req, res, next) {
   }
 
   try {
-    const employees = await getActiveEmployeeSnapshot();
+    const employees = await getActiveEmployeeSnapshot(parsed.data.period);
     if (employees.length === 0) {
       return res.status(409).json({
         success: false,
@@ -104,7 +104,7 @@ export async function createPayrollRun(req, res, next) {
   }
 
   try {
-    const employees = await getActiveEmployeeSnapshot();
+    const employees = await getActiveEmployeeSnapshot(parsed.data.period);
     if (employees.length === 0) {
       return res.status(409).json({
         success: false,
