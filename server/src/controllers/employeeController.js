@@ -1,4 +1,5 @@
 import { Employee } from "../models/Employee.js";
+import { PayrollRun } from "../models/PayrollRun.js";
 import { User } from "../models/User.js";
 import {
   createEmployeeSchema,
@@ -37,6 +38,12 @@ function escapeRegex(value) {
   )).join("");
 }
 
+function dateOnly(value) {
+  if (!value) return null;
+  const parsed = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString().slice(0, 10);
+}
+
 function serializeEmployee(employee) {
   if (typeof employee?.toPublicJSON === "function") return employee.toPublicJSON();
 
@@ -55,6 +62,7 @@ function serializeEmployee(employee) {
       monthlyDeductionsPaise: employee.salaryStructure.monthlyDeductionsPaise
     },
     employmentStatus: employee.employmentStatus,
+    employmentStartDate: dateOnly(employee.employmentStartDate || employee.createdAt),
     createdAt: employee.createdAt,
     updatedAt: employee.updatedAt
   };
@@ -244,6 +252,21 @@ export async function updateEmployee(req, res, next) {
     const updates = parsed.data;
     const requestedStatus = updates.employmentStatus;
     delete updates.employmentStatus;
+
+    if (updates.employmentStartDate) {
+      const currentEffectiveStartDate = dateOnly(employee.employmentStartDate || employee.createdAt);
+      if (updates.employmentStartDate !== currentEffectiveStartDate) {
+        const hasPayrollSnapshot = await PayrollRun.exists({ "items.employeeId": employee._id });
+        if (hasPayrollSnapshot) {
+          return res.status(409).json({
+            success: false,
+            code: "EMPLOYMENT_START_DATE_LOCKED",
+            message: "Employment start date cannot be changed after this employee appears in a saved payroll run"
+          });
+        }
+      }
+    }
+
     Object.assign(employee, updates);
 
     if (requestedStatus && requestedStatus !== employee.employmentStatus) {
