@@ -106,7 +106,7 @@ Open the admin workspace and choose **Manage employees**, or navigate to `/admin
 | PATCH | `/api/employees/:id` | Admin | Update name, department, designation, salary structure or status |
 | DELETE | `/api/employees/:id` | Admin | Deactivate employee and invalidate their active sessions |
 
-Employee creation requires `employeeCode`, `firstName`, `lastName`, `workEmail`, `department`, `designation`, `salaryStructure`, and an `initialPassword` of at least 12 characters. The new account is always assigned the employee role by the server; request bodies cannot assign admin access. There is no public registration endpoint.
+Employee creation requires `employeeCode`, `firstName`, `lastName`, `workEmail`, `department`, `designation`, `employmentStartDate` (`YYYY-MM-DD`), `salaryStructure`, and an `initialPassword` of at least 12 characters. The new account is always assigned the employee role by the server; request bodies cannot assign admin access. There is no public registration endpoint.
 
 Example request body (all people and numbers below are synthetic demo values):
 
@@ -118,6 +118,7 @@ Example request body (all people and numbers below are synthetic demo values):
   "workEmail": "rahul@example.com",
   "department": "Engineering",
   "designation": "Software Engineer",
+  "employmentStartDate": "2026-12-01",
   "salaryStructure": {
     "baseSalaryPaise": 2500000,
     "monthlyAllowancesPaise": 300000,
@@ -129,7 +130,7 @@ Example request body (all people and numbers below are synthetic demo values):
 
 Monetary fields are integer paise at the API/database boundary (₹25,000 is 2,500,000 paise). The UI accepts rupee input and converts it to paise. Employee records explicitly store currency as INR, which is the only supported currency in this version. Deductions cannot exceed base salary plus allowances. This is a demo salary structure—not a statutory tax calculation or final payslip.
 
-Employee code and work email are normalized and unique. The work email is also the linked login identity and is immutable through the employee update endpoint. Employee listing is bounded to at most 100 records per page. Search input is escaped before being used as a regular expression. Employee self-service resolves the linked employee ID from the authenticated account; the API does not trust a client-supplied employee ID for `/me`.
+Employee code and work email are normalized and unique. The work email is also the linked login identity and is immutable through the employee update endpoint. Employment start dates are validated as real calendar dates and enforced by the server for both payroll preview and new payroll snapshots. An employee is first eligible in the month containing the start date; this demo pays a full month and does not prorate. Legacy records without a start date fall back to their original `createdAt` date. Once an employee appears in any saved payroll snapshot, changing their start date is rejected so historical eligibility cannot be rewritten. Employee listing is bounded to at most 100 records per page. Search input is escaped before being used as a regular expression. Employee self-service resolves the linked employee ID from the authenticated account; the API does not trust a client-supplied employee ID for `/me`.
 
 Deactivation sets the employee record to inactive, disables its linked login, and increments the account's token version to invalidate existing sessions. An admin can reactivate a record from its edit form. Account provisioning uses compensating cleanup if creating the login fails; it is not a multi-document MongoDB transaction, so production-grade provisioning would need transaction-capable infrastructure or a durable reconciliation workflow.
 
