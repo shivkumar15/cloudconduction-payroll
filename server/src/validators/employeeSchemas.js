@@ -21,6 +21,13 @@ export const salaryStructureSchema = z.object({
   }
 });
 
+const employmentStartDateSchema = z.string()
+  .regex(/^(19\d{2}|20\d{2}|2100)-\d{2}-\d{2}$/, "Use a date from 1900–2100 in YYYY-MM-DD format")
+  .refine((value) => {
+    const parsed = new Date(value + "T00:00:00.000Z");
+    return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
+  }, "Employment start date must be a real calendar date");
+
 const employeeFields = {
   employeeCode: z.string().trim().min(3).max(20)
     .regex(/^[A-Za-z0-9][A-Za-z0-9-]{2,19}$/, "Use 3–20 letters, numbers, or hyphens")
@@ -36,6 +43,7 @@ const employeeFields = {
 
 export const createEmployeeSchema = z.object({
   ...employeeFields,
+  employmentStartDate: employmentStartDateSchema,
   initialPassword: z.string().min(12).max(128)
 }).strict();
 
@@ -45,6 +53,7 @@ export const updateEmployeeSchema = z.object({
   department: employeeFields.department.optional(),
   designation: employeeFields.designation.optional(),
   salaryStructure: employeeFields.salaryStructure.optional(),
+  employmentStartDate: employmentStartDateSchema.optional(),
   employmentStatus: z.enum(["active", "inactive"]).optional()
 }).strict().superRefine((data, ctx) => {
   if (Object.keys(data).length === 0) {
