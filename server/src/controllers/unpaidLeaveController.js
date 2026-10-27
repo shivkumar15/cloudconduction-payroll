@@ -87,6 +87,17 @@ export async function createMyUnpaidLeaveRequest(req, res, next) {
       requestedBy: req.authUser._id
     });
 
+    // Close the check/write race with payroll-run creation. If the period became
+    // locked during insertion, remove the still-pending request and fail closed.
+    if (await periodIsLocked(period)) {
+      await UnpaidLeaveRequest.deleteOne({ _id: request._id, status: "pending" });
+      return res.status(409).json({
+        success: false,
+        code: "PAYROLL_PERIOD_LOCKED",
+        message: "A payroll run was created while this request was submitted. Refresh and try another period."
+      });
+    }
+
     return res.status(201).json({ success: true, data: respondRequest(request) });
   } catch (error) {
     if (error?.code === 11000) {
