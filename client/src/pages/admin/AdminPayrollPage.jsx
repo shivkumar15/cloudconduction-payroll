@@ -447,12 +447,22 @@ export default function AdminPayrollPage() {
                 <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
                   <div>
                     <p className="text-sm font-semibold text-indigo-900">Preview · {preview.period}</p>
-                    <p className="mt-1 text-xs leading-5 text-slate-600">Not yet saved. Gross = base salary + allowances; net = gross − deductions.</p>
+                    <p className="mt-1 text-xs leading-5 text-slate-600">Not yet saved. Gross = base salary + allowances; deductions include fixed deductions and approved unpaid leave.</p>
+                    {(preview.pendingUnpaidLeaveRequestsCount || 0) > 0 && (
+                      <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900" role="status">
+                        {preview.pendingUnpaidLeaveRequestsCount} unpaid-leave request(s) still need an admin decision for this period. Resolve them before creating the payroll snapshot.
+                      </p>
+                    )}
                   </div>
                   <button
                     type="button"
                     onClick={createRun}
-                    disabled={busyAction !== "" || runs.some((run) => run.period === period)}
+                    disabled={
+                      busyAction !== ""
+                      || runs.some((run) => run.period === period)
+                      || preview.canCreateRun === false
+                      || (preview.pendingUnpaidLeaveRequestsCount || 0) > 0
+                    }
                     className={primaryButton}
                   >
                     <FileCheck size={16} aria-hidden="true" /> {busyAction === "create" ? "Creating…" : "Create draft run"}
@@ -466,13 +476,16 @@ export default function AdminPayrollPage() {
                 </div>
                 <div className="mt-4 overflow-x-auto rounded-lg border border-slate-200 bg-white">
                   <table className="min-w-full text-left text-sm">
-                    <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500"><tr><th className="px-3 py-2">Employee</th><th className="px-3 py-2 text-right">Gross</th><th className="px-3 py-2 text-right">Deductions</th><th className="px-3 py-2 text-right">Net</th></tr></thead>
+                    <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500"><tr><th className="px-3 py-2">Employee</th><th className="px-3 py-2 text-right">Gross</th><th className="px-3 py-2 text-right">Fixed deductions</th><th className="px-3 py-2 text-right">Unpaid leave</th><th className="px-3 py-2 text-right">Leave deduction</th><th className="px-3 py-2 text-right">Total deductions</th><th className="px-3 py-2 text-right">Net</th></tr></thead>
                     <tbody className="divide-y divide-slate-100">
                       {preview.items.map((item) => <tr key={item.employeeId}>
                         <td className="px-3 py-2"><p className="font-medium">{item.employeeName}</p><p className="text-xs text-slate-500">{item.employeeCode} · {item.department}</p></td>
                         <td className="px-3 py-2 text-right tabular-nums">{money(item.grossPayPaise)}</td>
-                        <td className="px-3 py-2 text-right tabular-nums">{money(item.monthlyDeductionsPaise)}</td>
-                        <td className="px-3 py-2 text-right font-semibold tabular-nums">{money(item.netPayPaise)}</td>
+                        <td className="whitespace-nowrap px-3 py-2 text-right tabular-nums">{money(item.fixedMonthlyDeductionsPaise ?? item.monthlyDeductionsPaise)}</td>
+                        <td className="px-3 py-2 text-right tabular-nums">{item.unpaidLeaveDays || 0}</td>
+                        <td className="whitespace-nowrap px-3 py-2 text-right tabular-nums">{money(item.unpaidLeaveDeductionPaise || 0)}</td>
+                        <td className="whitespace-nowrap px-3 py-2 text-right tabular-nums">{money(item.monthlyDeductionsPaise)}</td>
+                        <td className="whitespace-nowrap px-3 py-2 text-right font-semibold tabular-nums">{money(item.netPayPaise)}</td>
                       </tr>)}
                     </tbody>
                   </table>
@@ -547,12 +560,15 @@ export default function AdminPayrollPage() {
                 {selectedRun.status === "finalized" && <p className="mt-4 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800">This payroll snapshot is finalized. Employee accounts can now view their own pay history.</p>}
                 <div className="mt-5 max-h-72 overflow-auto rounded-lg border border-slate-200">
                   <table className="min-w-full text-left text-xs">
-                    <thead className="sticky top-0 bg-slate-50 uppercase text-slate-500"><tr><th className="px-3 py-2">Employee</th><th className="px-3 py-2 text-right">Base</th><th className="px-3 py-2 text-right">Allowance</th><th className="px-3 py-2 text-right">Deductions</th><th className="px-3 py-2 text-right">Net</th></tr></thead>
+                    <thead className="sticky top-0 bg-slate-50 uppercase text-slate-500"><tr><th className="px-3 py-2">Employee</th><th className="px-3 py-2 text-right">Base</th><th className="px-3 py-2 text-right">Allowance</th><th className="px-3 py-2 text-right">Fixed deductions</th><th className="px-3 py-2 text-right">Unpaid days</th><th className="px-3 py-2 text-right">Leave deduction</th><th className="px-3 py-2 text-right">Total deductions</th><th className="px-3 py-2 text-right">Net</th></tr></thead>
                     <tbody className="divide-y divide-slate-100">
                       {selectedRun.items.map((item) => <tr key={item.employeeId}>
                         <td className="px-3 py-2"><p className="font-semibold">{item.employeeName}</p><p className="text-slate-500">{item.employeeCode}</p></td>
                         <td className="whitespace-nowrap px-3 py-2 text-right">{money(item.baseSalaryPaise)}</td>
                         <td className="whitespace-nowrap px-3 py-2 text-right">{money(item.monthlyAllowancesPaise)}</td>
+                        <td className="whitespace-nowrap px-3 py-2 text-right">{money(item.fixedMonthlyDeductionsPaise ?? item.monthlyDeductionsPaise)}</td>
+                        <td className="whitespace-nowrap px-3 py-2 text-right">{item.unpaidLeaveDays || 0}</td>
+                        <td className="whitespace-nowrap px-3 py-2 text-right">{money(item.unpaidLeaveDeductionPaise || 0)}</td>
                         <td className="whitespace-nowrap px-3 py-2 text-right">{money(item.monthlyDeductionsPaise)}</td>
                         <td className="whitespace-nowrap px-3 py-2 text-right font-semibold">{money(item.netPayPaise)}</td>
                       </tr>)}
