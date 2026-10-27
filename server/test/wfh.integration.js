@@ -336,12 +336,9 @@ test("MongoDB WFH and attendance workflow enforces ownership, shared day reserva
     assert.equal(lockedApproval.status, 409);
     assert.equal((await lockedApproval.json()).code, "PAYROLL_PERIOD_LOCKED");
 
-    const lockedNewRequest = await createWfhRequest(baseUrl, employeeCookie, addDateOnlyDays(nextFollowingDate, 1), "Request after the month locked");
-    if (addDateOnlyDays(nextFollowingDate, 1).slice(0, 7) === lockPeriod) {
-      assert.equal(lockedNewRequest.status, 409);
-    } else {
-      assert.notEqual(lockedNewRequest.status, 201);
-    }
+    const lockedNewRequest = await createWfhRequest(baseUrl, employeeCookie, nextFollowingDate, "Request after the month locked");
+    assert.equal(lockedNewRequest.status, 409);
+    assert.equal((await lockedNewRequest.json()).code, "PAYROLL_PERIOD_LOCKED");
     assert.equal(await AttendanceRecord.countDocuments({ employeeId: firstEmployee._id, date: dateOnlyToUtcDate(businessDate) }), 1);
   } finally {
     if (server) await new Promise((resolve) => server.close(() => resolve()));
