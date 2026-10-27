@@ -1,5 +1,5 @@
 const INDIA_TIME_ZONE = "Asia/Kolkata";
-const MAX_WFH_REQUEST_DAYS_AHEAD = 90;
+const MAX_WFH_REQUEST_DAYS_AHEAD = 365;
 
 export function getIndiaBusinessDate(now = new Date()) {
   if (!(now instanceof Date) || Number.isNaN(now.getTime())) {
