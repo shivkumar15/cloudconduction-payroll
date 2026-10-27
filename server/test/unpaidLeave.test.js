@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import mongoose from "mongoose";
 import { app } from "../src/app.js";
 import { UnpaidLeaveRequest } from "../src/models/UnpaidLeaveRequest.js";
+import { buildPayrollSnapshot } from "../src/services/payrollService.js";
 import {
   calculateUnpaidLeaveDeductionPaise,
   getPayrollPeriodBounds,
@@ -66,6 +67,46 @@ test("unpaid-leave deduction rejects invalid money, fractional days and leave ab
   assert.throws(() => calculateUnpaidLeaveDeductionPaise({
     monthlyGrossPayPaise: 2_800_000, unpaidLeaveDays: 22, period: "2026-11"
   }), /cannot exceed/);
+});
+
+test("payroll snapshot keeps fixed and leave deductions separate and blocks negative net pay", () => {
+  const employee = {
+    _id: new mongoose.Types.ObjectId("507f1f77bcf86cd799439011"),
+    employeeCode: "EMP-LOP",
+    firstName: "Leave",
+    lastName: "Tester",
+    department: "Engineering",
+    designation: "QA Engineer",
+    employmentStatus: "active",
+    currency: "INR",
+    salaryStructure: {
+      baseSalaryPaise: 2_500_000,
+      monthlyAllowancesPaise: 300_000,
+      monthlyDeductionsPaise: 200_000
+    }
+  };
+
+  const snapshot = buildPayrollSnapshot([employee], {
+    period: "2026-11",
+    unpaidLeaveDaysByEmployeeId: new Map([[employee._id.toString(), 1]])
+  });
+  assert.equal(snapshot.items[0].fixedMonthlyDeductionsPaise, 200_000);
+  assert.equal(snapshot.items[0].unpaidLeaveDays, 1);
+  assert.equal(snapshot.items[0].unpaidLeaveDeductionPaise, 133_333);
+  assert.equal(snapshot.items[0].monthlyDeductionsPaise, 333_333);
+  assert.equal(snapshot.items[0].netPayPaise, 2_466_667);
+
+  const almostEntireGross = {
+    ...employee,
+    salaryStructure: {
+      ...employee.salaryStructure,
+      monthlyDeductionsPaise: 2_700_000
+    }
+  };
+  assert.throws(() => buildPayrollSnapshot([almostEntireGross], {
+    period: "2026-11",
+    unpaidLeaveDaysByEmployeeId: new Map([[employee._id.toString(), 1]])
+  }), /Combined fixed and unpaid-leave deductions exceed gross pay/);
 });
 
 test("unpaid-leave request validation accepts explicit weekdays and rejects weekends/mass assignment", () => {
