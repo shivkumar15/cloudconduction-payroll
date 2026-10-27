@@ -19,8 +19,8 @@ const unpaidLeaveRequestSchema = new mongoose.Schema({
     validate: { validator: isDateOnlyUtc, message: "Leave date must be stored at UTC midnight" }
   },
   requestGroupId: { type: String, default: null, maxlength: 64, index: true },
-  rangeStart: { type: String, default: null, match: /^\\d{4}-\\d{2}-\\d{2}$/ },
-  rangeEnd: { type: String, default: null, match: /^\\d{4}-\\d{2}-\\d{2}$/ },
+  rangeStart: { type: String, default: null, match: /^\d{4}-\d{2}-\d{2}$/ },
+  rangeEnd: { type: String, default: null, match: /^\d{4}-\d{2}-\d{2}$/ },
   reason: { type: String, required: true, trim: true, minlength: 3, maxlength: 240 },
   status: {
     type: String,
