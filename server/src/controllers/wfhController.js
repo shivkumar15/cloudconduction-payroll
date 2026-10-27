@@ -75,7 +75,7 @@ export async function createMyWfhRequest(req, res, next) {
       return res.status(400).json({
         success: false,
         code: "WFH_DATE_OUT_OF_RANGE",
-        message: "WFH can be requested for today or a date within the next 90 days"
+        message: "WFH can be requested for today or a date within the next 365 days"
       });
     }
 
@@ -254,7 +254,7 @@ async function decideWfhRequest(req, res, next, decision) {
       if (!isWfhRequestDateAllowed(dateOnly, getIndiaBusinessDate())) {
         return res.status(409).json({
           success: false,
-          message: "WFH must be approved on or before its date and within the 90-day request window"
+          message: "WFH must be approved on or before its date and within the 365-day request window"
         });
       }
       const startDate = effectiveStartDate(employee);
