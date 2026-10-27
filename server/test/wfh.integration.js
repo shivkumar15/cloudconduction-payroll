@@ -187,7 +187,10 @@ test("MongoDB WFH and attendance workflow enforces ownership, shared day reserva
       cookie: employeeCookie
     });
     assert.equal(employeeList.status, 200);
-    assert.deepEqual((await employeeList.json()).data.map((entry) => entry.employeeId), [firstEmployee._id.toString()]);
+    const employeeListData = (await employeeList.json()).data;
+    assert.equal(employeeListData.length, 2);
+    assert.ok(employeeListData.every((entry) => entry.employeeId === firstEmployee._id.toString()),
+      "the employee list must contain only the signed-in employee's requests even when an employeeId query is supplied");
 
     const adminList = await request(baseUrl, "/api/wfh?period=" + businessDate.slice(0, 7) + "&status=pending", {
       cookie: adminCookie
