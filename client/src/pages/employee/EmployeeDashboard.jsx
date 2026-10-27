@@ -398,7 +398,7 @@ export default function EmployeeDashboard() {
           </div>
           {wfhError && <p className="mt-4 rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800" role="alert">{wfhError}</p>}
           {wfhMessage && <p className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800" role="status">{wfhMessage}</p>}
-          <form onSubmit={submitWfhRequest} className="mt-5 grid gap-4 border-t border-slate-100 pt-5 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,2fr)_auto] sm:items-end">
+          <form onSubmit={submitWfhRequest} className="mt-5 grid gap-4 border-t border-slate-100 pt-5 sm:grid-cols-[minmax(0,1fr)_minmax(0,2fr)_auto] sm:items-end">
             <label className="block">
               <span className="mb-1.5 block text-sm font-medium">Requested WFH date</span>
               <input className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" type="date" required min={businessDate || undefined} max={addDateOnlyDays(businessDate, 365) || undefined} value={wfhDate} onChange={(event) => setWfhDate(event.target.value)} />
@@ -472,7 +472,7 @@ export default function EmployeeDashboard() {
           </div>
           {unpaidLeaveError && <p className="mt-4 rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800" role="alert">{unpaidLeaveError}</p>}
           {unpaidLeaveMessage && <p className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800" role="status">{unpaidLeaveMessage}</p>}
-          <form onSubmit={submitUnpaidLeaveRequest} className="mt-5 grid gap-4 border-t border-slate-100 pt-5 sm:grid-cols-[minmax(0,1fr)_minmax(0,2fr)_auto] sm:items-end">
+          <form onSubmit={submitUnpaidLeaveRequest} className="mt-5 grid gap-4 border-t border-slate-100 pt-5 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,2fr)_auto] sm:items-end">
             <label className="block">
               <span className="mb-1.5 block text-sm font-medium">Start date</span>
               <input className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" type="date" required value={unpaidLeaveStartDate} onChange={(event) => {
