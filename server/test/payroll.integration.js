@@ -171,6 +171,20 @@ test("MongoDB payroll lifecycle snapshots salaries, prevents duplicate periods a
     const employeeAdminList = await request(baseUrl, "/api/payroll", { cookie: employeeCookie });
     assert.equal(employeeAdminList.status, 403);
 
+    const employeeInsights = await request(baseUrl, "/api/payroll-insights", {
+      method: "POST",
+      cookie: employeeCookie,
+      body: { period }
+    });
+    assert.equal(employeeInsights.status, 403);
+
+    const unknownInsightsField = await request(baseUrl, "/api/payroll-insights", {
+      method: "POST",
+      cookie: adminCookie,
+      body: { period, employeeCode: "MUST_NOT_BE_ACCEPTED" }
+    });
+    assert.equal(unknownInsightsField.status, 400);
+
     const invalidPeriod = await request(baseUrl, "/api/payroll/preview", {
       method: "POST",
       cookie: adminCookie,
