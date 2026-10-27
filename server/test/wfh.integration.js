@@ -147,7 +147,14 @@ test("MongoDB WFH and attendance workflow enforces ownership, shared day reserva
 
     const invalidPast = await createWfhRequest(baseUrl, employeeCookie, addDateOnlyDays(businessDate, -1));
     assert.equal(invalidPast.status, 400);
-    const invalidFarFuture = await createWfhRequest(baseUrl, employeeCookie, addDateOnlyDays(businessDate, 91));
+    const extendedFuture = await createWfhRequest(baseUrl, employeeCookie, addDateOnlyDays(businessDate, 180));
+    assert.equal(extendedFuture.status, 201);
+    const extendedFutureRequest = (await extendedFuture.json()).data;
+    const rejectExtendedFuture = await request(baseUrl, "/api/wfh/" + extendedFutureRequest.id + "/reject", {
+      method: "POST", cookie: adminCookie, body: { decisionNote: "Cleanup extended-window test" }
+    });
+    assert.equal(rejectExtendedFuture.status, 200);
+    const invalidFarFuture = await createWfhRequest(baseUrl, employeeCookie, addDateOnlyDays(businessDate, 366));
     assert.equal(invalidFarFuture.status, 400);
     const forgedApproval = await request(baseUrl, "/api/wfh", {
       method: "POST",
