@@ -398,7 +398,7 @@ export default function EmployeeDashboard() {
           </div>
           {wfhError && <p className="mt-4 rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800" role="alert">{wfhError}</p>}
           {wfhMessage && <p className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800" role="status">{wfhMessage}</p>}
-          <form onSubmit={submitWfhRequest} className="mt-5 grid gap-4 border-t border-slate-100 pt-5 sm:grid-cols-[minmax(0,1fr)_minmax(0,2fr)_auto] sm:items-end">
+          <form onSubmit={submitWfhRequest} className="mt-5 grid gap-4 border-t border-slate-100 pt-5 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,2fr)_auto] sm:items-end">
             <label className="block">
               <span className="mb-1.5 block text-sm font-medium">Requested WFH date</span>
               <input className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" type="date" required min={businessDate || undefined} max={addDateOnlyDays(businessDate, 365) || undefined} value={wfhDate} onChange={(event) => setWfhDate(event.target.value)} />
@@ -462,11 +462,11 @@ export default function EmployeeDashboard() {
           </div>
         </section>
 
-        <section className={"no-print mt-6 " + cardClass}>
+        <section className={"no-print mt-6 " + cardClass + (activeSection === "leave" ? "" : " hidden")}>
           <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
             <div>
               <h2 className="flex items-center gap-2 text-lg font-semibold"><CalendarDays size={20} className="text-indigo-600" aria-hidden="true" /> Unpaid-leave requests</h2>
-              <p className="mt-1 max-w-2xl text-sm text-slate-500">Request one unpaid weekday at a time. Only an approved request made before the payroll snapshot can affect the calculation.</p>
+              <p className="mt-1 max-w-2xl text-sm text-slate-500">Select a start and end date in one payroll month. The system counts Monday–Friday dates in that range; the entire range is approved or rejected together.</p>
             </div>
             <span className="inline-flex items-center gap-2 rounded-lg bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-900"><Clock3 size={15} aria-hidden="true" /> Admin approval required</span>
           </div>
@@ -474,26 +474,34 @@ export default function EmployeeDashboard() {
           {unpaidLeaveMessage && <p className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800" role="status">{unpaidLeaveMessage}</p>}
           <form onSubmit={submitUnpaidLeaveRequest} className="mt-5 grid gap-4 border-t border-slate-100 pt-5 sm:grid-cols-[minmax(0,1fr)_minmax(0,2fr)_auto] sm:items-end">
             <label className="block">
-              <span className="mb-1.5 block text-sm font-medium">Leave date</span>
-              <input className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" type="date" required value={unpaidLeaveDate} onChange={(event) => setUnpaidLeaveDate(event.target.value)} />
+              <span className="mb-1.5 block text-sm font-medium">Start date</span>
+              <input className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" type="date" required value={unpaidLeaveStartDate} onChange={(event) => {
+                const value = event.target.value;
+                setUnpaidLeaveStartDate(value);
+                if (unpaidLeaveEndDate && (unpaidLeaveEndDate < value || unpaidLeaveEndDate.slice(0, 7) !== value.slice(0, 7))) setUnpaidLeaveEndDate("");
+              }} />
+            </label>
+            <label className="block">
+              <span className="mb-1.5 block text-sm font-medium">End date</span>
+              <input className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" type="date" required min={unpaidLeaveStartDate || undefined} max={unpaidLeaveStartDate ? new Date(Date.UTC(Number(unpaidLeaveStartDate.slice(0, 4)), Number(unpaidLeaveStartDate.slice(5, 7)), 0)).toISOString().slice(0, 10) : undefined} value={unpaidLeaveEndDate} onChange={(event) => setUnpaidLeaveEndDate(event.target.value)} />
             </label>
             <label className="block">
               <span className="mb-1.5 block text-sm font-medium">Reason</span>
               <input className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" type="text" required minLength={3} maxLength={240} value={unpaidLeaveReason} onChange={(event) => setUnpaidLeaveReason(event.target.value)} placeholder="Brief reason for the request" />
             </label>
-            <button type="submit" disabled={submittingUnpaidLeave || !unpaidLeaveDate || unpaidLeaveReason.trim().length < 3} className="inline-flex items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50">
+            <button type="submit" disabled={submittingUnpaidLeave || !validLeaveRange || unpaidLeaveReason.trim().length < 3} className="inline-flex items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50">
               <Send size={16} aria-hidden="true" /> {submittingUnpaidLeave ? "Submitting…" : "Submit request"}
             </button>
           </form>
-          <p className="mt-3 text-xs leading-5 text-slate-500">Only Monday–Friday dates are accepted in this demo. Public holidays and custom work schedules are not modeled. A request does not change your pay until an admin approves it and the period is still open; an existing payroll snapshot cannot be silently changed.</p>
+          <p className="mt-3 text-xs leading-5 text-slate-500">Only Monday–Friday dates in the selected range become leave days; weekends are skipped. Requests must stay within one payroll month, and public holidays/custom work schedules are not modeled. A request does not change your pay until an admin approves it and the period is still open; an existing payroll snapshot cannot be silently changed.</p>
           {loadingLeaveRequests && <p className="mt-4 text-sm text-slate-500" role="status">Loading your leave requests…</p>}
-          {!loadingLeaveRequests && !unpaidLeaveError && unpaidLeaveRequests.length === 0 && <p className="mt-4 rounded-xl bg-slate-50 p-4 text-sm text-slate-600">No unpaid-leave requests yet.</p>}
-          {!loadingLeaveRequests && unpaidLeaveRequests.length > 0 && <div className="mt-4 overflow-x-auto rounded-xl border border-slate-200">
+          {!loadingLeaveRequests && !unpaidLeaveError && displayedUnpaidLeaveRequests.length === 0 && <p className="mt-4 rounded-xl bg-slate-50 p-4 text-sm text-slate-600">No unpaid-leave requests yet.</p>}
+          {!loadingLeaveRequests && displayedUnpaidLeaveRequests.length > 0 && <div className="mt-4 overflow-x-auto rounded-xl border border-slate-200">
             <table className="min-w-full text-left text-sm">
-              <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500"><tr><th className="px-3 py-3">Date</th><th className="px-3 py-3">Reason</th><th className="px-3 py-3">Status</th><th className="px-3 py-3">Admin note</th></tr></thead>
+              <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500"><tr><th className="px-3 py-3">Date range</th><th className="px-3 py-3">Reason</th><th className="px-3 py-3">Status</th><th className="px-3 py-3">Admin note</th></tr></thead>
               <tbody className="divide-y divide-slate-100 bg-white">
-                {unpaidLeaveRequests.map((request) => <tr key={request.id}>
-                  <td className="whitespace-nowrap px-3 py-3 font-medium">{request.date}</td>
+                {displayedUnpaidLeaveRequests.map((request) => <tr key={request.requestGroupId || request.id}>
+                  <td className="whitespace-nowrap px-3 py-3 font-medium">{request.rangeStart && request.rangeEnd ? (request.rangeStart === request.rangeEnd ? request.rangeStart : request.rangeStart + " – " + request.rangeEnd) : request.date}</td>
                   <td className="max-w-md px-3 py-3 break-words">{request.reason}</td>
                   <td className="px-3 py-3"><StatusBadge status={request.status} /></td>
                   <td className="max-w-md px-3 py-3 break-words text-sm text-slate-500">{request.decisionNote || "—"}</td>
@@ -503,7 +511,7 @@ export default function EmployeeDashboard() {
           </div>}
         </section>
 
-        <section className={"no-print mt-6 " + cardClass}>
+        <section className={"no-print mt-6 " + cardClass + (activeSection === "payslips" ? "" : " hidden")}>
           <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
             <div>
               <h2 className="flex items-center gap-2 text-lg font-semibold"><Receipt size={20} className="text-indigo-600" aria-hidden="true" /> Finalized pay history</h2>
@@ -531,7 +539,7 @@ export default function EmployeeDashboard() {
           </div>}
         </section>
 
-        {selectedPayslip && (
+        {activeSection === "payslips" && selectedPayslip && (
           <section className="payroll-payslip mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
             <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
               <div>
@@ -567,7 +575,7 @@ export default function EmployeeDashboard() {
           </section>
         )}
 
-        <section className={"no-print mt-6 " + cardClass}>
+        <section className={"no-print mt-6 " + cardClass + (activeSection === "transactions" ? "" : " hidden")}>
           <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
             <div>
               <h2 className="text-lg font-semibold">Simulated transaction history</h2>
@@ -595,6 +603,8 @@ export default function EmployeeDashboard() {
           </div>}
           <p className="mt-4 text-xs leading-5 text-slate-500">If a finalized run has a failed simulation in this demo, contact the payroll administrator. This record is not proof of a bank transfer.</p>
         </section>
+          </div>
+        </div>
       </section>
     </main>
   );
