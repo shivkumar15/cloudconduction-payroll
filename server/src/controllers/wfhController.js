@@ -3,6 +3,7 @@ import { Employee } from "../models/Employee.js";
 import { PayrollRun } from "../models/PayrollRun.js";
 import { WfhRequest } from "../models/WfhRequest.js";
 import { AttendanceRecord } from "../models/AttendanceRecord.js";
+import { UnpaidLeaveRequest } from "../models/UnpaidLeaveRequest.js";
 import { EmployeeDayReservation } from "../models/EmployeeDayReservation.js";
 import { UnpaidLeaveRequest } from "../models/UnpaidLeaveRequest.js";
 import {
@@ -89,6 +90,19 @@ export async function createMyWfhRequest(req, res, next) {
         success: false,
         code: "PAYROLL_PERIOD_LOCKED",
         message: "A payroll run already exists for this month; no new WFH requests can be created for the period"
+      });
+    }
+
+    const existingLeave = await UnpaidLeaveRequest.exists({
+      employeeId: employee._id,
+      date: dateValue,
+      status: { $in: ["pending", "approved"] }
+    });
+    if (existingLeave) {
+      return res.status(409).json({
+        success: false,
+        code: "EMPLOYEE_DATE_ALREADY_RESERVED",
+        message: "This date already has a pending or approved unpaid-leave request"
       });
     }
 
@@ -247,6 +261,18 @@ async function decideWfhRequest(req, res, next, decision) {
       const startDate = effectiveStartDate(employee);
       if (startDate && dateOnly < startDate) {
         return res.status(409).json({ success: false, message: "WFH date is before the employee's start date" });
+      }
+      const existingLeave = await UnpaidLeaveRequest.exists({
+        employeeId: current.employeeId,
+        date: current.date,
+        status: { $in: ["pending", "approved"] }
+      });
+      if (existingLeave) {
+        return res.status(409).json({
+          success: false,
+          code: "EMPLOYEE_DATE_ALREADY_RESERVED",
+          message: "This date has a pending or approved unpaid-leave request"
+        });
       }
       if (await AttendanceRecord.exists({ wfhRequestId: current._id })) {
         return res.status(409).json({ success: false, message: "WFH request already has attendance; approval cannot be changed" });
