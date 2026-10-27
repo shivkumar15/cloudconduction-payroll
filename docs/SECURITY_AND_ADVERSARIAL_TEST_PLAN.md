@@ -86,19 +86,27 @@ The demo policy has now been selected (2026-10-27). It is an illustrative engine
 
 ### WFH attendance policy
 
-- Define allowed request window (how far in advance, backdated requests if any), maximum date-range length, and whether half-days exist.
-- Define whether the employee can edit/cancel a pending request and what happens to an approved request after a punch exists. Never erase audit history.
-- Define one attendance record per employee per business date and the behavior of duplicate requests.
-- Define late, absent, missed-punch, correction, and overnight-shift rules before adding reports or payroll integrations.
-- WFH approval is not location proof. Do not introduce office IP/Wi-Fi matching, GPS, or biometrics in this MVP.
+Policy decided and implemented for the portfolio MVP (2026-10-27):
+
+- Business date is calculated in `Asia/Kolkata`. A request is for one date only, from today through 90 days ahead. Past requests, half-days and date ranges are unsupported.
+- WFH request reason is required (3–240 characters); admin approval/rejection is explicit and stores decision actor, timestamp and note. Requests cannot be created/decided once a payroll run exists for that month.
+- Check-in/out requires an approved WFH request for the current India business date. The server records both timestamps; client-supplied punch times, employee IDs and extra fields are rejected.
+- At most one attendance record per employee/date. An atomic unique employee/date reservation is shared between WFH and unpaid-leave requests to prevent concurrent cross-type overlaps. Rejected requests release the reservation.
+- An admin can correct one missed checkout only for an open record. The correction must be after check-in, not in the future and within the same India business date; actor, time and reason are stored. Completed records cannot be rewritten through this endpoint.
+- A missed punch or absent attendance record does not create unpaid leave or reduce payroll. Do not introduce office IP/Wi-Fi matching, GPS, or biometrics in this MVP; WFH attendance is not proof of physical location.
+- Manual browser verification is still required. API and MongoDB adversarial tests plus frontend production build passed CI at commit `328bcb38666b97c1151a1421babf49d7f60c8341`.
 
 ### AI feature policy
 
-- First version is an admin-only insight generator based on server-computed aggregate metrics; do not start with a free-form agent that can call tools or mutate records.
-- Define which aggregate metrics may be sent to the provider, which breakdowns are disallowed due to re-identification risk, the provider's data-retention policy, timeout, token/output budget, and per-admin rate limits.
-- Define structured output schema, allowable severity labels, how AI uncertainty is shown, and a fallback when the provider is unavailable.
-- AI output is never an authoritative number. Server-computed metrics are the source of truth and must remain visible to validate the explanation.
-- Any later employee-facing AI or free-form chat requires a separate privacy and prompt-injection review.
+Policy decided for Phase 6.7 (2026-10-27):
+
+- Use the OpenAI Responses API only from the server. The model is configurable via `OPENAI_MODEL`, with demo default `gpt-5-mini`. `OPENAI_API_KEY` is optional for local/demo startup, but without it the AI endpoint returns a clear feature-disabled response and aggregate metrics remain available.
+- Send only server-computed period-level aggregate payroll/transaction metrics and bounded cross-period trend metrics. Never send employee names, emails, employee codes, individual salary records, request reasons, individual leave dates or attendance rows.
+- Do not include employee/department breakdowns with fewer than five employees; omit all employee-level fields. No tool calls, agent actions, data mutation or free-form database querying by the model.
+- Require strict structured JSON output: at most three concise insights, each with an allowlisted severity (`info`, `watch`, `attention`), a short title, explanation, and grounded evidence metric keys. Reject unexpected properties or references to metrics not in the server payload.
+- Use an 8-second provider timeout, an 800-token output cap, rate limit one insight request per admin per minute, and a capped daily budget of 20 calls/admin/day. On missing key, timeout, provider error or invalid output, return deterministic server metrics with a non-AI fallback. AI suggestions are advisory; application-calculated numbers remain authoritative.
+- Before using this with production or sensitive employee data, the owner must review current provider data controls, retention, processing terms and applicable legal obligations. Aggregate-only input minimizes risk but does not replace that review.
+- Any later employee-facing AI or free-form chat requires separate privacy and prompt-injection review.
 
 ## 5. Test environment and fixtures
 
