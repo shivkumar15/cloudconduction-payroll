@@ -1,5 +1,7 @@
 # CloudConduction Payroll — Project Plan & Continuity Handoff
 
+> Handoff updated 2026-10-27: Phase 6.5/6.6 code and CI are green at `328bcb38666b97c1151a1421babf49d7f60c8341`; manual browser smoke tests remain open. Next feature is Phase 6.7 AI Payroll Insights. Do not start Phase 7 until Phase 6 is verified or explicitly deferred.
+
 > This file is the project continuity source of truth. Read it before implementation work. Update status, decisions, completed work, tests and next task after meaningful changes.
 
 ## Project identity
@@ -297,27 +299,33 @@ These additions are a planned scope decision, not a claim that the features alre
 
 ### Phase 6.5 — recurring deductions, unpaid leave and payroll adjustments
 - [x] Decide the demo unpaid-leave policy before coding (2026-10-27): one explicit Monday–Friday date per request; admin approval required; monthly divisor is the count of Monday–Friday dates in that month (company holidays/custom schedules are not modeled); daily rate uses base salary plus monthly allowances; rounding is to nearest integer paise; fixed deductions are separate.
-- [ ] Add validated, auditable unpaid-leave requests with employee self-service and admin approve/reject actions.
-- [ ] Keep pending requests out of deduction arithmetic but block payroll-run creation until all requests for eligible employees in the month are resolved.
-- [ ] Block new requests/approvals after any payroll run exists for that month. Existing snapshots must never be recalculated.
-- [ ] Payroll preview explains fixed deductions and unpaid-leave deduction separately, with approved dates/count; server calculates all monetary values using safe integer arithmetic.
-- [ ] If fixed plus unpaid-leave deductions exceed gross earnings, block creating the run and present an admin-actionable error instead of emitting negative net pay.
-- [ ] WFH days will be treated as working days in Phase 6.6 and must not create unpaid-leave deductions. Leave approval is explicit; missing attendance does not itself imply unpaid leave.
-- Note: this deterministic formula is for the portfolio demo only and is not a claim of statutory payroll/legal compliance.
+- [x] Employee self-service request creation and own-request history; admin filter/list, approve/reject and decision notes are implemented with validation and audit metadata.
+- [x] Pending requests do not create deductions and block payroll-run creation until resolved.
+- [x] New requests and decisions are blocked after a payroll run exists for the period. Shared per-employee/date reservations prevent conflicting unpaid-leave and WFH requests; rejection releases the reservation.
+- [x] Payroll preview, draft snapshot, admin run detail, employee history, CSV export and payslip break out fixed monthly deductions and approved unpaid-leave day count/deduction.
+- [x] Integer-safe calculation is tested; if fixed plus unpaid-leave deductions exceed gross pay, preview/run creation fails closed instead of creating negative net pay.
+- [x] WFH days are not inferred to be unpaid leave. Attendance never causes a deduction; only explicit approved leave requests affect payroll.
+- [ ] Manual browser smoke test for request, approval/rejection, pending gate, calculation, period lock and payslip breakdown.
+- Note: this deterministic formula is for the portfolio demo only and is not a claim of statutory payroll/legal compliance. Unit/API tests, a disposable MongoDB integration test, and the frontend production build passed CI at commit `328bcb38666b97c1151a1421babf49d7f60c8341`.
 
 ### Phase 6.6 — WFH-only attendance MVP
-- Do not build office network/Wi-Fi/public-IP matching, GPS tracking, or biometric attendance for this portfolio demo.
-- Employees can request WFH for a specific date or date range with a reason; statuses are pending, approved or rejected, with an admin decision and audit metadata.
-- An employee can check in and check out only when an approved WFH authorization covers that date. Server timestamps are authoritative; do not accept client-provided timestamps as the actual punch time.
-- Enforce authenticated employee ownership, date validation, duplicate-punch prevention, valid check-in/check-out ordering, and audit-safe admin corrections. Use a unique employee/date record or an equivalent database constraint to prevent duplicate daily attendance records.
-- Clearly label the record as WFH attendance. The workflow does not by itself prove the employee's physical location or replace company policy.
-- Attendance and leave records are distinct. A missed punch must not automatically become unpaid leave; payroll deductions require an explicit approved leave/adjustment rule.
+- [x] Policy selected: one explicit date per WFH request, today through the next 90 days in the Asia/Kolkata business timezone; past requests, half-days and date ranges are unsupported.
+- [x] Employee self-service request creation and history; admin list/filter and approve/reject with decision notes and audit metadata.
+- [x] Employee check-in/out requires an approved WFH request for the current India business date. Server-generated timestamps are authoritative; client-supplied punch times, employee IDs and extra fields are rejected.
+- [x] One attendance record per employee/date is enforced by a unique database index. A shared per-employee/date reservation prevents WFH and unpaid leave from claiming the same date; rejected requests release the reservation.
+- [x] Admins can correct a missing check-out once, only with a reason; the record stores who corrected it, when, and why. Completed records cannot be overwritten by this correction endpoint.
+- [x] All WFH/attendance and admin routes are role-protected; API and MongoDB adversarial integration tests cover ownership, forged fields, duplicate dates/punches, overlap races, invalid corrections and period locks.
+- [x] No office IP/Wi-Fi/public-IP matching, GPS tracking, or biometric attendance. WFH attendance is an application record, not proof of physical location.
+- [ ] Manual browser smoke test for employee WFH request, admin approval, check-in/out, correction path and overlap rejection. Latest CI passed tests/build at commit `328bcb38666b97c1151a1421babf49d7f60c8341`.
+- Attendance is separate from leave. A missed punch or no attendance record never automatically becomes unpaid leave or a payroll deduction.
 
 ### Phase 6.7 — AI Payroll Insights MVP
-- Add an admin-only backend integration and UI panel for a period summary, cross-period trends and explanation of precomputed anomalies/transaction outcomes.
-- Begin with aggregate metrics and minimum-necessary fields; do not send employee names, emails, employee codes or individual salary records to the model for the first version.
-- Keep all authoritative arithmetic, eligibility, authorization and state transitions in application code. Validate structured AI output, rate-limit requests, handle provider failure gracefully, and label AI suggestions as advisory.
-- Add tests for unauthorized access, provider failures, invalid output, data minimization and deterministic metric calculation. Keep API keys on the server in environment configuration, never in frontend code or source control.
+- [x] Policy selected: admin-only insights through the OpenAI Responses API; `OPENAI_API_KEY` is server-only, the model is configurable through `OPENAI_MODEL` (demo default `gpt-5-mini`), and the feature is disabled with an explanatory response when no key is configured.
+- [x] Send only server-computed, period-level aggregate metrics and bounded cross-period comparisons. Never send employee names, emails, employee codes, reasons, leave dates, attendance rows, or individual employee salary records.
+- [x] Suppress small-cell breakdowns and omit all employee-level dimensions. AI receives a strict summary payload, not a free-form database query or tool-enabled agent.
+- [x] Require strict structured JSON output with at most three short advisory insights and an allowlisted severity; reject invalid output. Server-derived values remain visible and authoritative.
+- [x] Use an 8-second provider timeout, 800-token output ceiling, and per-admin rate limit of one request per minute with a capped daily budget of 20 calls per admin per day. If provider access fails or returns invalid output, show deterministic aggregate metrics and an actionable fallback.
+- [ ] Add the AI integration, UI, environment documentation, and tests for missing key, unauthorized access, timeout/provider errors, invalid output and data minimization. Provider data handling must be reviewed by the project owner before sending any production-sensitive data; this MVP's aggregate-only policy is not a substitute for that review.
 
 ### Phase 7 — quality and release
 - Begin release hardening after the remaining Phase 6 smoke tests and the planned payroll-adjustment, WFH-attendance and AI-insights scope have either been implemented and verified or explicitly deferred.
@@ -325,11 +333,12 @@ These additions are a planned scope decision, not a claim that the features alre
 
 ## Immediate next task
 1. [x] User confirmed in the browser on 2026-10-26 that the employment-start-date fix works. Keep existing October/November finalized snapshots unchanged.
-2. Continue Phase 6 browser smoke test in order: first run the all-success flow on an unused period (prefer 2026-12 if no saved run exists), then the failure/retry flow on a separate unused period (prefer 2027-01 if no saved run exists), and finally verify linked employee finalized history, transaction history and print/Save-as-PDF payslip.
-3. The fixed, animated payroll toast UI is committed; GitHub Actions run `40382964844` passed API tests, both MongoDB integration tests and the frontend production build.
-4. Before new feature code, review [docs/SECURITY_AND_ADVERSARIAL_TEST_PLAN.md](SECURITY_AND_ADVERSARIAL_TEST_PLAN.md). The unpaid-leave divisor, weekday model, pending-request gate, and snapshot-lock decisions are now documented. Remaining policy decisions (WFH request windows/overlap and AI data/provider limits) must be settled before their respective features.
-5. After Phase 6's browser smoke test is complete and the policies are agreed, implement the roadmap increments in order: monthly payroll adjustments/unpaid leave, WFH-only attendance, then admin AI Payroll Insights. Add the relevant adversarial tests with each feature; never postpone the test suite until the end.
-6. Defer Phase 7 release hardening until those increments are verified or explicitly deferred. Preserve the non-blocking Vite >500 kB bundle warning as a possible code-splitting task. SMTP delivery and forgot-password reset are already locally verified; never commit SMTP credentials or share OTPs.
+2. [x] Implement unpaid-leave requests, admin decisions, safe deduction calculation, preview/snapshot/payslip breakdown and period locks (Phase 6.5). Latest GitHub Actions run [40454476782](https://github.com/shivkumar15/cloudconduction-payroll/actions/runs/40454476782) passed API tests, MongoDB-backed integration tests and frontend production build at commit `328bcb38666b97c1151a1421babf49d7f60c8341`.
+3. [x] Implement WFH request and approval flow, server-timestamped attendance, audited missed-checkout correction and cross-type employee-date reservation (Phase 6.6); the same CI run passed.
+4. [ ] Do manual browser smoke tests for unpaid leave and WFH/attendance described above; code/CI passing does not replace this.
+5. [ ] Complete existing Phase 6 payroll browser smoke tests in order: all-success flow on an unused period (prefer 2026-12 if no saved run exists), failure/retry on a separate unused period (prefer 2027-01 if no saved run exists), then verify employee finalized history, transaction history and Print/Save as PDF payslip.
+6. Next implementation increment is admin-only AI Payroll Insights (Phase 6.7) using the policy above. Keep the feature disabled without a server API key and never send employee-identifying or individual salary data.
+7. Defer Phase 7 release hardening until Phase 6 browser smoke tests and the AI increment are verified or explicitly deferred. Preserve the non-blocking Vite >500 kB bundle warning as a possible code-splitting task. SMTP delivery/reset was previously locally verified; never commit SMTP credentials or share OTPs.
 
 ## Future-session resume instructions
 Paste/upload this file and say:
