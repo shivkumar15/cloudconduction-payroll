@@ -56,6 +56,11 @@ async function getUnpaidLeaveInputs(period, employees) {
   return { unpaidLeaveDaysByEmployeeId, pendingCount };
 }
 
+function sameLeaveDays(left, right) {
+  const keys = new Set([...left.keys(), ...right.keys()]);
+  return Array.from(keys).every((key) => (left.get(key) || 0) === (right.get(key) || 0));
+}
+
 function respondPayrollCalculationConflict(res, error) {
   if (!(error instanceof RangeError)) return null;
   return res.status(409).json({
@@ -181,6 +186,23 @@ export async function createPayrollRun(req, res, next) {
       items: snapshot.items,
       createdBy: req.authUser._id
     });
+
+    // Re-read the leave input set after writing the period lock. If leave data
+    // changed during calculation, remove only this new draft and require retry.
+    const latestLeaveInputs = await getUnpaidLeaveInputs(parsed.data.period, employees);
+    if (
+      latestLeaveInputs.pendingCount > 0
+      || !sameLeaveDays(leaveInputs.unpaidLeaveDaysByEmployeeId, latestLeaveInputs.unpaidLeaveDaysByEmployeeId)
+    ) {
+      await PayrollRun.deleteOne({ _id: run._id, status: "draft" });
+      return res.status(409).json({
+        success: false,
+        code: latestLeaveInputs.pendingCount > 0 ? "PENDING_UNPAID_LEAVE_REQUESTS" : "PAYROLL_INPUTS_CHANGED",
+        message: latestLeaveInputs.pendingCount > 0
+          ? "A leave request changed while payroll was being created. Resolve pending requests and retry."
+          : "Approved leave changed while payroll was being created. Preview the period again and retry."
+      });
+    }
 
     return res.status(201).json({ success: true, data: respondRun(run) });
   } catch (error) {
