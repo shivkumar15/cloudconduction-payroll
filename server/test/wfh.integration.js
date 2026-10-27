@@ -280,6 +280,28 @@ test("MongoDB WFH and attendance workflow enforces ownership, shared day reserva
     });
     assert.equal(leaveBlockedByWfh.status, 409);
 
+    // A real concurrent cross-type race must still reserve only one employee/date.
+    const [raceWfh, raceLeave] = await Promise.all([
+      createWfhRequest(baseUrl, employeeCookie, nextFollowingDate, "Concurrent WFH reservation"),
+      request(baseUrl, "/api/unpaid-leave", {
+        method: "POST", cookie: employeeCookie, body: { date: nextFollowingDate, reason: "Concurrent leave reservation" }
+      })
+    ]);
+    assert.deepEqual([raceWfh.status, raceLeave.status].sort(), [201, 409]);
+    if (raceWfh.status === 201) {
+      const raceRequest = (await raceWfh.json()).data;
+      const cleanup = await request(baseUrl, "/api/wfh/" + raceRequest.id + "/reject", {
+        method: "POST", cookie: adminCookie, body: { decisionNote: "Concurrent reservation test cleanup" }
+      });
+      assert.equal(cleanup.status, 200);
+    } else {
+      const raceRequest = (await raceLeave.json()).data;
+      const cleanup = await request(baseUrl, "/api/unpaid-leave/" + raceRequest.id + "/reject", {
+        method: "POST", cookie: adminCookie, body: { decisionNote: "Concurrent reservation test cleanup" }
+      });
+      assert.equal(cleanup.status, 200);
+    }
+
     // Incomplete check-in can be closed later by an admin correction with a reason.
     const secondTodayWfh = await createWfhRequest(baseUrl, secondCookie, businessDate, "WFH for attendance correction test");
     assert.equal(secondTodayWfh.status, 201);
