@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Activity, ArrowRight, Banknote, CalendarDays, ClipboardCheck, LogOut, ShieldCheck, Users, UserCog, Wallet } from "lucide-react";
+import { Activity, ArrowRight, Banknote, CalendarDays, ClipboardCheck, LogOut, ShieldCheck, Users, UserCog, Wallet, Sparkles } from "lucide-react";
 import { Link } from "react-router-dom";
 import api from "../../services/api.js";
 import { useAuth } from "../../contexts/AuthContext.jsx";
