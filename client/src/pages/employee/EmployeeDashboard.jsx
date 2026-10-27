@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import {
-  Banknote, CalendarDays, Clock3, Download, Home, LogIn, LogOut, Receipt, Send, ShieldCheck, UserRound
+  Banknote, CalendarDays, Clock3, Download, Home, LayoutDashboard, LogIn, LogOut, Receipt, Send, ShieldCheck, UserRound
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext.jsx";
@@ -76,6 +76,7 @@ const buttonClass = "inline-flex items-center justify-center gap-2 rounded-lg bo
 
 export default function EmployeeDashboard() {
   const { user, logout } = useAuth();
+  const [activeSection, setActiveSection] = useState("overview");
   const [profile, setProfile] = useState(null);
   const [payrollHistory, setPayrollHistory] = useState([]);
   const [transactions, setTransactions] = useState([]);
@@ -90,7 +91,8 @@ export default function EmployeeDashboard() {
   const [loadingLeaveRequests, setLoadingLeaveRequests] = useState(true);
   const [unpaidLeaveError, setUnpaidLeaveError] = useState("");
   const [unpaidLeaveMessage, setUnpaidLeaveMessage] = useState("");
-  const [unpaidLeaveDate, setUnpaidLeaveDate] = useState("");
+  const [unpaidLeaveStartDate, setUnpaidLeaveStartDate] = useState("");
+  const [unpaidLeaveEndDate, setUnpaidLeaveEndDate] = useState("");
   const [unpaidLeaveReason, setUnpaidLeaveReason] = useState("");
   const [submittingUnpaidLeave, setSubmittingUnpaidLeave] = useState(false);
   const [wfhRequests, setWfhRequests] = useState([]);
@@ -161,15 +163,18 @@ export default function EmployeeDashboard() {
     setUnpaidLeaveMessage("");
     setSubmittingUnpaidLeave(true);
     try {
-      const response = await api.post("/unpaid-leave", {
-        date: unpaidLeaveDate,
+      const response = await api.post("/unpaid-leave/range", {
+        startDate: unpaidLeaveStartDate,
+        endDate: unpaidLeaveEndDate,
         reason: unpaidLeaveReason.trim()
       });
-      const request = response.data.data;
-      setUnpaidLeaveRequests((current) => [request, ...current].sort((a, b) => b.date.localeCompare(a.date)));
-      setUnpaidLeaveDate("");
+      const result = response.data.data;
+      const newRequests = Array.isArray(result?.requests) ? result.requests : [];
+      setUnpaidLeaveRequests((current) => [...newRequests, ...current].sort((a, b) => b.date.localeCompare(a.date)));
+      setUnpaidLeaveStartDate("");
+      setUnpaidLeaveEndDate("");
       setUnpaidLeaveReason("");
-      setUnpaidLeaveMessage("Your request has been submitted for admin approval. It will not affect payroll unless approved before the payroll snapshot is created.");
+      setUnpaidLeaveMessage("Your " + result.workingDays + "-weekday request (" + result.startDate + " to " + result.endDate + ") was submitted for admin approval. It will not affect payroll unless approved before the payroll snapshot is created.");
     } catch (error) {
       setUnpaidLeaveError(responseMessage(error, "Unable to submit the unpaid-leave request."));
     } finally {
@@ -313,7 +318,7 @@ export default function EmployeeDashboard() {
           <div className="flex flex-col justify-between gap-3 md:flex-row md:items-start">
             <div>
               <h2 className="flex items-center gap-2 text-lg font-semibold"><Home size={20} className="text-indigo-600" aria-hidden="true" /> Work-from-home attendance</h2>
-              <p className="mt-1 max-w-2xl text-sm text-slate-500">Request a date within the next 90 days, wait for admin approval, then check in and out on the approved date. Timestamps come from the server.</p>
+              <p className="mt-1 max-w-2xl text-sm text-slate-500">Request a date within the next 365 days, wait for admin approval, then check in and out on the approved date. Timestamps come from the server.</p>
             </div>
             <div className="rounded-lg bg-indigo-50 px-3 py-2 text-sm font-semibold text-indigo-900">
               Business date: {businessDate || "Loading…"}
@@ -324,7 +329,7 @@ export default function EmployeeDashboard() {
           <form onSubmit={submitWfhRequest} className="mt-5 grid gap-4 border-t border-slate-100 pt-5 sm:grid-cols-[minmax(0,1fr)_minmax(0,2fr)_auto] sm:items-end">
             <label className="block">
               <span className="mb-1.5 block text-sm font-medium">Requested WFH date</span>
-              <input className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" type="date" required min={businessDate || undefined} max={addDateOnlyDays(businessDate, 90) || undefined} value={wfhDate} onChange={(event) => setWfhDate(event.target.value)} />
+              <input className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" type="date" required min={businessDate || undefined} max={addDateOnlyDays(businessDate, 365) || undefined} value={wfhDate} onChange={(event) => setWfhDate(event.target.value)} />
             </label>
             <label className="block">
               <span className="mb-1.5 block text-sm font-medium">Reason</span>
