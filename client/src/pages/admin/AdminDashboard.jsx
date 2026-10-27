@@ -185,6 +185,16 @@ export default function AdminDashboard() {
               </div>
             </div>
           </article>
+          <article className="rounded-2xl border border-slate-200 bg-white p-6">
+            <div className="flex items-start gap-3">
+              <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-violet-50 text-violet-700"><Sparkles size={22} aria-hidden="true" /></span>
+              <div className="flex-1">
+                <h2 className="text-lg font-semibold">AI Payroll Insights</h2>
+                <p className="mt-2 text-sm leading-6 text-slate-600">Review aggregate payroll trends and advisory warnings. The feature never changes salary values, approvals or simulated transaction statuses.</p>
+                <Link to="/admin/payroll-insights" className="mt-4 inline-flex items-center gap-2 rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">Review insights <ArrowRight size={15} aria-hidden="true" /></Link>
+              </div>
+            </div>
+          </article>
         </div>
 
         <p className="mt-6 text-xs leading-5 text-slate-500">This is a portfolio demo using synthetic salary data. The salary formula is simplified and payment outcomes are simulated; no money is transferred. The dashboard metrics are fetched from stored employee, payroll and transaction records rather than placeholder numbers.</p>
