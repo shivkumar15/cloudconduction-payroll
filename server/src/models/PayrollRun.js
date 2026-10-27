@@ -30,6 +30,20 @@ const payrollLineItemSchema = new mongoose.Schema({
     required: true,
     validate: { validator: isNonNegativeSafeInteger, message: "Gross pay must be a safe integer amount in paise" }
   },
+  // Optional on legacy snapshots; serializer falls back to the legacy total deduction.
+  fixedMonthlyDeductionsPaise: {
+    type: Number,
+    validate: { validator: isNonNegativeSafeInteger, message: "Fixed deductions must be a safe integer amount in paise" }
+  },
+  unpaidLeaveDays: {
+    type: Number,
+    min: 0,
+    validate: Number.isSafeInteger
+  },
+  unpaidLeaveDeductionPaise: {
+    type: Number,
+    validate: { validator: isNonNegativeSafeInteger, message: "Unpaid-leave deduction must be a safe integer amount in paise" }
+  },
   monthlyDeductionsPaise: {
     type: Number,
     required: true,
@@ -111,6 +125,13 @@ payrollRunSchema.methods.toPublicJSON = function toPublicJSON() {
       baseSalaryPaise: item.baseSalaryPaise,
       monthlyAllowancesPaise: item.monthlyAllowancesPaise,
       grossPayPaise: item.grossPayPaise,
+      fixedMonthlyDeductionsPaise: Number.isSafeInteger(item.fixedMonthlyDeductionsPaise)
+        ? item.fixedMonthlyDeductionsPaise
+        : item.monthlyDeductionsPaise,
+      unpaidLeaveDays: Number.isSafeInteger(item.unpaidLeaveDays) ? item.unpaidLeaveDays : 0,
+      unpaidLeaveDeductionPaise: Number.isSafeInteger(item.unpaidLeaveDeductionPaise)
+        ? item.unpaidLeaveDeductionPaise
+        : 0,
       monthlyDeductionsPaise: item.monthlyDeductionsPaise,
       netPayPaise: item.netPayPaise
     })),
