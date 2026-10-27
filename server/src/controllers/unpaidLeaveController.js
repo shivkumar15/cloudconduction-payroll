@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import { Employee } from "../models/Employee.js";
 import { PayrollRun } from "../models/PayrollRun.js";
 import { UnpaidLeaveRequest } from "../models/UnpaidLeaveRequest.js";
+import { EmployeeDayReservation } from "../models/EmployeeDayReservation.js";
 import {
   createUnpaidLeaveRequestSchema,
   rejectUnpaidLeaveSchema,
@@ -79,18 +80,48 @@ export async function createMyUnpaidLeaveRequest(req, res, next) {
       });
     }
 
-    const request = await UnpaidLeaveRequest.create({
+    const dateValue = new Date(date + "T00:00:00.000Z");
+    const request = new UnpaidLeaveRequest({
       employeeId: employee._id,
-      date: new Date(date + "T00:00:00.000Z"),
+      date: dateValue,
       reason,
       status: "pending",
       requestedBy: req.authUser._id
     });
 
+    // Reserve the employee/date before saving the request. This unique registry
+    // prevents competing WFH and unpaid-leave requests for the same day.
+    await EmployeeDayReservation.create({
+      employeeId: employee._id,
+      date: dateValue,
+      kind: "unpaid_leave",
+      requestId: request._id
+    });
+
+    try {
+      await request.save();
+    } catch (saveError) {
+      await EmployeeDayReservation.deleteOne({
+        employeeId: employee._id,
+        date: dateValue,
+        kind: "unpaid_leave",
+        requestId: request._id
+      });
+      throw saveError;
+    }
+
     // Close the check/write race with payroll-run creation. If the period became
-    // locked during insertion, remove the still-pending request and fail closed.
+    // locked during insertion, remove both the still-pending request and reservation.
     if (await periodIsLocked(period)) {
-      await UnpaidLeaveRequest.deleteOne({ _id: request._id, status: "pending" });
+      await Promise.all([
+        UnpaidLeaveRequest.deleteOne({ _id: request._id, status: "pending" }),
+        EmployeeDayReservation.deleteOne({
+          employeeId: employee._id,
+          date: dateValue,
+          kind: "unpaid_leave",
+          requestId: request._id
+        })
+      ]);
       return res.status(409).json({
         success: false,
         code: "PAYROLL_PERIOD_LOCKED",
@@ -103,8 +134,8 @@ export async function createMyUnpaidLeaveRequest(req, res, next) {
     if (error?.code === 11000) {
       return res.status(409).json({
         success: false,
-        code: "DUPLICATE_UNPAID_LEAVE_DATE",
-        message: "An unpaid-leave request already exists for this employee and date"
+        code: "EMPLOYEE_DATE_ALREADY_RESERVED",
+        message: "A leave or WFH request already exists for this employee and date"
       });
     }
     return next(error);
@@ -192,6 +223,19 @@ async function decideRequest(req, res, next, decision) {
     }
 
     const period = dateToPayrollPeriod(current.date);
+    const reservation = await EmployeeDayReservation.findOne({
+      employeeId: current.employeeId,
+      date: current.date,
+      kind: "unpaid_leave",
+      requestId: current._id
+    });
+    if (!reservation) {
+      return res.status(409).json({
+        success: false,
+        code: "EMPLOYEE_DATE_RESERVATION_MISSING",
+        message: "This request has no active day reservation; ask an administrator to review it before deciding."
+      });
+    }
     if (await periodIsLocked(period)) {
       return res.status(409).json({
         success: false,
@@ -239,6 +283,15 @@ async function decideRequest(req, res, next, decision) {
         success: false,
         code: "PAYROLL_PERIOD_LOCKED",
         message: "Payroll was created while this request was being decided. Refresh; the request was not approved/rejected."
+      });
+    }
+
+    if (decision === "rejected") {
+      await EmployeeDayReservation.deleteOne({
+        employeeId: updated.employeeId,
+        date: updated.date,
+        kind: "unpaid_leave",
+        requestId: updated._id
       });
     }
 
