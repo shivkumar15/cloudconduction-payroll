@@ -5,7 +5,12 @@ import { EmployeeDayReservation } from "../models/EmployeeDayReservation.js";
 import { PayrollRun } from "../models/PayrollRun.js";
 import { UnpaidLeaveRequest } from "../models/UnpaidLeaveRequest.js";
 import { WfhRequest } from "../models/WfhRequest.js";
-import { attendanceListQuerySchema, attendancePunchBodySchema } from "../validators/wfhSchemas.js";
+import {
+  attendanceIdSchema,
+  attendanceListQuerySchema,
+  attendancePunchBodySchema,
+  correctAttendanceCheckoutSchema
+} from "../validators/wfhSchemas.js";
 import { dateOnlyToUtcDate, getAttendancePeriodBounds, getIndiaBusinessDate } from "../services/wfhService.js";
 
 function respondInvalid(res, message, issues) {
@@ -44,13 +49,8 @@ export async function checkInWfhAttendance(req, res, next) {
     const date = dateOnlyToUtcDate(businessDate);
     const period = businessDate.slice(0, 7);
 
-    if (await PayrollRun.exists({ period })) {
-      return res.status(409).json({
-        success: false,
-        code: "PAYROLL_PERIOD_LOCKED",
-        message: "A payroll run already exists for this month; new attendance check-ins are closed"
-      });
-    }
+    // Attendance is a non-financial record. An already approved WFH day can still
+    // be recorded after payroll snapshot creation; attendance never rewrites pay.
 
     const request = await WfhRequest.findOne({ employeeId: employee._id, date, status: "approved" });
     if (!request) {
@@ -171,6 +171,65 @@ export async function checkOutWfhAttendance(req, res, next) {
       success: true,
       businessDate,
       message: "WFH check-out recorded by the server.",
+      data: respondAttendance(updated)
+    });
+  } catch (error) {
+    return next(error);
+  }
+}
+
+export async function correctAttendanceCheckout(req, res, next) {
+  if (!attendanceIdSchema.safeParse(req.params.id).success || !mongoose.isValidObjectId(req.params.id)) {
+    return res.status(400).json({ success: false, message: "Invalid attendance record ID" });
+  }
+  const parsed = correctAttendanceCheckoutSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return respondInvalid(res, "Invalid attendance correction", parsed.error.issues);
+  }
+
+  try {
+    const record = await AttendanceRecord.findById(req.params.id);
+    if (!record) return res.status(404).json({ success: false, message: "Attendance record not found" });
+    if (record.checkedOutAt) {
+      return res.status(409).json({ success: false, message: "Attendance already has a check-out and cannot be corrected again" });
+    }
+
+    const correctedCheckout = new Date(parsed.data.checkedOutAt);
+    const now = new Date();
+    if (correctedCheckout <= record.checkedInAt || correctedCheckout > now) {
+      return res.status(400).json({
+        success: false,
+        message: "Corrected check-out must be after check-in and cannot be in the future"
+      });
+    }
+    const checkInDate = record.date.toISOString().slice(0, 10);
+    if (getIndiaBusinessDate(correctedCheckout) !== checkInDate || correctedCheckout.toISOString().slice(0, 10) < checkInDate) {
+      return res.status(400).json({
+        success: false,
+        message: "Corrected check-out must fall on the same India business date as the original check-in"
+      });
+    }
+
+    const correctedAt = now;
+    const updated = await AttendanceRecord.findOneAndUpdate(
+      { _id: record._id, checkedOutAt: null },
+      {
+        $set: {
+          checkedOutAt: correctedCheckout,
+          correctedBy: req.authUser._id,
+          correctedAt,
+          correctionNote: parsed.data.reason
+        }
+      },
+      { new: true, runValidators: true }
+    );
+    if (!updated) {
+      return res.status(409).json({ success: false, message: "Attendance was updated concurrently; refresh and try again" });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Attendance check-out corrected with an audit record.",
       data: respondAttendance(updated)
     });
   } catch (error) {
