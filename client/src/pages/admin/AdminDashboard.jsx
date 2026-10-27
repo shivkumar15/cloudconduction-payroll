@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Activity, ArrowRight, Banknote, CalendarDays, ClipboardCheck, LogOut, ShieldCheck, Users, UserCog, Wallet, Sparkles } from "lucide-react";
+import { Activity, ArrowRight, Banknote, CalendarDays, ClipboardCheck, LogOut, ShieldCheck, Users, UserCog, Wallet } from "lucide-react";
 import { Link } from "react-router-dom";
 import api from "../../services/api.js";
 import { useAuth } from "../../contexts/AuthContext.jsx";
@@ -182,16 +182,6 @@ export default function AdminDashboard() {
                 <h2 className="text-lg font-semibold">WFH & attendance</h2>
                 <p className="mt-2 text-sm leading-6 text-slate-600">Approve work-from-home requests, review server-timestamped attendance, and record an audited correction for a missed check-out.</p>
                 <Link to="/admin/wfh" className="mt-4 inline-flex items-center gap-2 rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">Review attendance <ArrowRight size={16} aria-hidden="true" /></Link>
-              </div>
-            </div>
-          </article>
-          <article className="rounded-2xl border border-slate-200 bg-white p-6">
-            <div className="flex items-start gap-3">
-              <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-violet-50 text-violet-700"><Sparkles size={22} aria-hidden="true" /></span>
-              <div className="flex-1">
-                <h2 className="text-lg font-semibold">AI Payroll Insights</h2>
-                <p className="mt-2 text-sm leading-6 text-slate-600">Review aggregate payroll trends and advisory warnings. The feature never changes salary values, approvals or simulated transaction statuses.</p>
-                <Link to="/admin/payroll-insights" className="mt-4 inline-flex items-center gap-2 rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">Review insights <ArrowRight size={15} aria-hidden="true" /></Link>
               </div>
             </div>
           </article>
