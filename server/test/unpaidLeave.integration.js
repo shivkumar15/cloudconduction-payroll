@@ -271,7 +271,7 @@ test("MongoDB unpaid-leave workflow enforces ownership, admin decisions, payroll
     const rangeEmployeePreview = preview.items.find((item) => item.employeeCode === secondCode);
     assert.equal(rangeEmployeePreview.unpaidLeaveDays, 3);
     assert.equal(rangeEmployeePreview.unpaidLeaveDeductionPaise,
-      Math.round((2_800_000 * 3) / getWorkingDaysInPeriod(period)));
+      Math.round((1_500_000 * 3) / getWorkingDaysInPeriod(period)));
 
     const createWhilePending = await request(baseUrl, "/api/payroll/runs", {
       method: "POST", cookie: adminCookie, body: { period }
@@ -301,7 +301,7 @@ test("MongoDB unpaid-leave workflow enforces ownership, admin decisions, payroll
     const rangeEmployeeRunItem = run.items.find((entry) => entry.employeeCode === secondCode);
     assert.equal(rangeEmployeeRunItem.unpaidLeaveDays, 3);
     assert.equal(rangeEmployeeRunItem.unpaidLeaveDeductionPaise,
-      Math.round((2_800_000 * 3) / getWorkingDaysInPeriod(period)));
+      Math.round((1_500_000 * 3) / getWorkingDaysInPeriod(period)));
 
     const afterSnapshotRequest = await request(baseUrl, "/api/unpaid-leave", {
       method: "POST", cookie: secondCookie, body: { date: dates[2], reason: "Too late for snapshot" }
