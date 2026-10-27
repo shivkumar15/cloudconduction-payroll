@@ -1,4 +1,5 @@
 import { calculateSalaryAmounts } from "../utils/money.js";
+import { calculateUnpaidLeaveDeductionPaise, getWorkingDaysInPeriod } from "./unpaidLeaveService.js";
 
 function addSafeAmounts(left, right, label) {
   const total = left + right;
@@ -25,7 +26,19 @@ export function getPayrollEligibilityFilter(period) {
   };
 }
 
-export function calculatePayrollItem(employee) {
+function employeeLeaveDays(employee, unpaidLeaveDaysByEmployeeId) {
+  const id = employee._id.toString();
+  const days = unpaidLeaveDaysByEmployeeId instanceof Map
+    ? unpaidLeaveDaysByEmployeeId.get(id) || 0
+    : unpaidLeaveDaysByEmployeeId?.[id] || 0;
+
+  if (!Number.isSafeInteger(days) || days < 0) {
+    throw new RangeError("Approved unpaid-leave day count must be a safe non-negative integer");
+  }
+  return days;
+}
+
+export function calculatePayrollItem(employee, options = {}) {
   if (!employee || !employee._id) {
     throw new TypeError("An employee record with an ID is required");
   }
@@ -33,7 +46,28 @@ export function calculatePayrollItem(employee) {
     throw new RangeError("Only active employees can be included in payroll");
   }
 
-  const amounts = calculateSalaryAmounts(employee.salaryStructure);
+  const salary = calculateSalaryAmounts(employee.salaryStructure);
+  const fixedMonthlyDeductionsPaise = salary.monthlyDeductionsPaise;
+  const unpaidLeaveDays = employeeLeaveDays(employee, options.unpaidLeaveDaysByEmployeeId);
+  const unpaidLeaveDeductionPaise = unpaidLeaveDays === 0
+    ? 0
+    : calculateUnpaidLeaveDeductionPaise({
+      monthlyGrossPayPaise: salary.grossPayPaise,
+      unpaidLeaveDays,
+      period: options.period
+    });
+  const monthlyDeductionsPaise = addSafeAmounts(
+    fixedMonthlyDeductionsPaise,
+    unpaidLeaveDeductionPaise,
+    "Combined deductions"
+  );
+
+  if (monthlyDeductionsPaise > salary.grossPayPaise) {
+    throw new RangeError(
+      "Combined fixed and unpaid-leave deductions exceed gross pay for employee " + employee.employeeCode
+    );
+  }
+
   return {
     employeeId: employee._id,
     employeeCode: employee.employeeCode,
@@ -41,13 +75,29 @@ export function calculatePayrollItem(employee) {
     department: employee.department,
     designation: employee.designation,
     currency: employee.currency || "INR",
-    ...amounts
+    baseSalaryPaise: salary.baseSalaryPaise,
+    monthlyAllowancesPaise: salary.monthlyAllowancesPaise,
+    grossPayPaise: salary.grossPayPaise,
+    fixedMonthlyDeductionsPaise,
+    unpaidLeaveDays,
+    unpaidLeaveDeductionPaise,
+    monthlyDeductionsPaise,
+    netPayPaise: salary.grossPayPaise - monthlyDeductionsPaise
   };
 }
 
-export function buildPayrollSnapshot(employees) {
+export function buildPayrollSnapshot(employees, options = {}) {
   if (!Array.isArray(employees)) {
     throw new TypeError("Employees must be supplied as an array");
+  }
+
+  if (options.period && options.unpaidLeaveDaysByEmployeeId) {
+    const maximumDays = getWorkingDaysInPeriod(options.period);
+    for (const days of options.unpaidLeaveDaysByEmployeeId.values?.() || []) {
+      if (days > maximumDays) {
+        throw new RangeError("Unpaid-leave days cannot exceed the working days in the payroll month");
+      }
+    }
   }
 
   const activeEmployees = employees
@@ -55,7 +105,7 @@ export function buildPayrollSnapshot(employees) {
     .slice()
     .sort((a, b) => a.employeeCode.localeCompare(b.employeeCode));
 
-  const items = activeEmployees.map(calculatePayrollItem);
+  const items = activeEmployees.map((employee) => calculatePayrollItem(employee, options));
   const totals = items.reduce((accumulator, item) => ({
     totalGrossPayPaise: addSafeAmounts(
       accumulator.totalGrossPayPaise,
