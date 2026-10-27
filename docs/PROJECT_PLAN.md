@@ -294,7 +294,7 @@ Expected: frontend `http://localhost:5173`; health endpoint `http://localhost:50
 - For Data Analyst/Python roles, highlight validated data aggregation, payroll trend reporting, CSV export and analytical visualizations; keep the core data logic demonstrable and use Python only when justified.
 - Final resume bullet points should be written only after the corresponding features and tests are complete. Do not claim production payroll or real payment processing.
 
-## Approved roadmap additions before Phase 7 (not implemented yet)
+## Approved roadmap additions before Phase 7 (status reconciled 2026-10-27)
 
 These additions are a planned scope decision, not a claim that the features already exist. Finish the remaining Phase 6 browser checks first; only then implement these increments in order.
 
