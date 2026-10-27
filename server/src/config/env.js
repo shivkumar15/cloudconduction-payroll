@@ -12,7 +12,9 @@ const envSchema = z.object({
   SMTP_SECURE: z.enum(["true", "false"]).default("false"),
   SMTP_USER: z.string().optional(),
   SMTP_PASS: z.string().optional(),
-  MAIL_FROM: z.string().email().optional()
+  MAIL_FROM: z.string().email().optional(),
+  OPENAI_API_KEY: z.preprocess((value) => typeof value === "string" && value.trim() === "" ? undefined : value, z.string().min(1).optional()),
+  OPENAI_MODEL: z.string().trim().min(1).max(100).default("gpt-5-mini")
 });
 
 const parsed = envSchema.safeParse(process.env);
