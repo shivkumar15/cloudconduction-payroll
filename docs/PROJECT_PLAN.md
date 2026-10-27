@@ -1,6 +1,6 @@
 # CloudConduction Payroll — Project Plan & Continuity Handoff
 
-> Handoff updated 2026-10-27: implemented the Phase 6.7 admin-only AI Payroll Insights increment with aggregate-only provider input, structured output validation, deterministic fallback guidance and persisted per-admin rate budgets. The new commits require GitHub Actions verification and manual browser smoke tests remain open. Do not start Phase 7 until Phase 6 is verified or explicitly deferred.
+> Handoff updated 2026-10-27: implementing feedback fixes for payroll-month calendar reach, grouped unpaid-leave ranges, and employee sidebar navigation. The latest range/calendar/UI commits require GitHub Actions verification; manual browser smoke tests remain open. Do not start Phase 7 until Phase 6 is verified or explicitly deferred.
 
 > This file is the project continuity source of truth. Read it before implementation work. Update status, decisions, completed work, tests and next task after meaningful changes.
 
@@ -325,10 +325,7 @@ These additions are a planned scope decision, not a claim that the features alre
 - [x] Suppress small-cell breakdowns and omit all employee-level dimensions. AI receives a strict summary payload, not a free-form database query or tool-enabled agent.
 - [x] Require strict structured JSON output with at most three short advisory insights and an allowlisted severity; reject invalid output. Server-derived values remain visible and authoritative.
 - [x] Use an 8-second provider timeout, 800-token output ceiling, and per-admin rate limit of one request per minute with a capped daily budget of 20 calls per admin per day. If provider access fails or returns invalid output, show deterministic aggregate metrics and an actionable fallback.
-- [x] Added the server-only OpenAI Responses API integration, admin UI/route, optional `OPENAI_API_KEY` and `OPENAI_MODEL` configuration, strict structured output validation, missing-key deterministic guidance, provider-error fallback, 8-second timeout, 800-token ceiling, `store: false`, and a persistent MongoDB one-call-per-minute / 20-per-UTC-day per-admin quota.
-- [x] Unit tests cover period windows, aggregate-only data minimization, deterministic flags, structured-output validation, Responses API extraction/request shape, usage indexes, provider contract and unauthenticated access. The integration suite also checks employee role denial and strict request validation.
-- [ ] Verify the current GitHub Actions run and local unit/API/integration/build results after pulling the latest commit. Real-key provider success and UI fallback behavior still need manual verification; do not commit or paste the API key.
-- Provider data handling must be reviewed by the project owner before sending any production-sensitive data; this MVP's aggregate-only policy is not a substitute for that review.
+- [ ] Add the AI integration, UI, environment documentation, and tests for missing key, unauthorized access, timeout/provider errors, invalid output and data minimization. Provider data handling must be reviewed by the project owner before sending any production-sensitive data; this MVP's aggregate-only policy is not a substitute for that review.
 
 ### Phase 7 — quality and release
 - Begin release hardening after the remaining Phase 6 smoke tests and the planned payroll-adjustment, WFH-attendance and AI-insights scope have either been implemented and verified or explicitly deferred.
@@ -338,7 +335,7 @@ These additions are a planned scope decision, not a claim that the features alre
 - Payroll calendar/WFH date selection: expanded the allowable future WFH window from 90 to 365 days so future months, including February, can be selected. Server-side payroll-period locks still apply: a month with an existing payroll run is intentionally locked; completing January should not by itself lock February.
 - Unpaid leave: added a same-payroll-month date-range request endpoint, expanded into weekday-level records and one group-level admin decision. Payroll continues to count approved day records, so saved snapshots are not recalculated.
 - Employee UX: added responsive sidebar-style navigation (mobile horizontal menu) for Overview, WFH & attendance, Unpaid leave, Payslips and Transactions, while keeping the profile/salary summary above the content.
-- The date-range/WFH/sidebar changes and the Phase 6.7 increment require current GitHub Actions verification. Manual browser verification remains outstanding; do not mark them tested before the workflow and UI smoke tests pass.
+- These changes are not yet verified by GitHub Actions. Manual browser verification also remains outstanding; do not mark them tested before the workflow and UI smoke tests pass.
 
 ## Immediate next task
 1. [x] User confirmed in the browser on 2026-10-26 that the employment-start-date fix works. Keep existing October/November finalized snapshots unchanged.
