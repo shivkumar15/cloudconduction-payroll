@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import {
-  Banknote, Download, LogOut, Receipt, ShieldCheck, UserRound
+  Banknote, CalendarDays, Clock3, Download, LogOut, Receipt, Send, ShieldCheck, UserRound
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext.jsx";
@@ -47,6 +47,9 @@ function StatusBadge({ status }) {
   const classes = {
     finalized: "bg-emerald-50 text-emerald-700",
     succeeded: "bg-emerald-50 text-emerald-700",
+    approved: "bg-emerald-50 text-emerald-700",
+    pending: "bg-amber-50 text-amber-800",
+    rejected: "bg-rose-50 text-rose-700",
     failed: "bg-rose-50 text-rose-700"
   };
   return <span className={"inline-flex rounded-full px-2.5 py-1 text-xs font-semibold " + (classes[status] || "bg-slate-100 text-slate-700")}>{status}</span>;
@@ -67,6 +70,13 @@ export default function EmployeeDashboard() {
   const [profileError, setProfileError] = useState("");
   const [historyError, setHistoryError] = useState("");
   const [transactionError, setTransactionError] = useState("");
+  const [unpaidLeaveRequests, setUnpaidLeaveRequests] = useState([]);
+  const [loadingLeaveRequests, setLoadingLeaveRequests] = useState(true);
+  const [unpaidLeaveError, setUnpaidLeaveError] = useState("");
+  const [unpaidLeaveMessage, setUnpaidLeaveMessage] = useState("");
+  const [unpaidLeaveDate, setUnpaidLeaveDate] = useState("");
+  const [unpaidLeaveReason, setUnpaidLeaveReason] = useState("");
+  const [submittingUnpaidLeave, setSubmittingUnpaidLeave] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -90,6 +100,11 @@ export default function EmployeeDashboard() {
       .catch((error) => { if (mounted) setTransactionError(responseMessage(error, "Unable to load your finalized transaction history.")); })
       .finally(() => { if (mounted) setLoadingTransactions(false); });
 
+    api.get("/unpaid-leave/me")
+      .then((response) => { if (mounted) setUnpaidLeaveRequests(Array.isArray(response.data.data) ? response.data.data : []); })
+      .catch((error) => { if (mounted) setUnpaidLeaveError(responseMessage(error, "Unable to load your unpaid-leave requests.")); })
+      .finally(() => { if (mounted) setLoadingLeaveRequests(false); });
+
     return () => { mounted = false; };
   }, []);
 
@@ -99,9 +114,31 @@ export default function EmployeeDashboard() {
     }
   }
 
+  async function submitUnpaidLeaveRequest(event) {
+    event.preventDefault();
+    setUnpaidLeaveError("");
+    setUnpaidLeaveMessage("");
+    setSubmittingUnpaidLeave(true);
+    try {
+      const response = await api.post("/unpaid-leave", {
+        date: unpaidLeaveDate,
+        reason: unpaidLeaveReason.trim()
+      });
+      const request = response.data.data;
+      setUnpaidLeaveRequests((current) => [request, ...current].sort((a, b) => b.date.localeCompare(a.date)));
+      setUnpaidLeaveDate("");
+      setUnpaidLeaveReason("");
+      setUnpaidLeaveMessage("Your request has been submitted for admin approval. It will not affect payroll unless approved before the payroll snapshot is created.");
+    } catch (error) {
+      setUnpaidLeaveError(responseMessage(error, "Unable to submit the unpaid-leave request."));
+    } finally {
+      setSubmittingUnpaidLeave(false);
+    }
+  }
+
   function exportPayrollHistory() {
     const rows = [
-      ["Period", "Employee code", "Department", "Base salary INR", "Allowances INR", "Gross pay INR", "Deductions INR", "Net pay INR", "Finalized date"],
+      ["Period", "Employee code", "Department", "Base salary INR", "Allowances INR", "Gross pay INR", "Fixed deductions INR", "Unpaid leave days", "Unpaid leave deduction INR", "Total deductions INR", "Net pay INR", "Finalized date"],
       ...payrollHistory.map((record) => [
         record.period,
         record.item.employeeCode,
@@ -109,6 +146,9 @@ export default function EmployeeDashboard() {
         (record.item.baseSalaryPaise / 100).toFixed(2),
         (record.item.monthlyAllowancesPaise / 100).toFixed(2),
         (record.item.grossPayPaise / 100).toFixed(2),
+        ((record.item.fixedMonthlyDeductionsPaise ?? record.item.monthlyDeductionsPaise) / 100).toFixed(2),
+        record.item.unpaidLeaveDays || 0,
+        ((record.item.unpaidLeaveDeductionPaise || 0) / 100).toFixed(2),
         (record.item.monthlyDeductionsPaise / 100).toFixed(2),
         (record.item.netPayPaise / 100).toFixed(2),
         record.finalizedAt
@@ -180,11 +220,52 @@ export default function EmployeeDashboard() {
               <div className="mt-4 grid gap-3 sm:grid-cols-3">
                 <div className="rounded-xl bg-slate-50 p-4"><p className="text-sm text-slate-500">Base salary</p><p className="mt-2 text-xl font-bold">{money(profile.salaryStructure.baseSalaryPaise)}</p></div>
                 <div className="rounded-xl bg-slate-50 p-4"><p className="text-sm text-slate-500">Monthly allowances</p><p className="mt-2 text-xl font-bold">{money(profile.salaryStructure.monthlyAllowancesPaise)}</p></div>
-                <div className="rounded-xl bg-slate-50 p-4"><p className="text-sm text-slate-500">Monthly deductions</p><p className="mt-2 text-xl font-bold">{money(profile.salaryStructure.monthlyDeductionsPaise)}</p></div>
+                <div className="rounded-xl bg-slate-50 p-4"><p className="text-sm text-slate-500">Fixed monthly deductions</p><p className="mt-2 text-xl font-bold">{money(profile.salaryStructure.monthlyDeductionsPaise)}</p></div>
               </div>
             </div>
           </section>
         )}
+
+        <section className={"no-print mt-6 " + cardClass}>
+          <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
+            <div>
+              <h2 className="flex items-center gap-2 text-lg font-semibold"><CalendarDays size={20} className="text-indigo-600" aria-hidden="true" /> Unpaid-leave requests</h2>
+              <p className="mt-1 max-w-2xl text-sm text-slate-500">Request one unpaid weekday at a time. Only an approved request made before the payroll snapshot can affect the calculation.</p>
+            </div>
+            <span className="inline-flex items-center gap-2 rounded-lg bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-900"><Clock3 size={15} aria-hidden="true" /> Admin approval required</span>
+          </div>
+          {unpaidLeaveError && <p className="mt-4 rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800" role="alert">{unpaidLeaveError}</p>}
+          {unpaidLeaveMessage && <p className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800" role="status">{unpaidLeaveMessage}</p>}
+          <form onSubmit={submitUnpaidLeaveRequest} className="mt-5 grid gap-4 border-t border-slate-100 pt-5 sm:grid-cols-[minmax(0,1fr)_minmax(0,2fr)_auto] sm:items-end">
+            <label className="block">
+              <span className="mb-1.5 block text-sm font-medium">Leave date</span>
+              <input className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" type="date" required value={unpaidLeaveDate} onChange={(event) => setUnpaidLeaveDate(event.target.value)} />
+            </label>
+            <label className="block">
+              <span className="mb-1.5 block text-sm font-medium">Reason</span>
+              <input className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" type="text" required minLength={3} maxLength={240} value={unpaidLeaveReason} onChange={(event) => setUnpaidLeaveReason(event.target.value)} placeholder="Brief reason for the request" />
+            </label>
+            <button type="submit" disabled={submittingUnpaidLeave || !unpaidLeaveDate || unpaidLeaveReason.trim().length < 3} className="inline-flex items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50">
+              <Send size={16} aria-hidden="true" /> {submittingUnpaidLeave ? "Submitting…" : "Submit request"}
+            </button>
+          </form>
+          <p className="mt-3 text-xs leading-5 text-slate-500">Only Monday–Friday dates are accepted in this demo. Public holidays and custom work schedules are not modeled. A request does not change your pay until an admin approves it and the period is still open; an existing payroll snapshot cannot be silently changed.</p>
+          {loadingLeaveRequests && <p className="mt-4 text-sm text-slate-500" role="status">Loading your leave requests…</p>}
+          {!loadingLeaveRequests && !unpaidLeaveError && unpaidLeaveRequests.length === 0 && <p className="mt-4 rounded-xl bg-slate-50 p-4 text-sm text-slate-600">No unpaid-leave requests yet.</p>}
+          {!loadingLeaveRequests && unpaidLeaveRequests.length > 0 && <div className="mt-4 overflow-x-auto rounded-xl border border-slate-200">
+            <table className="min-w-full text-left text-sm">
+              <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500"><tr><th className="px-3 py-3">Date</th><th className="px-3 py-3">Reason</th><th className="px-3 py-3">Status</th><th className="px-3 py-3">Admin note</th></tr></thead>
+              <tbody className="divide-y divide-slate-100 bg-white">
+                {unpaidLeaveRequests.map((request) => <tr key={request.id}>
+                  <td className="whitespace-nowrap px-3 py-3 font-medium">{request.date}</td>
+                  <td className="max-w-md px-3 py-3 break-words">{request.reason}</td>
+                  <td className="px-3 py-3"><StatusBadge status={request.status} /></td>
+                  <td className="max-w-md px-3 py-3 break-words text-sm text-slate-500">{request.decisionNote || "—"}</td>
+                </tr>)}
+              </tbody>
+            </table>
+          </div>}
+        </section>
 
         <section className={"no-print mt-6 " + cardClass}>
           <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
@@ -239,12 +320,14 @@ export default function EmployeeDashboard() {
                   <tr><th className="py-3 text-left font-medium text-slate-600">Base salary</th><td className="py-3 text-right font-semibold tabular-nums">{money(selectedPayslip.item.baseSalaryPaise)}</td></tr>
                   <tr><th className="py-3 text-left font-medium text-slate-600">Monthly allowances</th><td className="py-3 text-right font-semibold tabular-nums">{money(selectedPayslip.item.monthlyAllowancesPaise)}</td></tr>
                   <tr><th className="py-3 text-left font-medium text-slate-600">Gross pay</th><td className="py-3 text-right font-semibold tabular-nums">{money(selectedPayslip.item.grossPayPaise)}</td></tr>
-                  <tr><th className="py-3 text-left font-medium text-slate-600">Monthly deductions</th><td className="py-3 text-right font-semibold tabular-nums">− {money(selectedPayslip.item.monthlyDeductionsPaise)}</td></tr>
+                  <tr><th className="py-3 text-left font-medium text-slate-600">Fixed monthly deductions</th><td className="py-3 text-right font-semibold tabular-nums">− {money(selectedPayslip.item.fixedMonthlyDeductionsPaise ?? selectedPayslip.item.monthlyDeductionsPaise)}</td></tr>
+                  {(selectedPayslip.item.unpaidLeaveDays || 0) > 0 && <tr><th className="py-3 text-left font-medium text-slate-600">Unpaid leave ({selectedPayslip.item.unpaidLeaveDays} weekday(s))</th><td className="py-3 text-right font-semibold tabular-nums">− {money(selectedPayslip.item.unpaidLeaveDeductionPaise || 0)}</td></tr>}
+                  <tr><th className="py-3 text-left font-semibold text-slate-800">Total deductions</th><td className="py-3 text-right font-semibold tabular-nums">− {money(selectedPayslip.item.monthlyDeductionsPaise)}</td></tr>
                   <tr className="border-t-2 border-slate-300"><th className="py-4 text-left text-base font-bold">Net pay (demo)</th><td className="py-4 text-right text-xl font-bold tabular-nums">{money(selectedPayslip.item.netPayPaise)}</td></tr>
                 </tbody>
               </table>
             </div>
-            <p className="mt-5 border-t border-slate-200 pt-4 text-xs leading-5 text-slate-500">Portfolio demo statement only. This uses a simplified salary formula and excludes income tax, EPF, statutory deductions, overtime, bonuses and leave proration. Any related transaction status is simulated; no money is transferred. This statement is not a statutory or tax-compliant payslip.</p>
+            <p className="mt-5 border-t border-slate-200 pt-4 text-xs leading-5 text-slate-500">Portfolio demo statement only. This uses a simplified salary formula and excludes income tax, EPF, statutory deductions, overtime, bonuses, public-holiday calendars and custom work schedules. Approved unpaid leave is prorated using this demo's Monday–Friday divisor. Any related transaction status is simulated; no money is transferred. This statement is not a statutory or tax-compliant payslip.</p>
           </section>
         )}
 
