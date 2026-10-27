@@ -11,6 +11,7 @@ import authRoutes from "./routes/authRoutes.js";
 import employeeRoutes from "./routes/employeeRoutes.js";
 import payrollRoutes from "./routes/payrollRoutes.js";
 import transactionRoutes from "./routes/transactionRoutes.js";
+import unpaidLeaveRoutes from "./routes/unpaidLeaveRoutes.js";
 
 export const app = express();
 
@@ -48,6 +49,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/employees", employeeRoutes);
 app.use("/api/payroll", payrollRoutes);
 app.use("/api/transactions", transactionRoutes);
+app.use("/api/unpaid-leave", unpaidLeaveRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);
