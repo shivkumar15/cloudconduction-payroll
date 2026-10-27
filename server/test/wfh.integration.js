@@ -10,7 +10,7 @@ import { PayrollRun } from "../src/models/PayrollRun.js";
 import { UnpaidLeaveRequest } from "../src/models/UnpaidLeaveRequest.js";
 import { User } from "../src/models/User.js";
 import { WfhRequest } from "../src/models/WfhRequest.js";
-import { getIndiaBusinessDate, addDateOnlyDays } from "../src/services/wfhService.js";
+import { getIndiaBusinessDate, addDateOnlyDays, dateOnlyToUtcDate } from "../src/services/wfhService.js";
 
 function nextWeekday(dateOnly) {
   for (let offset = 1; offset <= 7; offset += 1) {
