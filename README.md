@@ -44,9 +44,9 @@ See [`docs/PROJECT_PLAN.md`](docs/PROJECT_PLAN.md) for the full roadmap and acce
 - Phase 3 employee management: employee model, salary-structure validation, admin CRUD/deactivation APIs, pagination/search/filtering, employee login provisioning, and employee self-service profile API/UI are implemented. A MongoDB-backed API lifecycle integration test is included. GitHub Actions run 110 passed the current password-change/test/build code at commit `4536cc44`; run local checks after pulling the latest documentation/env examples, and complete the browser smoke test.
 - Phase 4 payroll backend: integer-paise monthly salary calculations, payroll preview, salary snapshots, one run per month, admin approval/finalization, and employee-only finalized pay history.
 - Phase 5 simulated transactions: idempotent simulated payment records, selectable failure scenarios for testing, recorded retry attempts, admin transaction listing/detail, and employee-only finalized transaction history. No money is transferred.
-- Phase 6.5 unpaid-leave workflow (initial implementation): an employee can submit one Monday–Friday unpaid-leave request for a specific date; an admin can approve/reject it with an audit trail. Pending requests block payroll-run creation, and existing payroll periods cannot accept new requests/decisions.
+- Phase 6.5 unpaid-leave workflow: employees can submit a start/end date range within one payroll month. The server expands the range into Monday–Friday day records (weekends skipped), and an admin can approve/reject the complete group with an audit trail. Pending requests block payroll-run creation, and existing payroll periods cannot accept new requests/decisions.
 - Payroll preview/snapshots now separate fixed monthly deductions from approved unpaid-leave deductions, show approved leave days and explain total deductions on the employee payslip. Calculations use integer INR paise and fail closed if deductions exceed gross pay. This is a demo policy; public holidays/custom work schedules and statutory payroll rules are not modeled.
-- Phase 6.6 WFH attendance MVP: employees can request WFH for a date from today through 90 days ahead, admins can approve/reject, and employees can check in/out for today's approved request using server timestamps. Admins can record a reasoned correction for a missed checkout. WFH and unpaid leave cannot reserve the same employee/date. No location tracking is implemented, and no attendance absence automatically reduces salary.
+- Phase 6.6 WFH attendance MVP: employees can request WFH for a date from today through 365 days ahead, admins can approve/reject, and employees can check in/out for today's approved request using server timestamps. Admins can record a reasoned correction for a missed checkout. WFH and unpaid leave cannot reserve the same employee/date. No location tracking is implemented, and no attendance absence automatically reduces salary. The employee workspace uses a sidebar-style section menu for Overview, WFH & attendance, Unpaid leave, Payslips, and Transactions.
 
 
 
@@ -56,7 +56,7 @@ This portfolio demo uses a deliberately simplified monthly formula:
 
 - Gross pay = base salary + monthly allowances.
 - Fixed monthly deductions remain a recurring employee salary component. Total deductions = fixed monthly deductions + approved unpaid-leave deduction.
-- Demo unpaid-leave policy: one explicitly requested and admin-approved Monday–Friday date is one unpaid-leave day. The monthly divisor is the number of Monday–Friday dates in that calendar month; the day rate is monthly base salary plus allowances divided by that divisor. The deduction is rounded to the nearest integer paise with integer-safe arithmetic.
+- Demo unpaid-leave policy: each Monday–Friday date within an approved date range is one unpaid-leave day; weekends are skipped and the range must remain within one payroll month so payroll-period locks stay clear. The monthly divisor is the number of Monday–Friday dates in that calendar month; the day rate is monthly base salary plus allowances divided by that divisor. The deduction is rounded to the nearest integer paise with integer-safe arithmetic. Public holidays and custom schedules are not modeled.
 - Public holidays and custom employee work schedules are not modeled. Admins must exclude company holidays before approval; this policy is illustrative and is not a claim of statutory/Indian payroll compliance.
 - Pending unpaid-leave requests must be resolved before a payroll run can be created. If combined fixed and unpaid-leave deductions exceed gross earnings, preview/run creation is blocked for review instead of producing negative net pay.
 - All amounts are integer INR paise. API clients must not send calculated gross/net values; the server calculates them from stored employee salary structures and approved leave records.
@@ -77,12 +77,13 @@ Payroll API endpoints:
 - POST /api/transactions/:id/retry — retry a failed simulated record without creating a duplicate (admin).
 - GET /api/transactions/me — own transaction history once payroll is finalized (employee).
 - GET /api/payroll/me — read only the authenticated employee's finalized item.
-- POST /api/unpaid-leave with { "date": "YYYY-MM-DD", "reason": "..." } — submit one unpaid-leave weekday for the authenticated employee (employee only; request starts pending).
+- POST /api/unpaid-leave/range with { "startDate": "YYYY-MM-DD", "endDate": "YYYY-MM-DD", "reason": "..." } — submit a range within one payroll month; weekdays become individually auditable day records and one admin decision approves/rejects the full range (employee only; starts pending).
+- POST /api/unpaid-leave with { "date": "YYYY-MM-DD", "reason": "..." } — legacy single-day request endpoint (employee only; request starts pending).
 - GET /api/unpaid-leave/me — list the authenticated employee's own requests.
 - GET /api/unpaid-leave?period=YYYY-MM&status=pending — list requests with bounded pagination (admin).
 - POST /api/unpaid-leave/:id/approve — approve a pending request (admin; empty JSON body).
 - POST /api/unpaid-leave/:id/reject with { "decisionNote": "..." } — reject with a required reason (admin).
-- POST /api/wfh with { "date": "YYYY-MM-DD", "reason": "..." } — submit a one-date WFH request for today through the next 90 days (employee; pending until approved).
+- POST /api/wfh with { "date": "YYYY-MM-DD", "reason": "..." } — submit a one-date WFH request for today through the next 365 days (employee; pending until approved).
 - GET /api/wfh/me — read the authenticated employee's own WFH requests.
 - GET /api/wfh?period=YYYY-MM&status=pending — list WFH requests (admin).
 - POST /api/wfh/:id/approve — approve a pending request (admin; empty JSON body).
