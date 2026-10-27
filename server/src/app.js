@@ -12,6 +12,8 @@ import employeeRoutes from "./routes/employeeRoutes.js";
 import payrollRoutes from "./routes/payrollRoutes.js";
 import transactionRoutes from "./routes/transactionRoutes.js";
 import unpaidLeaveRoutes from "./routes/unpaidLeaveRoutes.js";
+import wfhRoutes from "./routes/wfhRoutes.js";
+import attendanceRoutes from "./routes/attendanceRoutes.js";
 
 export const app = express();
 
@@ -50,6 +52,8 @@ app.use("/api/employees", employeeRoutes);
 app.use("/api/payroll", payrollRoutes);
 app.use("/api/transactions", transactionRoutes);
 app.use("/api/unpaid-leave", unpaidLeaveRoutes);
+app.use("/api/wfh", wfhRoutes);
+app.use("/api/attendance", attendanceRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);
