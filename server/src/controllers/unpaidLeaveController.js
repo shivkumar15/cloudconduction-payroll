@@ -6,11 +6,12 @@ import { EmployeeDayReservation } from "../models/EmployeeDayReservation.js";
 import { WfhRequest } from "../models/WfhRequest.js";
 import {
   createUnpaidLeaveRequestSchema,
+  createUnpaidLeaveRangeRequestSchema,
   rejectUnpaidLeaveSchema,
   unpaidLeaveIdSchema,
   unpaidLeaveListQuerySchema
 } from "../validators/unpaidLeaveSchemas.js";
-import { dateToPayrollPeriod, getPayrollPeriodBounds } from "../services/unpaidLeaveService.js";
+import { dateToPayrollPeriod, getPayrollPeriodBounds, getWeekdayDatesInRange } from "../services/unpaidLeaveService.js";
 
 function respondInvalid(res, message, issues) {
   return res.status(400).json({
@@ -156,6 +157,135 @@ export async function createMyUnpaidLeaveRequest(req, res, next) {
   }
 }
 
+export async function createMyUnpaidLeaveRangeRequest(req, res, next) {
+  const parsed = createUnpaidLeaveRangeRequestSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return respondInvalid(res, "Invalid unpaid-leave date range", parsed.error.issues);
+  }
+  if (!req.authUser.employeeId) {
+    return res.status(404).json({ success: false, message: "No employee profile is linked to this account" });
+  }
+
+  const { startDate, endDate, reason } = parsed.data;
+  const dates = getWeekdayDatesInRange(startDate, endDate);
+  const period = periodForDate(startDate);
+
+  try {
+    const employee = await Employee.findById(req.authUser.employeeId);
+    if (!employee || employee.employmentStatus !== "active") {
+      return res.status(404).json({ success: false, message: "Active employee profile not found" });
+    }
+
+    const employmentStart = effectiveStartDate(employee);
+    if (employmentStart && dates.some((date) => date < employmentStart)) {
+      return res.status(400).json({
+        success: false,
+        message: "The selected range includes a workday before the employment start date"
+      });
+    }
+
+    if (await periodIsLocked(period)) {
+      return res.status(409).json({
+        success: false,
+        code: "PAYROLL_PERIOD_LOCKED",
+        message: "A payroll run already exists for this month. Select an open payroll month."
+      });
+    }
+
+    const dateValues = dates.map((date) => new Date(date + "T00:00:00.000Z"));
+    const existingLeave = await UnpaidLeaveRequest.exists({
+      employeeId: employee._id,
+      date: { $in: dateValues }
+    });
+    if (existingLeave) {
+      return res.status(409).json({
+        success: false,
+        code: "EMPLOYEE_DATE_ALREADY_RESERVED",
+        message: "At least one weekday in this range already has an unpaid-leave request. Choose a range with no existing leave requests."
+      });
+    }
+
+    const existingWfh = await WfhRequest.exists({
+      employeeId: employee._id,
+      date: { $in: dateValues },
+      status: { $in: ["pending", "approved"] }
+    });
+    if (existingWfh) {
+      return res.status(409).json({
+        success: false,
+        code: "EMPLOYEE_DATE_ALREADY_RESERVED",
+        message: "At least one weekday in this range already has a pending or approved WFH request."
+      });
+    }
+
+    const requestGroupId = new mongoose.Types.ObjectId().toString();
+    const requests = dates.map((date) => new UnpaidLeaveRequest({
+      employeeId: employee._id,
+      date: new Date(date + "T00:00:00.000Z"),
+      rangeStart: startDate,
+      rangeEnd: endDate,
+      requestGroupId,
+      reason,
+      status: "pending",
+      requestedBy: req.authUser._id
+    }));
+    const requestIds = requests.map((request) => request._id);
+
+    async function cleanupRange() {
+      await Promise.all([
+        UnpaidLeaveRequest.deleteMany({ requestGroupId, status: "pending" }),
+        EmployeeDayReservation.deleteMany({
+          employeeId: employee._id,
+          kind: "unpaid_leave",
+          requestId: { $in: requestIds }
+        })
+      ]);
+    }
+
+    try {
+      await EmployeeDayReservation.insertMany(requests.map((request) => ({
+        employeeId: employee._id,
+        date: request.date,
+        kind: "unpaid_leave",
+        requestId: request._id
+      })), { ordered: true });
+      await UnpaidLeaveRequest.insertMany(requests, { ordered: true });
+    } catch (error) {
+      await cleanupRange();
+      if (error?.code === 11000) {
+        return res.status(409).json({
+          success: false,
+          code: "EMPLOYEE_DATE_ALREADY_RESERVED",
+          message: "At least one selected day was reserved by another request. Refresh and choose another range."
+        });
+      }
+      return next(error);
+    }
+
+    if (await periodIsLocked(period)) {
+      await cleanupRange();
+      return res.status(409).json({
+        success: false,
+        code: "PAYROLL_PERIOD_LOCKED",
+        message: "A payroll run was created while this range was submitted. Refresh and choose another period."
+      });
+    }
+
+    return res.status(201).json({
+      success: true,
+      data: {
+        requestGroupId,
+        startDate,
+        endDate,
+        workingDays: requests.length,
+        requests: requests.map(respondRequest)
+      }
+    });
+  } catch (error) {
+    return next(error);
+  }
+}
+
 export async function listMyUnpaidLeaveRequests(req, res, next) {
   if (!req.authUser.employeeId) {
     return res.status(404).json({ success: false, message: "No employee profile is linked to this account" });
@@ -229,25 +359,35 @@ async function decideRequest(req, res, next, decision) {
     if (!current) {
       return res.status(404).json({ success: false, message: "Unpaid-leave request not found" });
     }
-    if (current.status !== "pending") {
+
+    const groupRequests = current.requestGroupId
+      ? await UnpaidLeaveRequest.find({ requestGroupId: current.requestGroupId }).sort({ date: 1 })
+      : [current];
+    if (!groupRequests.length || groupRequests.some((request) => request.status !== "pending")) {
       return res.status(409).json({
         success: false,
-        message: "Only pending unpaid-leave requests can be decided"
+        message: "Only a complete set of pending unpaid-leave requests can be decided"
       });
     }
 
-    const period = dateToPayrollPeriod(current.date);
-    const reservation = await EmployeeDayReservation.findOne({
+    const requestIds = groupRequests.map((request) => request._id);
+    const dateValues = groupRequests.map((request) => request.date);
+    const period = dateToPayrollPeriod(groupRequests[0].date);
+    if (groupRequests.some((request) => dateToPayrollPeriod(request.date) !== period)) {
+      return res.status(409).json({ success: false, message: "This leave group spans multiple payroll periods and needs administrator review" });
+    }
+
+    const reservations = await EmployeeDayReservation.find({
       employeeId: current.employeeId,
-      date: current.date,
+      date: { $in: dateValues },
       kind: "unpaid_leave",
-      requestId: current._id
+      requestId: { $in: requestIds }
     });
-    if (!reservation) {
+    if (reservations.length !== groupRequests.length) {
       return res.status(409).json({
         success: false,
         code: "EMPLOYEE_DATE_RESERVATION_MISSING",
-        message: "This request has no active day reservation; ask an administrator to review it before deciding."
+        message: "This request group has a missing day reservation; ask an administrator to review it before deciding."
       });
     }
     if (await periodIsLocked(period)) {
@@ -261,67 +401,70 @@ async function decideRequest(req, res, next, decision) {
     if (decision === "approved") {
       const existingWfh = await WfhRequest.exists({
         employeeId: current.employeeId,
-        date: current.date,
+        date: { $in: dateValues },
         status: { $in: ["pending", "approved"] }
       });
       if (existingWfh) {
         return res.status(409).json({
           success: false,
           code: "EMPLOYEE_DATE_ALREADY_RESERVED",
-          message: "This date has a pending or approved WFH request"
+          message: "At least one requested date has a pending or approved WFH request"
         });
       }
       const employee = await Employee.findById(current.employeeId);
       if (!employee || employee.employmentStatus !== "active") {
         return res.status(409).json({ success: false, message: "Only active employees can have unpaid leave approved" });
       }
-      const startDate = effectiveStartDate(employee);
-      if (startDate && current.date.toISOString().slice(0, 10) < startDate) {
-        return res.status(409).json({ success: false, message: "Leave date is before the employee's start date" });
+      const employmentStart = effectiveStartDate(employee);
+      if (employmentStart && groupRequests.some((request) => request.date.toISOString().slice(0, 10) < employmentStart)) {
+        return res.status(409).json({ success: false, message: "At least one leave date is before the employee's start date" });
       }
     }
 
-    const updated = await UnpaidLeaveRequest.findOneAndUpdate(
-      { _id: current._id, status: "pending" },
-      {
-        $set: {
-          status: decision,
-          decidedBy: req.authUser._id,
-          decidedAt: new Date(),
-          decisionNote
-        }
-      },
-      { new: true, runValidators: true }
+    const pendingFilter = current.requestGroupId
+      ? { requestGroupId: current.requestGroupId, status: "pending" }
+      : { _id: current._id, status: "pending" };
+    const updateResult = await UnpaidLeaveRequest.updateMany(
+      pendingFilter,
+      { $set: { status: decision, decidedBy: req.authUser._id, decidedAt: new Date(), decisionNote } }
     );
-
-    if (!updated) {
-      return res.status(409).json({ success: false, message: "Request status changed; refresh and retry" });
+    if (updateResult.modifiedCount !== groupRequests.length) {
+      return res.status(409).json({ success: false, message: "Request group changed; refresh and retry" });
     }
 
-    // Re-check the period after the write. If a payroll run was created concurrently,
-    // revert only this still-unconsumed decision and fail closed.
     if (await periodIsLocked(period)) {
-      await UnpaidLeaveRequest.updateOne(
-        { _id: updated._id, status: decision, decidedBy: req.authUser._id },
+      await UnpaidLeaveRequest.updateMany(
+        { _id: { $in: requestIds }, status: decision, decidedBy: req.authUser._id },
         { $set: { status: "pending", decidedBy: null, decidedAt: null, decisionNote: "" } }
       );
       return res.status(409).json({
         success: false,
         code: "PAYROLL_PERIOD_LOCKED",
-        message: "Payroll was created while this request was being decided. Refresh; the request was not approved/rejected."
+        message: "Payroll was created while this request was being decided. Refresh; no leave dates were approved or rejected."
       });
     }
 
     if (decision === "rejected") {
-      await EmployeeDayReservation.deleteOne({
-        employeeId: updated.employeeId,
-        date: updated.date,
+      await EmployeeDayReservation.deleteMany({
+        employeeId: current.employeeId,
         kind: "unpaid_leave",
-        requestId: updated._id
+        requestId: { $in: requestIds }
       });
     }
 
-    return res.status(200).json({ success: true, data: respondRequest(updated) });
+    const updatedRows = await UnpaidLeaveRequest.find({
+      _id: { $in: requestIds }
+    }).sort({ date: 1 });
+    const firstDate = groupRequests[0].date.toISOString().slice(0, 10);
+    const lastDate = groupRequests[groupRequests.length - 1].date.toISOString().slice(0, 10);
+    const payload = {
+      ...respondRequest(updatedRows[0]),
+      startDate: current.rangeStart || firstDate,
+      endDate: current.rangeEnd || lastDate,
+      dates: groupRequests.map((request) => request.date.toISOString().slice(0, 10)),
+      workingDays: groupRequests.length
+    };
+    return res.status(200).json({ success: true, data: payload });
   } catch (error) {
     return next(error);
   }
