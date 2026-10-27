@@ -30,7 +30,6 @@ A portfolio-focused MERN payroll management application. The initial scaffold in
 - Use synthetic data only in development.
 - Before production, configure exact frontend origins, HTTPS, secure cookie settings, monitoring, backups, and a production secret manager.
 - Payroll is simulated only; do not use this starter to process real payroll or hold real employee financial data without a formal security/compliance review.
-- AI Payroll Insights are advisory only. The optional server-side OpenAI integration sends period-level aggregate metrics only, sets `store: false`, and never receives employee names, emails, codes, IDs, leave dates/reasons or individual salary rows.
 
 ## Project continuity plan
 See [`docs/PROJECT_PLAN.md`](docs/PROJECT_PLAN.md) for the full roadmap and acceptance criteria. Review [`docs/SECURITY_AND_ADVERSARIAL_TEST_PLAN.md`](docs/SECURITY_AND_ADVERSARIAL_TEST_PLAN.md) before implementing or testing payroll adjustments, WFH attendance, or AI insights.
@@ -50,12 +49,6 @@ See [`docs/PROJECT_PLAN.md`](docs/PROJECT_PLAN.md) for the full roadmap and acce
 - Phase 6.6 WFH attendance MVP: employees can request WFH for a date from today through 365 days ahead, admins can approve/reject, and employees can check in/out for today's approved request using server timestamps. Admins can record a reasoned correction for a missed checkout. WFH and unpaid leave cannot reserve the same employee/date. No location tracking is implemented, and no attendance absence automatically reduces salary. The employee workspace uses a sidebar-style section menu for Overview, WFH & attendance, Unpaid leave, Payslips, and Transactions.
 
 
-
-## Optional AI Payroll Insights setup
-
-To enable model-generated advisory insights, set `OPENAI_API_KEY` in `server/.env` (or your server host's secret settings) and optionally set `OPENAI_MODEL` (default: `gpt-5-mini`). Never put the key in the Vite/client environment, commit it, or share it in screenshots. Restart the backend after changing server environment variables. Open **AI Payroll Insights** from the admin dashboard.
-
-The endpoint is `POST /api/payroll-insights` with `{"period":"YYYY-MM"}` and an admin session. Model output is constrained to three or fewer short advisory observations and validated server-side. A successful AI call is rate-limited to one per minute and 20 calls per admin per UTC day; quota use is persisted in MongoDB. Responses are requested with storage disabled. Provider errors fall back to deterministic threshold-based guidance. The feature still needs a real-key browser smoke test before it is considered fully verified. Review current OpenAI API data controls and your organization settings before sending any non-synthetic or sensitive data; this demo's aggregate-only design is not a production privacy/compliance guarantee.
 
 ## Payroll calculation demo rules
 
@@ -99,7 +92,7 @@ Payroll API endpoints:
 - GET /api/attendance/me — read own WFH attendance; GET /api/attendance?period=YYYY-MM — list attendance (admin).
 - POST /api/attendance/:id/correct-checkout with { "checkedOutAt": "ISO timestamp", "reason": "..." } — one audited correction of a missing checkout (admin).
 - Admin WFH UI: `/admin/wfh`; admin unpaid-leave UI: `/admin/unpaid-leave`. Office network matching, GPS and biometrics are explicitly out of scope.
-- Phase 6.7 AI Payroll Insights: admin-only three-period aggregate analysis, strict structured output, deterministic fallback guidance, an 8-second provider timeout, one request per minute and a 20-call-per-admin-per-UTC-day budget. Without an OpenAI key, the UI shows deterministic aggregate guidance and an explanatory disabled notice. The feature never edits salary data or changes approvals/transactions.
+- AI Payroll Insights are the next planned increment; use only aggregate inputs, keep the OpenAI key server-side, and show a disabled notice if no key is configured.
 
 ## Password change and temporary employee passwords
 
