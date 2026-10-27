@@ -3,6 +3,7 @@ import { Employee } from "../models/Employee.js";
 import { PayrollRun } from "../models/PayrollRun.js";
 import { UnpaidLeaveRequest } from "../models/UnpaidLeaveRequest.js";
 import { EmployeeDayReservation } from "../models/EmployeeDayReservation.js";
+import { WfhRequest } from "../models/WfhRequest.js";
 import {
   createUnpaidLeaveRequestSchema,
   rejectUnpaidLeaveSchema,
@@ -69,6 +70,19 @@ export async function createMyUnpaidLeaveRequest(req, res, next) {
       return res.status(400).json({
         success: false,
         message: "Unpaid leave cannot be requested before the employment start date"
+      });
+    }
+
+    const existingWfh = await WfhRequest.exists({
+      employeeId: employee._id,
+      date: new Date(date + "T00:00:00.000Z"),
+      status: { $in: ["pending", "approved"] }
+    });
+    if (existingWfh) {
+      return res.status(409).json({
+        success: false,
+        code: "EMPLOYEE_DATE_ALREADY_RESERVED",
+        message: "This date already has a pending or approved WFH request"
       });
     }
 
@@ -245,6 +259,18 @@ async function decideRequest(req, res, next, decision) {
     }
 
     if (decision === "approved") {
+      const existingWfh = await WfhRequest.exists({
+        employeeId: current.employeeId,
+        date: current.date,
+        status: { $in: ["pending", "approved"] }
+      });
+      if (existingWfh) {
+        return res.status(409).json({
+          success: false,
+          code: "EMPLOYEE_DATE_ALREADY_RESERVED",
+          message: "This date has a pending or approved WFH request"
+        });
+      }
       const employee = await Employee.findById(current.employeeId);
       if (!employee || employee.employmentStatus !== "active") {
         return res.status(409).json({ success: false, message: "Only active employees can have unpaid leave approved" });
