@@ -69,7 +69,13 @@ Write these decisions into the project plan and test fixtures before coding. A f
 
 ### Unpaid-leave and payroll adjustment policy
 
-- Choose the daily-rate basis: eligible working days in that month, calendar days in that month, or another explicitly approved policy. Do not assume a divisor or statutory formula.
+The demo policy has now been selected (2026-10-27). It is an illustrative engineering rule, not legal/tax advice or a claim of statutory compliance:
+
+- One unpaid-leave request represents one explicit date. Only Monday–Friday dates are allowed in this MVP. There is no public-holiday calendar or custom employee schedule; admins must not approve company holidays as unpaid leave.
+- For a month, scheduled working-day divisor = count of Monday–Friday dates in that calendar month. Per-day rate = (monthly base salary + monthly allowances) / divisor. Deduction = round to nearest integer paise of (monthly base salary + monthly allowances) × approved unpaid-leave weekdays / divisor, using BigInt/integer-safe arithmetic.
+- Add the unpaid-leave deduction separately to the employee's fixed monthly deductions. If combined deductions exceed gross pay, block the payroll preview/run with a clear administrative error; never return negative net pay.
+- Pending unpaid-leave requests must be resolved before creating the payroll run. Once a payroll run exists for a month, no further leave request creation or approval for that month is allowed. Historical snapshots stay unchanged.
+- Reject overlapping/duplicate requests for an employee/date; a single date cannot be both unpaid leave and WFH in a future phase.
 - Define the business timezone and cut-off rules for dates, attendance, leave, and payroll periods. Keep date-only values separate from timestamps.
 - Define how holidays, weekends, part-time schedules, joining/leaving mid-month, and a zero-working-day month behave.
 - Define whether a partial day is supported. If not, reject partial-day input rather than guessing.
