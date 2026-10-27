@@ -20,7 +20,7 @@ export const createUnpaidLeaveRequestSchema = z.object({
 }).strict();
 
 const rangeBoundDateSchema = z.string()
-  .regex(/^(20\\d{2}|2100)-(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01])$/, "Use a date in YYYY-MM-DD format (2000–2100)")
+  .regex(/^(20\d{2}|2100)-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/, "Use a date in YYYY-MM-DD format (2000–2100)")
   .refine((value) => {
     const parsed = new Date(value + "T00:00:00.000Z");
     return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
