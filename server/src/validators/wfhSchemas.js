@@ -37,6 +37,13 @@ export const attendanceListQuerySchema = z.object({
 
 export const attendancePunchBodySchema = z.object({}).strict();
 
+const datetimeWithOffset = z.string().datetime({ offset: true });
+export const correctAttendanceCheckoutSchema = z.object({
+  checkedOutAt: datetimeWithOffset,
+  reason: z.string().trim().min(3).max(240)
+}).strict();
+export const attendanceIdSchema = z.string().regex(/^[a-fA-F0-9]{24}$/, "Invalid attendance record ID");
+
 export function isRealWfhDateOnly(value) {
   if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
   const parsed = new Date(value + "T00:00:00.000Z");
