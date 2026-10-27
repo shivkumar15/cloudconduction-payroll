@@ -134,6 +134,40 @@ test("OpenAI Responses request uses a strict schema and does not store the respo
   assert.equal(requestBody.max_output_tokens, 800);
 });
 
+test("missing API key is rejected without making a provider request", async () => {
+  let called = false;
+  await assert.rejects(requestOpenAIPayrollInsights({ period: "2026-10", periods: [] }, {
+    apiKey: "",
+    fetchImpl: async () => { called = true; throw new Error("must not be called"); }
+  }), /API key is required/);
+  assert.equal(called, false);
+});
+
+test("provider HTTP failures, transport errors and malformed output can be handled by fallback", async () => {
+  const summary = {
+    period: "2026-10",
+    periods: [{
+      period: "2026-10",
+      hasSavedRun: false,
+      transactions: { total: 0, succeeded: 0, failed: 0 }
+    }]
+  };
+  await assert.rejects(requestOpenAIPayrollInsights(summary, {
+    apiKey: "test-key",
+    fetchImpl: async () => ({ ok: false, status: 503 })
+  }), /HTTP 503/);
+
+  await assert.rejects(requestOpenAIPayrollInsights(summary, {
+    apiKey: "test-key",
+    fetchImpl: async () => ({ ok: true, json: async () => ({ output_text: "not-json" }) })
+  }), SyntaxError);
+
+  await assert.rejects(requestOpenAIPayrollInsights(summary, {
+    apiKey: "test-key",
+    fetchImpl: async () => { throw new Error("simulated timeout"); }
+  }), /simulated timeout/);
+});
+
 test("usage model has a unique per-admin UTC day index and retention cleanup index", () => {
   const indexes = PayrollInsightUsage.schema.indexes();
   assert.equal(indexes.some(([fields, options]) => fields.adminId === 1 && fields.dayStart === 1 && options.unique === true), true);
