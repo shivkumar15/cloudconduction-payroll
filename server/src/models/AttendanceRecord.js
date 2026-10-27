@@ -15,7 +15,10 @@ const attendanceRecordSchema = new mongoose.Schema({
   mode: { type: String, enum: ["wfh"], required: true, default: "wfh" },
   wfhRequestId: { type: mongoose.Schema.Types.ObjectId, ref: "WfhRequest", required: true },
   checkedInAt: { type: Date, required: true },
-  checkedOutAt: { type: Date, default: null }
+  checkedOutAt: { type: Date, default: null },
+  correctedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
+  correctionNote: { type: String, default: "", trim: true, maxlength: 240 },
+  correctedAt: { type: Date, default: null }
 }, {
   timestamps: true,
   strict: "throw",
@@ -35,13 +38,18 @@ attendanceRecordSchema.index({ wfhRequestId: 1 });
 attendanceRecordSchema.methods.toPublicJSON = function toPublicJSON() {
   return {
     id: this._id.toString(),
-    employeeId: this.employeeId?.toString(),
+    employeeId: this.employeeId && typeof this.employeeId === "object" && this.employeeId._id
+      ? this.employeeId._id.toString()
+      : this.employeeId?.toString(),
     date: this.date.toISOString().slice(0, 10),
     mode: this.mode,
     wfhRequestId: this.wfhRequestId?.toString(),
     checkedInAt: this.checkedInAt,
     checkedOutAt: this.checkedOutAt,
-    status: this.checkedOutAt ? "completed" : "checked_in",
+    correctedBy: this.correctedBy?.toString() || null,
+    correctionNote: this.correctionNote || "",
+    correctedAt: this.correctedAt || null,
+    status: this.checkedOutAt ? (this.correctedBy ? "corrected" : "completed") : "checked_in",
     createdAt: this.createdAt,
     updatedAt: this.updatedAt
   };
