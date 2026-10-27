@@ -29,6 +29,31 @@ export function getWorkingDaysInPeriod(period) {
   return count;
 }
 
+export function getWeekdayDatesInRange(startDate, endDate) {
+  const isValidDateOnly = (value) => {
+    if (typeof value !== "string" || !/^\\d{4}-\\d{2}-\\d{2}$/.test(value)) return false;
+    const parsed = new Date(value + "T00:00:00.000Z");
+    return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
+  };
+  if (!isValidDateOnly(startDate) || !isValidDateOnly(endDate) || startDate > endDate) {
+    throw new RangeError("A valid ordered date range is required");
+  }
+  if (startDate.slice(0, 7) !== endDate.slice(0, 7)) {
+    throw new RangeError("Unpaid-leave ranges must stay within one payroll month");
+  }
+
+  const cursor = new Date(startDate + "T00:00:00.000Z");
+  const end = new Date(endDate + "T00:00:00.000Z");
+  const dates = [];
+  while (cursor <= end) {
+    const weekday = cursor.getUTCDay();
+    if (weekday >= 1 && weekday <= 5) dates.push(cursor.toISOString().slice(0, 10));
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
+  }
+  if (dates.length === 0) throw new RangeError("The selected range contains no Monday-Friday workdays");
+  return dates;
+}
+
 export function dateToPayrollPeriod(date) {
   if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
     throw new TypeError("A valid date is required");
