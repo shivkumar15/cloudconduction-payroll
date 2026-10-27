@@ -167,15 +167,9 @@ test("MongoDB unpaid-leave workflow enforces ownership, admin decisions, payroll
     const weekend = await request(baseUrl, "/api/unpaid-leave", {
       method: "POST",
       cookie: employeeCookie,
-      body: { date: period + "-01", reason: "Weekend should fail" }
+      body: { date: "2026-11-01", reason: "Weekend should fail" }
     });
-    const firstDay = new Date(period + "-01T00:00:00.000Z").getUTCDay();
-    if (firstDay === 0 || firstDay === 6) {
-      assert.equal(weekend.status, 400);
-    } else {
-      assert.equal(weekend.status, 201);
-      await UnpaidLeaveRequest.deleteOne({ employeeId: employee._id, date: new Date(period + "-01T00:00:00.000Z") });
-    }
+    assert.equal(weekend.status, 400);
 
     const forged = await request(baseUrl, "/api/unpaid-leave", {
       method: "POST",
