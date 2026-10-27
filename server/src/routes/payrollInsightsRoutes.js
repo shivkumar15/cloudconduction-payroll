@@ -1,0 +1,10 @@
+import { Router } from "express";
+import { requireAuth, requireRole } from "../middleware/auth.js";
+import { getPayrollInsights } from "../controllers/payrollInsightsController.js";
+
+const router = Router();
+
+router.use(requireAuth);
+router.post("/", requireRole("admin"), getPayrollInsights);
+
+export default router;
