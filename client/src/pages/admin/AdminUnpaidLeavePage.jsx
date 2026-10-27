@@ -96,10 +96,13 @@ export default function AdminUnpaidLeavePage() {
         "/unpaid-leave/" + request.id + "/" + decision,
         decision === "reject" ? { decisionNote } : {}
       );
-      const date = response.data.data?.date || request.date;
+      const data = response.data.data;
+      const date = data?.startDate && data?.endDate
+        ? (data.startDate === data.endDate ? data.startDate : data.startDate + " – " + data.endDate)
+        : data?.date || request.date;
       setNotice(
         decision === "approve"
-          ? "Unpaid leave for " + date + " was approved. It is included in the payroll calculation only if the period is still open."
+          ? "Unpaid leave for " + date + " (" + (data?.workingDays || 1) + " weekday(s)) was approved. It is included in the payroll calculation only if the period is still open."
           : "Unpaid leave for " + date + " was rejected. It will not affect payroll."
       );
       await loadRequests();
@@ -109,6 +112,13 @@ export default function AdminUnpaidLeavePage() {
       setBusyId("");
     }
   }
+
+  const displayedRequests = requests.filter((request, index, all) => {
+    const groupKey = request.requestGroupId ? "group:" + request.requestGroupId : "single:" + request.id;
+    return all.findIndex((other) => (
+      (other.requestGroupId ? "group:" + other.requestGroupId : "single:" + other.id) === groupKey
+    )) === index;
+  });
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
@@ -164,7 +174,7 @@ export default function AdminUnpaidLeavePage() {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h2 className="text-lg font-semibold">Requests</h2>
-              <p className="mt-1 text-sm text-slate-500">{pagination.total} matching request(s); showing up to 100 records.</p>
+              <p className="mt-1 text-sm text-slate-500">{displayedRequests.length} request range(s) shown; {pagination.total} weekday record(s) match the filters.</p>
             </div>
             <button type="button" className={buttonClass} onClick={() => void loadRequests()} disabled={loading}>
               <RefreshCw size={15} aria-hidden="true" /> {loading ? "Refreshing…" : "Refresh"}
@@ -197,13 +207,13 @@ export default function AdminUnpaidLeavePage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 bg-white">
-                  {requests.map((request) => (
+                  {displayedRequests.map((request) => (
                     <tr key={request.id} className="align-top">
                       <td className="px-3 py-3">
                         <p className="font-semibold">{request.employee?.firstName} {request.employee?.lastName}</p>
                         <p className="text-xs text-slate-500">{request.employee?.employeeCode} · {request.employee?.department}</p>
                       </td>
-                      <td className="whitespace-nowrap px-3 py-3">{dateLabel(request.date)}</td>
+                      <td className="whitespace-nowrap px-3 py-3">{request.rangeStart && request.rangeEnd ? (request.rangeStart === request.rangeEnd ? dateLabel(request.rangeStart) : dateLabel(request.rangeStart) + " – " + dateLabel(request.rangeEnd)) : dateLabel(request.date)}</td>
                       <td className="max-w-sm break-words px-3 py-3">{request.reason}</td>
                       <td className="px-3 py-3"><StatusBadge status={request.status} /></td>
                       <td className="max-w-xs break-words px-3 py-3 text-slate-500">{request.decisionNote || "—"}</td>
