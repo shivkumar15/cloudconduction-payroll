@@ -46,6 +46,7 @@ See [`docs/PROJECT_PLAN.md`](docs/PROJECT_PLAN.md) for the full roadmap and acce
 - Phase 5 simulated transactions: idempotent simulated payment records, selectable failure scenarios for testing, recorded retry attempts, admin transaction listing/detail, and employee-only finalized transaction history. No money is transferred.
 - Phase 6.5 unpaid-leave workflow (initial implementation): an employee can submit one Monday–Friday unpaid-leave request for a specific date; an admin can approve/reject it with an audit trail. Pending requests block payroll-run creation, and existing payroll periods cannot accept new requests/decisions.
 - Payroll preview/snapshots now separate fixed monthly deductions from approved unpaid-leave deductions, show approved leave days and explain total deductions on the employee payslip. Calculations use integer INR paise and fail closed if deductions exceed gross pay. This is a demo policy; public holidays/custom work schedules and statutory payroll rules are not modeled.
+- Phase 6.6 WFH attendance MVP: employees can request WFH for a date from today through 90 days ahead, admins can approve/reject, and employees can check in/out for today's approved request using server timestamps. Admins can record a reasoned correction for a missed checkout. WFH and unpaid leave cannot reserve the same employee/date. No location tracking is implemented, and no attendance absence automatically reduces salary.
 
 
 
@@ -81,7 +82,16 @@ Payroll API endpoints:
 - GET /api/unpaid-leave?period=YYYY-MM&status=pending — list requests with bounded pagination (admin).
 - POST /api/unpaid-leave/:id/approve — approve a pending request (admin; empty JSON body).
 - POST /api/unpaid-leave/:id/reject with { "decisionNote": "..." } — reject with a required reason (admin).
-- Employee WFH requests/attendance and AI Payroll Insights are planned future increments; office network matching is explicitly out of scope.
+- POST /api/wfh with { "date": "YYYY-MM-DD", "reason": "..." } — submit a one-date WFH request for today through the next 90 days (employee; pending until approved).
+- GET /api/wfh/me — read the authenticated employee's own WFH requests.
+- GET /api/wfh?period=YYYY-MM&status=pending — list WFH requests (admin).
+- POST /api/wfh/:id/approve — approve a pending request (admin; empty JSON body).
+- POST /api/wfh/:id/reject with { "decisionNote": "..." } — reject a WFH request with a required reason (admin).
+- POST /api/attendance/check-in and POST /api/attendance/check-out — record server-timestamped attendance for today's approved WFH request (employee).
+- GET /api/attendance/me — read own WFH attendance; GET /api/attendance?period=YYYY-MM — list attendance (admin).
+- POST /api/attendance/:id/correct-checkout with { "checkedOutAt": "ISO timestamp", "reason": "..." } — one audited correction of a missing checkout (admin).
+- Admin WFH UI: `/admin/wfh`; admin unpaid-leave UI: `/admin/unpaid-leave`. Office network matching, GPS and biometrics are explicitly out of scope.
+- AI Payroll Insights are the next planned increment; use only aggregate inputs, keep the OpenAI key server-side, and show a disabled notice if no key is configured.
 
 ## Password change and temporary employee passwords
 
