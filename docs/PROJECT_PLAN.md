@@ -15,6 +15,9 @@
 - Node.js + Express REST API, MongoDB + Mongoose.
 - Simulated payments only.
 - Employment start date is required and validated on employee creation; payroll preview and draft creation enforce period eligibility on the server. Legacy records without this field use `createdAt` as a compatibility fallback; a date is locked after the employee is captured in a saved payroll snapshot.
+- Attendance direction (decided 2026-10-27): support a work-from-home (WFH) request and approval workflow, with employee check-in/check-out only on approved WFH dates. Do not implement office Wi-Fi, office public-IP, or network-matching attendance verification. WFH attendance is an auditable application record, not cryptographic proof of the employee's physical location.
+- Payroll enhancement direction (decided 2026-10-27): separate recurring fixed salary deductions from monthly variable adjustments, including approved unpaid-leave deductions. Define and document the unpaid-leave divisor/policy before implementing calculations; all final amounts remain deterministic server-side calculations.
+- AI direction (decided 2026-10-27): start with an admin-only AI Payroll Insights feature using validated, minimum-necessary aggregate data. AI may explain trends and flag areas for human review, but must not calculate authoritative wages, change records, approve payroll, or set transaction status.
 - Use Zod validation, secure authentication, role-based access control, tests, clear setup steps and good documentation.
 - Maintain this plan as a continuity file; do not restart completed work.
 
@@ -23,11 +26,13 @@
 - Overview metrics, payroll totals, deductions, transaction status and period filters.
 - Employee CRUD and salary-structure management.
 - Payroll preview, approval, processing and history.
+- Planned: review/approve WFH requests, review attendance records, and review monthly payroll adjustments.
 - Period locking and duplicate-run prevention.
 - Charts and audit trail for sensitive admin actions.
 ### Employee
 - Secure self-service dashboard, own profile and salary history.
 - Earnings, bonuses, deductions, net pay, payroll periods and payslips.
+- Planned: submit date-specific WFH requests and check in/check out only for approved WFH dates.
 - Server-side ownership checks: employees must not access another employee's records by changing IDs.
 ### Payroll and transactions
 - Currency as integer minor units (INR paise), not floating-point rupees.
@@ -285,11 +290,41 @@ Expected: frontend `http://localhost:5173`; health endpoint `http://localhost:50
 - For Data Analyst/Python roles, highlight validated data aggregation, payroll trend reporting, CSV export and analytical visualizations; keep the core data logic demonstrable and use Python only when justified.
 - Final resume bullet points should be written only after the corresponding features and tests are complete. Do not claim production payroll or real payment processing.
 
+## Approved roadmap additions before Phase 7 (not implemented yet)
+
+These additions are a planned scope decision, not a claim that the features already exist. Finish the remaining Phase 6 browser checks first; only then implement these increments in order.
+
+### Phase 6.5 — recurring deductions, leave and payroll adjustments
+- Keep the employee salary structure for recurring fixed monthly components; do not treat a fixed deduction as a catch-all for all monthly changes.
+- Add a validated, auditable monthly adjustment model for approved one-time amounts, initially including unpaid-leave deductions. Preserve reason, period/date basis, amount, creator/approver, status and timestamps as appropriate.
+- Decide and document the payroll policy for unpaid-leave day rate (e.g. approved working days versus calendar days) before coding it. Do not assume a divisor or apply an unreviewed statutory formula.
+- Payroll preview must explain every adjustment and calculate the final amount deterministically on the server. Snapshot adjustment details into the payroll run so historical periods do not change if employee/leave data later changes.
+- WFH days are working days and must not trigger unpaid-leave deductions. Only an explicitly approved unpaid-leave record should generate that adjustment.
+
+### Phase 6.6 — WFH-only attendance MVP
+- Do not build office network/Wi-Fi/public-IP matching, GPS tracking, or biometric attendance for this portfolio demo.
+- Employees can request WFH for a specific date or date range with a reason; statuses are pending, approved or rejected, with an admin decision and audit metadata.
+- An employee can check in and check out only when an approved WFH authorization covers that date. Server timestamps are authoritative; do not accept client-provided timestamps as the actual punch time.
+- Enforce authenticated employee ownership, date validation, duplicate-punch prevention, valid check-in/check-out ordering, and audit-safe admin corrections. Use a unique employee/date record or an equivalent database constraint to prevent duplicate daily attendance records.
+- Clearly label the record as WFH attendance. The workflow does not by itself prove the employee's physical location or replace company policy.
+- Attendance and leave records are distinct. A missed punch must not automatically become unpaid leave; payroll deductions require an explicit approved leave/adjustment rule.
+
+### Phase 6.7 — AI Payroll Insights MVP
+- Add an admin-only backend integration and UI panel for a period summary, cross-period trends and explanation of precomputed anomalies/transaction outcomes.
+- Begin with aggregate metrics and minimum-necessary fields; do not send employee names, emails, employee codes or individual salary records to the model for the first version.
+- Keep all authoritative arithmetic, eligibility, authorization and state transitions in application code. Validate structured AI output, rate-limit requests, handle provider failure gracefully, and label AI suggestions as advisory.
+- Add tests for unauthorized access, provider failures, invalid output, data minimization and deterministic metric calculation. Keep API keys on the server in environment configuration, never in frontend code or source control.
+
+### Phase 7 — quality and release
+- Begin release hardening after the remaining Phase 6 smoke tests and the planned payroll-adjustment, WFH-attendance and AI-insights scope have either been implemented and verified or explicitly deferred.
+- Reconcile the older Phase 7 checklist below with the actual current repository and CI rather than repeating work that is already complete.
+
 ## Immediate next task
 1. [x] User confirmed in the browser on 2026-10-26 that the employment-start-date fix works. Keep existing October/November finalized snapshots unchanged.
 2. Continue Phase 6 browser smoke test in order: first run the all-success flow on an unused period (prefer 2026-12 if no saved run exists), then the failure/retry flow on a separate unused period (prefer 2027-01 if no saved run exists), and finally verify linked employee finalized history, transaction history and print/Save-as-PDF payslip.
-3. Note the non-blocking Vite warning that the minified JavaScript bundle exceeds 500 kB; consider code-splitting the Recharts/payroll workspace if practical.
-4. Continue Phase 7 release hardening (security regression checks, synthetic seed data, authenticated load tests, README/deployment review). SMTP delivery and forgot-password reset are already locally verified; never commit SMTP credentials or share OTPs.
+3. The fixed, animated payroll toast UI is committed; GitHub Actions run `40382964844` passed API tests, both MongoDB integration tests and the frontend production build.
+4. After Phase 6's browser smoke test is complete, implement the approved roadmap increments in order: monthly payroll adjustments/unpaid leave (policy first), WFH-only attendance, then admin AI Payroll Insights.
+5. Defer Phase 7 release hardening until those increments are verified or explicitly deferred. Preserve the non-blocking Vite >500 kB bundle warning as a possible code-splitting task. SMTP delivery and forgot-password reset are already locally verified; never commit SMTP credentials or share OTPs.
 
 ## Future-session resume instructions
 Paste/upload this file and say:
