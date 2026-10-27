@@ -4,9 +4,11 @@ import mongoose from "mongoose";
 import { randomBytes } from "node:crypto";
 import { app } from "../src/app.js";
 import { Employee } from "../src/models/Employee.js";
+import { EmployeeDayReservation } from "../src/models/EmployeeDayReservation.js";
 import { PayrollRun } from "../src/models/PayrollRun.js";
 import { UnpaidLeaveRequest } from "../src/models/UnpaidLeaveRequest.js";
 import { User } from "../src/models/User.js";
+import { WfhRequest } from "../src/models/WfhRequest.js";
 import { getWorkingDaysInPeriod } from "../src/services/unpaidLeaveService.js";
 
 function workingDates(period) {
@@ -85,7 +87,7 @@ test("MongoDB unpaid-leave workflow enforces ownership, admin decisions, payroll
   try {
     await mongoose.connect(isolatedMongoUri, { serverSelectionTimeoutMS: 8_000 });
     connected = true;
-    await Promise.all([User.init(), Employee.init(), PayrollRun.init(), UnpaidLeaveRequest.init()]);
+    await Promise.all([User.init(), Employee.init(), PayrollRun.init(), UnpaidLeaveRequest.init(), EmployeeDayReservation.init(), WfhRequest.init()]);
 
     const employee = await Employee.create({
       employeeCode,
@@ -157,7 +159,7 @@ test("MongoDB unpaid-leave workflow enforces ownership, admin decisions, payroll
     const employeeCookie = await login(baseUrl, employeeEmail, employeePassword);
     const secondCookie = await login(baseUrl, secondEmail, secondPassword);
     const dates = workingDates(period);
-    assert.ok(dates.length >= 2);
+    assert.ok(dates.length >= 8);
 
     const anonymous = await request(baseUrl, "/api/unpaid-leave/me");
     assert.equal(anonymous.status, 401);
@@ -220,6 +222,33 @@ test("MongoDB unpaid-leave workflow enforces ownership, admin decisions, payroll
       method: "POST", cookie: adminCookie, body: {}
     });
     assert.equal(repeatApprove.status, 409);
+    const rangeResponse = await request(baseUrl, "/api/unpaid-leave/range", {
+      method: "POST",
+      cookie: secondCookie,
+      body: {
+        startDate: dates[4],
+        endDate: dates[6],
+        reason: "Medical leave for several workdays"
+      }
+    });
+    assert.equal(rangeResponse.status, 201);
+    const rangeData = (await rangeResponse.json()).data;
+    assert.equal(rangeData.workingDays, 3);
+    assert.equal(rangeData.requests.length, 3);
+    assert.ok(rangeData.requests.every((entry) => entry.requestGroupId === rangeData.requestGroupId));
+
+    const approveRange = await request(baseUrl, "/api/unpaid-leave/" + rangeData.requests[0].id + "/approve", {
+      method: "POST", cookie: adminCookie, body: {}
+    });
+    assert.equal(approveRange.status, 200);
+    const approvedRange = (await approveRange.json()).data;
+    assert.equal(approvedRange.workingDays, 3);
+    assert.equal(approvedRange.startDate, dates[4]);
+    assert.equal(approvedRange.endDate, dates[6]);
+    assert.equal(await UnpaidLeaveRequest.countDocuments({
+      requestGroupId: rangeData.requestGroupId,
+      status: "approved"
+    }), 3);
 
     const secondRequest = await request(baseUrl, "/api/unpaid-leave", {
       method: "POST",
