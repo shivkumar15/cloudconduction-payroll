@@ -47,8 +47,6 @@ export async function checkInWfhAttendance(req, res, next) {
     if (!employee) return;
     const businessDate = getIndiaBusinessDate();
     const date = dateOnlyToUtcDate(businessDate);
-    const period = businessDate.slice(0, 7);
-
     // Attendance is a non-financial record. An already approved WFH day can still
     // be recorded after payroll snapshot creation; attendance never rewrites pay.
 
@@ -100,22 +98,6 @@ export async function checkInWfhAttendance(req, res, next) {
         });
       }
       throw error;
-    }
-
-    // If payroll won the concurrent lock race, remove only the unclosed punch we
-    // just inserted and fail closed rather than leave a post-snapshot attendance.
-    if (await PayrollRun.exists({ period })) {
-      await AttendanceRecord.deleteOne({
-        _id: record._id,
-        employeeId: employee._id,
-        checkedInAt,
-        checkedOutAt: null
-      });
-      return res.status(409).json({
-        success: false,
-        code: "PAYROLL_PERIOD_LOCKED",
-        message: "Payroll was created while checking in. No attendance record was retained."
-      });
     }
 
     return res.status(201).json({
