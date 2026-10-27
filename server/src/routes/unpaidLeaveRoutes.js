@@ -3,6 +3,7 @@ import { requireAuth, requireRole } from "../middleware/auth.js";
 import {
   approveUnpaidLeaveRequest,
   createMyUnpaidLeaveRequest,
+  createMyUnpaidLeaveRangeRequest,
   listMyUnpaidLeaveRequests,
   listUnpaidLeaveRequests,
   rejectUnpaidLeaveRequest
@@ -13,6 +14,7 @@ const router = Router();
 router.use(requireAuth);
 router.get("/me", requireRole("employee"), listMyUnpaidLeaveRequests);
 router.post("/", requireRole("employee"), createMyUnpaidLeaveRequest);
+router.post("/range", requireRole("employee"), createMyUnpaidLeaveRangeRequest);
 router.get("/", requireRole("admin"), listUnpaidLeaveRequests);
 router.post("/:id/approve", requireRole("admin"), approveUnpaidLeaveRequest);
 router.post("/:id/reject", requireRole("admin"), rejectUnpaidLeaveRequest);
