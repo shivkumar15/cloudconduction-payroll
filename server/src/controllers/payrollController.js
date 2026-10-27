@@ -2,6 +2,8 @@ import mongoose from "mongoose";
 import { Employee } from "../models/Employee.js";
 import { PayrollRun } from "../models/PayrollRun.js";
 import { PayrollTransaction } from "../models/PayrollTransaction.js";
+import { UnpaidLeaveRequest } from "../models/UnpaidLeaveRequest.js";
+import { getPayrollPeriodBounds } from "../services/unpaidLeaveService.js";
 import { buildPayrollSnapshot, getPayrollEligibilityFilter, getPayrollTransition } from "../services/payrollService.js";
 import {
   payrollListQuerySchema,
@@ -29,6 +31,40 @@ async function getActiveEmployeeSnapshot(period) {
     .lean();
 }
 
+async function getUnpaidLeaveInputs(period, employees) {
+  if (employees.length === 0) return { unpaidLeaveDaysByEmployeeId: new Map(), pendingCount: 0 };
+
+  const bounds = getPayrollPeriodBounds(period);
+  const filter = {
+    employeeId: { $in: employees.map((employee) => employee._id) },
+    date: { $gte: bounds.start, $lt: bounds.end }
+  };
+  const [approvedRequests, pendingCount] = await Promise.all([
+    UnpaidLeaveRequest.find({ ...filter, status: "approved" }).select("employeeId date").lean(),
+    UnpaidLeaveRequest.countDocuments({ ...filter, status: "pending" })
+  ]);
+
+  const unpaidLeaveDaysByEmployeeId = new Map();
+  for (const request of approvedRequests) {
+    const employeeId = request.employeeId.toString();
+    unpaidLeaveDaysByEmployeeId.set(
+      employeeId,
+      (unpaidLeaveDaysByEmployeeId.get(employeeId) || 0) + 1
+    );
+  }
+
+  return { unpaidLeaveDaysByEmployeeId, pendingCount };
+}
+
+function respondPayrollCalculationConflict(res, error) {
+  if (!(error instanceof RangeError)) return null;
+  return res.status(409).json({
+    success: false,
+    code: "PAYROLL_CALCULATION_REQUIRES_REVIEW",
+    message: error.message
+  });
+}
+
 export async function previewPayroll(req, res, next) {
   const parsed = payrollPeriodBodySchema.safeParse(req.body);
   if (!parsed.success) {
@@ -44,7 +80,11 @@ export async function previewPayroll(req, res, next) {
       });
     }
 
-    const snapshot = buildPayrollSnapshot(employees);
+    const leaveInputs = await getUnpaidLeaveInputs(parsed.data.period, employees);
+    const snapshot = buildPayrollSnapshot(employees, {
+      period: parsed.data.period,
+      unpaidLeaveDaysByEmployeeId: leaveInputs.unpaidLeaveDaysByEmployeeId
+    });
     return res.status(200).json({
       success: true,
       data: {
@@ -54,6 +94,8 @@ export async function previewPayroll(req, res, next) {
         totalGrossPayPaise: snapshot.totalGrossPayPaise,
         totalDeductionsPaise: snapshot.totalDeductionsPaise,
         totalNetPayPaise: snapshot.totalNetPayPaise,
+        pendingUnpaidLeaveRequestsCount: leaveInputs.pendingCount,
+        canCreateRun: leaveInputs.pendingCount === 0,
         items: snapshot.items.map((item) => ({
           ...item,
           employeeId: item.employeeId.toString()
@@ -61,6 +103,8 @@ export async function previewPayroll(req, res, next) {
       }
     });
   } catch (error) {
+    const conflict = respondPayrollCalculationConflict(res, error);
+    if (conflict) return conflict;
     return next(error);
   }
 }
@@ -112,7 +156,20 @@ export async function createPayrollRun(req, res, next) {
       });
     }
 
-    const snapshot = buildPayrollSnapshot(employees);
+    const leaveInputs = await getUnpaidLeaveInputs(parsed.data.period, employees);
+    if (leaveInputs.pendingCount > 0) {
+      return res.status(409).json({
+        success: false,
+        code: "PENDING_UNPAID_LEAVE_REQUESTS",
+        pendingCount: leaveInputs.pendingCount,
+        message: "Resolve all pending unpaid-leave requests for this period before creating the payroll run"
+      });
+    }
+
+    const snapshot = buildPayrollSnapshot(employees, {
+      period: parsed.data.period,
+      unpaidLeaveDaysByEmployeeId: leaveInputs.unpaidLeaveDaysByEmployeeId
+    });
     const run = await PayrollRun.create({
       period: parsed.data.period,
       currency: snapshot.currency,
@@ -133,6 +190,8 @@ export async function createPayrollRun(req, res, next) {
         message: "A payroll run already exists for this period"
       });
     }
+    const conflict = respondPayrollCalculationConflict(res, error);
+    if (conflict) return conflict;
     return next(error);
   }
 }
@@ -255,6 +314,13 @@ export async function getMyPayroll(req, res, next) {
           baseSalaryPaise: item.baseSalaryPaise,
           monthlyAllowancesPaise: item.monthlyAllowancesPaise,
           grossPayPaise: item.grossPayPaise,
+          fixedMonthlyDeductionsPaise: Number.isSafeInteger(item.fixedMonthlyDeductionsPaise)
+            ? item.fixedMonthlyDeductionsPaise
+            : item.monthlyDeductionsPaise,
+          unpaidLeaveDays: Number.isSafeInteger(item.unpaidLeaveDays) ? item.unpaidLeaveDays : 0,
+          unpaidLeaveDeductionPaise: Number.isSafeInteger(item.unpaidLeaveDeductionPaise)
+            ? item.unpaidLeaveDeductionPaise
+            : 0,
           monthlyDeductionsPaise: item.monthlyDeductionsPaise,
           netPayPaise: item.netPayPaise
         }
