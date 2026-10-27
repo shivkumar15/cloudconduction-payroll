@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import {
-  Banknote, CalendarDays, Clock3, Download, LogOut, Receipt, Send, ShieldCheck, UserRound
+  Banknote, CalendarDays, Clock3, Download, Home, LogIn, LogOut, Receipt, Send, ShieldCheck, UserRound
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext.jsx";
@@ -24,6 +24,22 @@ function formatDate(value) {
 
 function responseMessage(error, fallback) {
   return error?.response?.data?.message || fallback;
+}
+
+function formatDateTime(value) {
+  if (!value) return "—";
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime())
+    ? "—"
+    : parsed.toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" });
+}
+
+function addDateOnlyDays(dateOnly, amount) {
+  if (!dateOnly) return "";
+  const value = new Date(dateOnly + "T00:00:00.000Z");
+  if (Number.isNaN(value.getTime())) return "";
+  value.setUTCDate(value.getUTCDate() + amount);
+  return value.toISOString().slice(0, 10);
 }
 
 function csvCell(value) {
@@ -77,6 +93,16 @@ export default function EmployeeDashboard() {
   const [unpaidLeaveDate, setUnpaidLeaveDate] = useState("");
   const [unpaidLeaveReason, setUnpaidLeaveReason] = useState("");
   const [submittingUnpaidLeave, setSubmittingUnpaidLeave] = useState(false);
+  const [wfhRequests, setWfhRequests] = useState([]);
+  const [attendanceRecords, setAttendanceRecords] = useState([]);
+  const [businessDate, setBusinessDate] = useState("");
+  const [loadingWfh, setLoadingWfh] = useState(true);
+  const [wfhError, setWfhError] = useState("");
+  const [wfhMessage, setWfhMessage] = useState("");
+  const [wfhDate, setWfhDate] = useState("");
+  const [wfhReason, setWfhReason] = useState("");
+  const [submittingWfh, setSubmittingWfh] = useState(false);
+  const [attendanceBusy, setAttendanceBusy] = useState("");
 
   useEffect(() => {
     let mounted = true;
@@ -104,6 +130,21 @@ export default function EmployeeDashboard() {
       .then((response) => { if (mounted) setUnpaidLeaveRequests(Array.isArray(response.data.data) ? response.data.data : []); })
       .catch((error) => { if (mounted) setUnpaidLeaveError(responseMessage(error, "Unable to load your unpaid-leave requests.")); })
       .finally(() => { if (mounted) setLoadingLeaveRequests(false); });
+
+    Promise.all([
+      api.get("/wfh/me"),
+      api.get("/attendance/me")
+    ])
+      .then(([wfhResponse, attendanceResponse]) => {
+        if (!mounted) return;
+        setWfhRequests(Array.isArray(wfhResponse.data.data) ? wfhResponse.data.data : []);
+        setAttendanceRecords(Array.isArray(attendanceResponse.data.data) ? attendanceResponse.data.data : []);
+        setBusinessDate(wfhResponse.data.businessDate || attendanceResponse.data.businessDate || "");
+      })
+      .catch((error) => {
+        if (mounted) setWfhError(responseMessage(error, "Unable to load WFH requests or attendance."));
+      })
+      .finally(() => { if (mounted) setLoadingWfh(false); });
 
     return () => { mounted = false; };
   }, []);
@@ -133,6 +174,48 @@ export default function EmployeeDashboard() {
       setUnpaidLeaveError(responseMessage(error, "Unable to submit the unpaid-leave request."));
     } finally {
       setSubmittingUnpaidLeave(false);
+    }
+  }
+
+  async function submitWfhRequest(event) {
+    event.preventDefault();
+    setWfhError("");
+    setWfhMessage("");
+    setSubmittingWfh(true);
+    try {
+      const response = await api.post("/wfh", {
+        date: wfhDate,
+        reason: wfhReason.trim()
+      });
+      const request = response.data.data;
+      setWfhRequests((current) => [request, ...current].sort((a, b) => b.date.localeCompare(a.date)));
+      setWfhDate("");
+      setWfhReason("");
+      setWfhMessage("Your WFH request is pending admin approval. Check-in becomes available only after approval for that date.");
+    } catch (error) {
+      setWfhError(responseMessage(error, "Unable to submit the WFH request."));
+    } finally {
+      setSubmittingWfh(false);
+    }
+  }
+
+  async function recordAttendancePunch(action) {
+    setWfhError("");
+    setWfhMessage("");
+    setAttendanceBusy(action);
+    try {
+      const response = await api.post("/attendance/" + (action === "check-in" ? "check-in" : "check-out"), {});
+      const record = response.data.data;
+      setAttendanceRecords((current) => {
+        const updated = current.filter((entry) => entry.id !== record.id);
+        return [record, ...updated].sort((a, b) => b.date.localeCompare(a.date));
+      });
+      setBusinessDate(response.data.businessDate || businessDate);
+      setWfhMessage(response.data.message || (action === "check-in" ? "Check-in recorded." : "Check-out recorded."));
+    } catch (error) {
+      setWfhError(responseMessage(error, "Unable to record attendance."));
+    } finally {
+      setAttendanceBusy("");
     }
   }
 
@@ -225,6 +308,82 @@ export default function EmployeeDashboard() {
             </div>
           </section>
         )}
+
+        <section className={"no-print mt-6 " + cardClass}>
+          <div className="flex flex-col justify-between gap-3 md:flex-row md:items-start">
+            <div>
+              <h2 className="flex items-center gap-2 text-lg font-semibold"><Home size={20} className="text-indigo-600" aria-hidden="true" /> Work-from-home attendance</h2>
+              <p className="mt-1 max-w-2xl text-sm text-slate-500">Request a date within the next 90 days, wait for admin approval, then check in and out on the approved date. Timestamps come from the server.</p>
+            </div>
+            <div className="rounded-lg bg-indigo-50 px-3 py-2 text-sm font-semibold text-indigo-900">
+              Business date: {businessDate || "Loading…"}
+            </div>
+          </div>
+          {wfhError && <p className="mt-4 rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800" role="alert">{wfhError}</p>}
+          {wfhMessage && <p className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800" role="status">{wfhMessage}</p>}
+          <form onSubmit={submitWfhRequest} className="mt-5 grid gap-4 border-t border-slate-100 pt-5 sm:grid-cols-[minmax(0,1fr)_minmax(0,2fr)_auto] sm:items-end">
+            <label className="block">
+              <span className="mb-1.5 block text-sm font-medium">Requested WFH date</span>
+              <input className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" type="date" required min={businessDate || undefined} max={addDateOnlyDays(businessDate, 90) || undefined} value={wfhDate} onChange={(event) => setWfhDate(event.target.value)} />
+            </label>
+            <label className="block">
+              <span className="mb-1.5 block text-sm font-medium">Reason</span>
+              <input className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" type="text" minLength={3} maxLength={240} required value={wfhReason} onChange={(event) => setWfhReason(event.target.value)} placeholder="Brief reason for working from home" />
+            </label>
+            <button type="submit" disabled={submittingWfh || loadingWfh || !wfhDate || wfhReason.trim().length < 3} className="inline-flex items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50">
+              <Send size={16} aria-hidden="true" /> {submittingWfh ? "Submitting…" : "Request WFH"}
+            </button>
+          </form>
+          <p className="mt-3 text-xs leading-5 text-slate-500">This demo does not verify physical location. WFH attendance is a server-timestamped application record; it is not proof of where an employee is located. A date cannot be simultaneously reserved for WFH and unpaid leave.</p>
+
+          <div className="mt-5 grid gap-5 xl:grid-cols-2">
+            <div>
+              <h3 className="text-sm font-semibold">My WFH requests</h3>
+              {loadingWfh && <p className="mt-3 text-sm text-slate-500" role="status">Loading WFH requests and attendance…</p>}
+              {!loadingWfh && wfhRequests.length === 0 && <p className="mt-3 rounded-lg bg-slate-50 p-4 text-sm text-slate-600">No WFH requests yet.</p>}
+              {!loadingWfh && wfhRequests.length > 0 && <div className="mt-3 overflow-x-auto rounded-xl border border-slate-200">
+                <table className="min-w-full text-left text-sm">
+                  <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500"><tr><th className="px-3 py-2">Date</th><th className="px-3 py-2">Reason</th><th className="px-3 py-2">Status</th><th className="px-3 py-2">Admin note</th></tr></thead>
+                  <tbody className="divide-y divide-slate-100 bg-white">
+                    {wfhRequests.map((request) => <tr key={request.id}>
+                      <td className="whitespace-nowrap px-3 py-2 font-medium">{request.date}</td>
+                      <td className="max-w-xs break-words px-3 py-2">{request.reason}</td>
+                      <td className="px-3 py-2"><StatusBadge status={request.status} /></td>
+                      <td className="max-w-xs break-words px-3 py-2 text-slate-500">{request.decisionNote || "—"}</td>
+                    </tr>)}
+                  </tbody>
+                </table>
+              </div>}
+            </div>
+            <div>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h3 className="text-sm font-semibold">My attendance</h3>
+                <div className="flex gap-2">
+                  <button type="button" className={buttonClass} disabled={loadingWfh || attendanceBusy !== "" || !wfhRequests.some((item) => item.date === businessDate && item.status === "approved") || attendanceRecords.some((item) => item.date === businessDate)} onClick={() => void recordAttendancePunch("check-in")}>
+                    <LogIn size={15} aria-hidden="true" /> {attendanceBusy === "check-in" ? "Checking in…" : "Check in"}
+                  </button>
+                  <button type="button" className={buttonClass} disabled={loadingWfh || attendanceBusy !== "" || !attendanceRecords.some((item) => item.date === businessDate && !item.checkedOutAt)} onClick={() => void recordAttendancePunch("check-out")}>
+                    <LogOut size={15} aria-hidden="true" /> {attendanceBusy === "check-out" ? "Checking out…" : "Check out"}
+                  </button>
+                </div>
+              </div>
+              {attendanceRecords.length === 0 && !loadingWfh && <p className="mt-3 rounded-lg bg-slate-50 p-4 text-sm text-slate-600">No attendance records for this month.</p>}
+              {attendanceRecords.length > 0 && <div className="mt-3 overflow-x-auto rounded-xl border border-slate-200">
+                <table className="min-w-full text-left text-sm">
+                  <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500"><tr><th className="px-3 py-2">Date</th><th className="px-3 py-2">Check in</th><th className="px-3 py-2">Check out</th><th className="px-3 py-2">Status</th></tr></thead>
+                  <tbody className="divide-y divide-slate-100 bg-white">
+                    {attendanceRecords.map((record) => <tr key={record.id}>
+                      <td className="whitespace-nowrap px-3 py-2 font-medium">{record.date}</td>
+                      <td className="whitespace-nowrap px-3 py-2">{formatDateTime(record.checkedInAt)}</td>
+                      <td className="whitespace-nowrap px-3 py-2">{formatDateTime(record.checkedOutAt)}</td>
+                      <td className="px-3 py-2"><StatusBadge status={record.status} />{record.correctedBy && <p className="mt-1 text-xs text-slate-500">Corrected: {record.correctionNote}</p>}</td>
+                    </tr>)}
+                  </tbody>
+                </table>
+              </div>}
+            </div>
+          </div>
+        </section>
 
         <section className={"no-print mt-6 " + cardClass}>
           <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
