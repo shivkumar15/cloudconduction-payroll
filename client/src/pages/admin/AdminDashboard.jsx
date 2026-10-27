@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Activity, ArrowRight, Banknote, LogOut, ShieldCheck, Users, UserCog, Wallet } from "lucide-react";
+import { Activity, ArrowRight, Banknote, CalendarDays, LogOut, ShieldCheck, Users, UserCog, Wallet } from "lucide-react";
 import { Link } from "react-router-dom";
 import api from "../../services/api.js";
 import { useAuth } from "../../contexts/AuthContext.jsx";
@@ -144,7 +144,7 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        <div className="mt-6 grid gap-4 md:grid-cols-2">
+        <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           <article className="rounded-2xl border border-slate-200 bg-white p-6">
             <div className="flex items-start gap-3">
               <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-indigo-50 text-indigo-600"><Wallet size={22} aria-hidden="true" /></span>
@@ -162,6 +162,16 @@ export default function AdminDashboard() {
                 <h2 className="text-lg font-semibold">Employee management</h2>
                 <p className="mt-2 text-sm leading-6 text-slate-600">Create employee records and linked logins, maintain salary inputs, search and filter records, and deactivate/reactivate access.</p>
                 <Link to="/admin/employees" className="mt-4 inline-flex rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">Manage employees</Link>
+              </div>
+            </div>
+          </article>
+          <article className="rounded-2xl border border-slate-200 bg-white p-6">
+            <div className="flex items-start gap-3">
+              <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-amber-50 text-amber-800"><CalendarDays size={22} aria-hidden="true" /></span>
+              <div className="flex-1">
+                <h2 className="text-lg font-semibold">Unpaid-leave approvals</h2>
+                <p className="mt-2 text-sm leading-6 text-slate-600">Review employee leave requests, approve or reject with a decision trail, and resolve pending requests before creating payroll snapshots.</p>
+                <Link to="/admin/unpaid-leave" className="mt-4 inline-flex items-center gap-2 rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">Review requests <ArrowRight size={16} aria-hidden="true" /></Link>
               </div>
             </div>
           </article>
