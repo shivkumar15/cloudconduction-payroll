@@ -1,6 +1,6 @@
 # CloudConduction Payroll — Project Plan & Continuity Handoff
 
-> Handoff updated 2026-10-27: Phase 6.5/6.6 code and CI are green at `328bcb38666b97c1151a1421babf49d7f60c8341`; manual browser smoke tests remain open. Next feature is Phase 6.7 AI Payroll Insights. Do not start Phase 7 until Phase 6 is verified or explicitly deferred.
+> Handoff updated 2026-10-27: implementing feedback fixes for payroll-month calendar reach, grouped unpaid-leave ranges, and employee sidebar navigation. The latest range/calendar/UI commits require GitHub Actions verification; manual browser smoke tests remain open. Do not start Phase 7 until Phase 6 is verified or explicitly deferred.
 
 > This file is the project continuity source of truth. Read it before implementation work. Update status, decisions, completed work, tests and next task after meaningful changes.
 
@@ -18,7 +18,7 @@
 - Simulated payments only.
 - Employment start date is required and validated on employee creation; payroll preview and draft creation enforce period eligibility on the server. Legacy records without this field use `createdAt` as a compatibility fallback; a date is locked after the employee is captured in a saved payroll snapshot.
 - Attendance direction (decided 2026-10-27): support a work-from-home (WFH) request and approval workflow, with employee check-in/check-out only on approved WFH dates. Do not implement office Wi-Fi, office public-IP, or network-matching attendance verification. WFH attendance is an auditable application record, not cryptographic proof of the employee's physical location.
-- Payroll enhancement policy (decided 2026-10-27): fixed monthly deductions remain part of the employee salary structure; approved unpaid-leave deductions are separate variable deductions. For this portfolio demo only, an unpaid-leave request is one explicit date, must be approved, and must fall Monday–Friday. The company holiday calendar and custom employee schedules are not modeled, so admins must exclude company holidays before approval. Per-day rate = (monthly base salary + monthly allowances) divided by the number of Monday–Friday dates in that calendar month. Unpaid-leave deduction is the nearest integer paise to daily rate × approved leave days, calculated with integer-safe arithmetic. Existing fixed deductions are added separately. If combined deductions exceed gross earnings, payroll preview/run creation is blocked for admin resolution instead of producing negative net pay. Pending leave requests must be resolved before a payroll run can be created. Once any payroll run exists for a month, no requests or decisions for that month may be newly created or approved, preserving snapshots. This is an illustrative demo policy, not a statement of Indian statutory payroll compliance.
+- Payroll enhancement policy (updated 2026-10-27): fixed monthly deductions remain part of the employee salary structure; approved unpaid-leave deductions are separate variable deductions. An employee may request a start/end range contained within one payroll month; the server creates one auditable day record for each Monday–Friday date, skips weekends, and links those records so one admin decision approves/rejects the complete range. Public holidays and custom employee schedules are not modeled, so admins must review the selected dates. Per-day rate = (monthly base salary + monthly allowances) divided by the number of Monday–Friday dates in that calendar month. Unpaid-leave deduction is the nearest integer paise to daily rate × approved leave days, calculated with integer-safe arithmetic. Existing fixed deductions are added separately. If combined deductions exceed gross earnings, payroll preview/run creation is blocked for admin resolution instead of producing negative net pay. Pending leave requests must be resolved before a payroll run can be created. Once any payroll run exists for a month, no requests or decisions for that month may be newly created or approved, preserving snapshots; date ranges therefore cannot cross payroll months. This is an illustrative demo policy, not a statement of Indian statutory payroll compliance.
 - AI direction (decided 2026-10-27): start with an admin-only AI Payroll Insights feature using validated, minimum-necessary aggregate data. AI may explain trends and flag areas for human review, but must not calculate authoritative wages, change records, approve payroll, or set transaction status.
 - Mandatory pre-implementation security plan (2026-10-27): review and maintain [docs/SECURITY_AND_ADVERSARIAL_TEST_PLAN.md](SECURITY_AND_ADVERSARIAL_TEST_PLAN.md) before implementing payroll adjustments, WFH attendance, or AI insights. It includes employee abuse scenarios, authorization/data-integrity tests, AI-abuse cases, environment rules, and release gates. These are planned tests, not results already achieved.
 - Use Zod validation, secure authentication, role-based access control, tests, clear setup steps and good documentation.
@@ -35,7 +35,7 @@
 ### Employee
 - Secure self-service dashboard, own profile and salary history.
 - Earnings, bonuses, deductions, net pay, payroll periods and payslips.
-- Planned: submit date-specific WFH requests and check in/check out only for approved WFH dates.
+- Submit WFH requests and check in/check out only for approved WFH dates; use sidebar sections to navigate between overview, attendance, leave, payslips and transactions.
 - Server-side ownership checks: employees must not access another employee's records by changing IDs.
 ### Payroll and transactions
 - Currency as integer minor units (INR paise), not floating-point rupees.
@@ -298,18 +298,18 @@ Expected: frontend `http://localhost:5173`; health endpoint `http://localhost:50
 These additions are a planned scope decision, not a claim that the features already exist. Finish the remaining Phase 6 browser checks first; only then implement these increments in order.
 
 ### Phase 6.5 — recurring deductions, unpaid leave and payroll adjustments
-- [x] Decide the demo unpaid-leave policy before coding (2026-10-27): one explicit Monday–Friday date per request; admin approval required; monthly divisor is the count of Monday–Friday dates in that month (company holidays/custom schedules are not modeled); daily rate uses base salary plus monthly allowances; rounding is to nearest integer paise; fixed deductions are separate.
-- [x] Employee self-service request creation and own-request history; admin filter/list, approve/reject and decision notes are implemented with validation and audit metadata.
+- [x] Unpaid-leave policy: same-month start/end range; each Monday–Friday date becomes a day-level request linked to one group; weekends are skipped; one admin decision approves/rejects the entire group; company holidays/custom schedules are not modeled. Monthly divisor is Monday–Friday count, daily rate uses base salary plus allowances, rounding is integer-safe, and fixed deductions are separate.
+- [x] Employee self-service date-range request creation and grouped own-request history; admin filter/list shows one row per range and approve/reject decisions update the complete group with notes and audit metadata. Existing single-date API remains compatible.
 - [x] Pending requests do not create deductions and block payroll-run creation until resolved.
 - [x] New requests and decisions are blocked after a payroll run exists for the period. Shared per-employee/date reservations prevent conflicting unpaid-leave and WFH requests; rejection releases the reservation.
 - [x] Payroll preview, draft snapshot, admin run detail, employee history, CSV export and payslip break out fixed monthly deductions and approved unpaid-leave day count/deduction.
 - [x] Integer-safe calculation is tested; if fixed plus unpaid-leave deductions exceed gross pay, preview/run creation fails closed instead of creating negative net pay.
 - [x] WFH days are not inferred to be unpaid leave. Attendance never causes a deduction; only explicit approved leave requests affect payroll.
-- [ ] Manual browser smoke test for request, approval/rejection, pending gate, calculation, period lock and payslip breakdown.
+- [x] Unit and MongoDB integration coverage added for range validation, weekday expansion, grouped approval, and payroll deduction counts. [ ] Manual browser smoke test for request, approval/rejection, pending gate, calculation, period lock and payslip breakdown.
 - Note: this deterministic formula is for the portfolio demo only and is not a claim of statutory payroll/legal compliance. Unit/API tests, a disposable MongoDB integration test, and the frontend production build passed CI at commit `328bcb38666b97c1151a1421babf49d7f60c8341`.
 
 ### Phase 6.6 — WFH-only attendance MVP
-- [x] Policy selected: one explicit date per WFH request, today through the next 90 days in the Asia/Kolkata business timezone; past requests, half-days and date ranges are unsupported.
+- [x] WFH requests cover one explicit date from today through the next 365 days in the Asia/Kolkata business timezone; past dates remain disallowed. (The calendar had capped selectable dates at 90 days, which blocked some future months such as February; widened to one year.)
 - [x] Employee self-service request creation and history; admin list/filter and approve/reject with decision notes and audit metadata.
 - [x] Employee check-in/out requires an approved WFH request for the current India business date. Server-generated timestamps are authoritative; client-supplied punch times, employee IDs and extra fields are rejected.
 - [x] One attendance record per employee/date is enforced by a unique database index. A shared per-employee/date reservation prevents WFH and unpaid leave from claiming the same date; rejected requests release the reservation.
@@ -330,6 +330,12 @@ These additions are a planned scope decision, not a claim that the features alre
 ### Phase 7 — quality and release
 - Begin release hardening after the remaining Phase 6 smoke tests and the planned payroll-adjustment, WFH-attendance and AI-insights scope have either been implemented and verified or explicitly deferred.
 - Reconcile the older Phase 7 checklist below with the actual current repository and CI rather than repeating work that is already complete.
+
+## Latest user feedback and implementation (2026-10-27)
+- Payroll calendar/WFH date selection: expanded the allowable future WFH window from 90 to 365 days so future months, including February, can be selected. Server-side payroll-period locks still apply: a month with an existing payroll run is intentionally locked; completing January should not by itself lock February.
+- Unpaid leave: added a same-payroll-month date-range request endpoint, expanded into weekday-level records and one group-level admin decision. Payroll continues to count approved day records, so saved snapshots are not recalculated.
+- Employee UX: added responsive sidebar-style navigation (mobile horizontal menu) for Overview, WFH & attendance, Unpaid leave, Payslips and Transactions, while keeping the profile/salary summary above the content.
+- These changes are not yet verified by GitHub Actions. Manual browser verification also remains outstanding; do not mark them tested before the workflow and UI smoke tests pass.
 
 ## Immediate next task
 1. [x] User confirmed in the browser on 2026-10-26 that the employment-start-date fix works. Keep existing October/November finalized snapshots unchanged.
