@@ -203,7 +203,7 @@ export async function correctAttendanceCheckout(req, res, next) {
       });
     }
     const checkInDate = record.date.toISOString().slice(0, 10);
-    if (getIndiaBusinessDate(correctedCheckout) !== checkInDate || correctedCheckout.toISOString().slice(0, 10) < checkInDate) {
+    if (getIndiaBusinessDate(correctedCheckout) !== checkInDate) {
       return res.status(400).json({
         success: false,
         message: "Corrected check-out must fall on the same India business date as the original check-in"
