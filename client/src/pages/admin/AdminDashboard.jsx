@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Activity, ArrowRight, Banknote, CalendarDays, LogOut, ShieldCheck, Users, UserCog, Wallet } from "lucide-react";
+import { Activity, ArrowRight, Banknote, CalendarDays, ClipboardCheck, LogOut, ShieldCheck, Users, UserCog, Wallet } from "lucide-react";
 import { Link } from "react-router-dom";
 import api from "../../services/api.js";
 import { useAuth } from "../../contexts/AuthContext.jsx";
@@ -172,6 +172,16 @@ export default function AdminDashboard() {
                 <h2 className="text-lg font-semibold">Unpaid-leave approvals</h2>
                 <p className="mt-2 text-sm leading-6 text-slate-600">Review employee leave requests, approve or reject with a decision trail, and resolve pending requests before creating payroll snapshots.</p>
                 <Link to="/admin/unpaid-leave" className="mt-4 inline-flex items-center gap-2 rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">Review requests <ArrowRight size={16} aria-hidden="true" /></Link>
+              </div>
+            </div>
+          </article>
+          <article className="rounded-2xl border border-slate-200 bg-white p-6">
+            <div className="flex items-start gap-3">
+              <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-indigo-50 text-indigo-700"><ClipboardCheck size={22} aria-hidden="true" /></span>
+              <div className="flex-1">
+                <h2 className="text-lg font-semibold">WFH & attendance</h2>
+                <p className="mt-2 text-sm leading-6 text-slate-600">Approve work-from-home requests, review server-timestamped attendance, and record an audited correction for a missed check-out.</p>
+                <Link to="/admin/wfh" className="mt-4 inline-flex items-center gap-2 rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">Review attendance <ArrowRight size={16} aria-hidden="true" /></Link>
               </div>
             </div>
           </article>
