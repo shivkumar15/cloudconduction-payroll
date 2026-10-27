@@ -38,12 +38,12 @@ test("India business date uses Asia/Kolkata rather than the host timezone", () =
   assert.equal(getIndiaBusinessDate(new Date("2026-10-27T18:30:00.000Z")), "2026-10-28");
 });
 
-test("WFH request window includes today and day 90, but rejects past and day 91", () => {
-  assert.equal(addDateOnlyDays("2026-10-27", 90), "2027-01-25");
+test("WFH request window includes today and day 365, but rejects past and day 366", () => {
+  assert.equal(addDateOnlyDays("2026-10-27", 365), "2027-10-27");
   assert.equal(isWfhRequestDateAllowed("2026-10-27", "2026-10-27"), true);
-  assert.equal(isWfhRequestDateAllowed("2027-01-25", "2026-10-27"), true);
+  assert.equal(isWfhRequestDateAllowed("2027-10-27", "2026-10-27"), true);
   assert.equal(isWfhRequestDateAllowed("2026-10-26", "2026-10-27"), false);
-  assert.equal(isWfhRequestDateAllowed("2027-01-26", "2026-10-27"), false);
+  assert.equal(isWfhRequestDateAllowed("2027-10-28", "2026-10-27"), false);
   assert.equal(isWfhRequestDateAllowed("2026-02-30", "2026-02-01"), false);
   assert.throws(() => addDateOnlyDays("2026-02-30", 1), /real YYYY-MM-DD/);
 });
