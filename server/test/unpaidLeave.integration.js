@@ -268,6 +268,10 @@ test("MongoDB unpaid-leave workflow enforces ownership, admin decisions, payroll
     assert.equal(preview.items.find((item) => item.employeeCode === employeeCode).unpaidLeaveDays, 1);
     assert.equal(preview.items.find((item) => item.employeeCode === employeeCode).unpaidLeaveDeductionPaise,
       Math.round(2_800_000 / getWorkingDaysInPeriod(period)));
+    const rangeEmployeePreview = preview.items.find((item) => item.employeeCode === secondCode);
+    assert.equal(rangeEmployeePreview.unpaidLeaveDays, 3);
+    assert.equal(rangeEmployeePreview.unpaidLeaveDeductionPaise,
+      Math.round((2_800_000 * 3) / getWorkingDaysInPeriod(period)));
 
     const createWhilePending = await request(baseUrl, "/api/payroll/runs", {
       method: "POST", cookie: adminCookie, body: { period }
@@ -294,12 +298,23 @@ test("MongoDB unpaid-leave workflow enforces ownership, admin decisions, payroll
     assert.equal(item.unpaidLeaveDeductionPaise, leaveDeduction);
     assert.equal(item.monthlyDeductionsPaise, 200_000 + leaveDeduction);
     assert.equal(item.netPayPaise, 2_800_000 - 200_000 - leaveDeduction);
+    const rangeEmployeeRunItem = run.items.find((entry) => entry.employeeCode === secondCode);
+    assert.equal(rangeEmployeeRunItem.unpaidLeaveDays, 3);
+    assert.equal(rangeEmployeeRunItem.unpaidLeaveDeductionPaise,
+      Math.round((2_800_000 * 3) / getWorkingDaysInPeriod(period)));
 
     const afterSnapshotRequest = await request(baseUrl, "/api/unpaid-leave", {
       method: "POST", cookie: secondCookie, body: { date: dates[2], reason: "Too late for snapshot" }
     });
     assert.equal(afterSnapshotRequest.status, 409);
     assert.equal((await afterSnapshotRequest.json()).code, "PAYROLL_PERIOD_LOCKED");
+    const rangeAfterSnapshotRequest = await request(baseUrl, "/api/unpaid-leave/range", {
+      method: "POST",
+      cookie: secondCookie,
+      body: { startDate: dates[4], endDate: dates[6], reason: "Try after snapshot" }
+    });
+    assert.equal(rangeAfterSnapshotRequest.status, 409);
+    assert.equal((await rangeAfterSnapshotRequest.json()).code, "PAYROLL_PERIOD_LOCKED");
 
     const leaveAfterSnapshotApproval = await request(baseUrl, "/api/unpaid-leave/" + first.id + "/approve", {
       method: "POST", cookie: adminCookie, body: {}
