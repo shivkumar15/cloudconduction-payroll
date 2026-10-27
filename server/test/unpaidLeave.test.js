@@ -7,11 +7,13 @@ import { buildPayrollSnapshot } from "../src/services/payrollService.js";
 import {
   calculateUnpaidLeaveDeductionPaise,
   getPayrollPeriodBounds,
+  getWeekdayDatesInRange,
   getWorkingDaysInPeriod,
   parsePayrollPeriod
 } from "../src/services/unpaidLeaveService.js";
 import {
   createUnpaidLeaveRequestSchema,
+  createUnpaidLeaveRangeRequestSchema,
   rejectUnpaidLeaveSchema,
   unpaidLeaveListQuerySchema
 } from "../src/validators/unpaidLeaveSchemas.js";
@@ -134,6 +136,35 @@ test("unpaid-leave request validation accepts explicit weekdays and rejects week
   }).success, false);
   assert.equal(rejectUnpaidLeaveSchema.safeParse({ decisionNote: "Policy not met" }).success, true);
   assert.equal(rejectUnpaidLeaveSchema.safeParse({ decisionNote: "" }).success, false);
+});
+
+test("unpaid-leave date ranges expand weekdays and reject invalid or cross-month ranges", () => {
+  assert.deepEqual(getWeekdayDatesInRange("2026-11-06", "2026-11-10"), [
+    "2026-11-06",
+    "2026-11-09",
+    "2026-11-10"
+  ]);
+  assert.equal(createUnpaidLeaveRangeRequestSchema.safeParse({
+    startDate: "2026-11-06",
+    endDate: "2026-11-10",
+    reason: "Medical leave"
+  }).success, true);
+  assert.equal(createUnpaidLeaveRangeRequestSchema.safeParse({
+    startDate: "2026-11-30",
+    endDate: "2026-12-02",
+    reason: "Medical leave"
+  }).success, false);
+  assert.equal(createUnpaidLeaveRangeRequestSchema.safeParse({
+    startDate: "2026-11-10",
+    endDate: "2026-11-09",
+    reason: "Medical leave"
+  }).success, false);
+  assert.equal(createUnpaidLeaveRangeRequestSchema.safeParse({
+    startDate: "2026-11-07",
+    endDate: "2026-11-08",
+    reason: "Weekend leave"
+  }).success, false);
+  assert.throws(() => getWeekdayDatesInRange("2026-11-30", "2026-12-02"), /one payroll month/);
 });
 
 test("unpaid-leave filters bound pagination and reject unknown fields", () => {
