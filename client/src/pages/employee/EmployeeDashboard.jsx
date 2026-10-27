@@ -260,6 +260,25 @@ export default function EmployeeDashboard() {
     downloadCsv("my-simulated-transaction-history.csv", rows);
   }
 
+  const displayedUnpaidLeaveRequests = unpaidLeaveRequests.filter((request, index, all) => {
+    const groupKey = request.requestGroupId ? "group:" + request.requestGroupId : "single:" + request.id;
+    return all.findIndex((other) => (
+      (other.requestGroupId ? "group:" + other.requestGroupId : "single:" + other.id) === groupKey
+    )) === index;
+  });
+  const navigationItems = [
+    { id: "overview", label: "Overview", icon: LayoutDashboard },
+    { id: "wfh", label: "WFH & attendance", icon: Home },
+    { id: "leave", label: "Unpaid leave", icon: CalendarDays },
+    { id: "payslips", label: "Payslips", icon: Receipt },
+    { id: "transactions", label: "Transactions", icon: Clock3 }
+  ];
+  const validLeaveRange = Boolean(
+    unpaidLeaveStartDate && unpaidLeaveEndDate &&
+    unpaidLeaveStartDate <= unpaidLeaveEndDate &&
+    unpaidLeaveStartDate.slice(0, 7) === unpaidLeaveEndDate.slice(0, 7)
+  );
+
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
       <header className="no-print border-b border-slate-200 bg-white">
@@ -314,7 +333,60 @@ export default function EmployeeDashboard() {
           </section>
         )}
 
-        <section className={"no-print mt-6 " + cardClass}>
+        <div className="mt-6 grid gap-6 lg:grid-cols-[230px_minmax(0,1fr)]">
+          <aside className="no-print rounded-2xl border border-slate-200 bg-white p-3 shadow-sm lg:sticky lg:top-6 lg:self-start">
+            <p className="px-3 pb-2 pt-1 text-xs font-bold uppercase tracking-wider text-slate-400">Workspace</p>
+            <nav aria-label="Employee workspace" className="flex gap-1 overflow-x-auto lg:flex-col">
+              {navigationItems.map((item) => {
+                const ItemIcon = item.icon;
+                const selected = activeSection === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setActiveSection(item.id)}
+                    aria-current={selected ? "page" : undefined}
+                    className={"flex min-w-max items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-semibold transition lg:w-full " +
+                      (selected ? "bg-indigo-50 text-indigo-700 ring-1 ring-indigo-100" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900")}
+                  >
+                    <ItemIcon size={18} aria-hidden="true" />
+                    <span>{item.label}</span>
+                  </button>
+                );
+              })}
+            </nav>
+            <div className="mt-4 hidden rounded-xl bg-slate-50 p-3 text-xs leading-5 text-slate-500 lg:block">
+              Choose a section to view requests, attendance, payslips or transaction records without a long scroll.
+            </div>
+          </aside>
+
+          <div className="min-w-0">
+            {activeSection === "overview" && (
+              <section className={"no-print " + cardClass}>
+                <p className="text-sm font-semibold text-indigo-600">AT A GLANCE</p>
+                <h2 className="mt-2 text-xl font-bold">Welcome to your workspace</h2>
+                <p className="mt-1 text-sm text-slate-600">Your profile and monthly salary summary stay visible above. Select a section from the menu to manage requests or review your records.</p>
+                <div className="mt-5 grid gap-3 sm:grid-cols-3">
+                  <div className="rounded-xl bg-slate-50 p-4">
+                    <p className="text-xs uppercase tracking-wide text-slate-500">Finalized payslips</p>
+                    <p className="mt-2 text-2xl font-bold">{payrollHistory.length}</p>
+                    <button type="button" onClick={() => setActiveSection("payslips")} className="mt-2 text-sm font-semibold text-indigo-700 hover:underline">View payslips</button>
+                  </div>
+                  <div className="rounded-xl bg-slate-50 p-4">
+                    <p className="text-xs uppercase tracking-wide text-slate-500">Pending unpaid leave groups</p>
+                    <p className="mt-2 text-2xl font-bold">{displayedUnpaidLeaveRequests.filter((request) => request.status === "pending").length}</p>
+                    <button type="button" onClick={() => setActiveSection("leave")} className="mt-2 text-sm font-semibold text-indigo-700 hover:underline">Manage leave requests</button>
+                  </div>
+                  <div className="rounded-xl bg-slate-50 p-4">
+                    <p className="text-xs uppercase tracking-wide text-slate-500">Pending WFH requests</p>
+                    <p className="mt-2 text-2xl font-bold">{wfhRequests.filter((request) => request.status === "pending").length}</p>
+                    <button type="button" onClick={() => setActiveSection("wfh")} className="mt-2 text-sm font-semibold text-indigo-700 hover:underline">Open WFH & attendance</button>
+                  </div>
+                </div>
+              </section>
+            )}
+
+        <section className={"no-print mt-6 " + cardClass + (activeSection === "wfh" ? "" : " hidden")}>
           <div className="flex flex-col justify-between gap-3 md:flex-row md:items-start">
             <div>
               <h2 className="flex items-center gap-2 text-lg font-semibold"><Home size={20} className="text-indigo-600" aria-hidden="true" /> Work-from-home attendance</h2>
