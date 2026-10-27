@@ -32,7 +32,7 @@ A portfolio-focused MERN payroll management application. The initial scaffold in
 - Payroll is simulated only; do not use this starter to process real payroll or hold real employee financial data without a formal security/compliance review.
 
 ## Project continuity plan
-See [`docs/PROJECT_PLAN.md`](docs/PROJECT_PLAN.md) for the full roadmap, security checklist, acceptance criteria, and instructions for resuming in future sessions.
+See [`docs/PROJECT_PLAN.md`](docs/PROJECT_PLAN.md) for the full roadmap and acceptance criteria. Review [`docs/SECURITY_AND_ADVERSARIAL_TEST_PLAN.md`](docs/SECURITY_AND_ADVERSARIAL_TEST_PLAN.md) before implementing or testing payroll adjustments, WFH attendance, or AI insights.
 
 ## Current capabilities
 - Foundation: React/Vite/Tailwind dashboard and Express/Mongoose API health endpoint.
@@ -44,6 +44,8 @@ See [`docs/PROJECT_PLAN.md`](docs/PROJECT_PLAN.md) for the full roadmap, securit
 - Phase 3 employee management: employee model, salary-structure validation, admin CRUD/deactivation APIs, pagination/search/filtering, employee login provisioning, and employee self-service profile API/UI are implemented. A MongoDB-backed API lifecycle integration test is included. GitHub Actions run 110 passed the current password-change/test/build code at commit `4536cc44`; run local checks after pulling the latest documentation/env examples, and complete the browser smoke test.
 - Phase 4 payroll backend: integer-paise monthly salary calculations, payroll preview, salary snapshots, one run per month, admin approval/finalization, and employee-only finalized pay history.
 - Phase 5 simulated transactions: idempotent simulated payment records, selectable failure scenarios for testing, recorded retry attempts, admin transaction listing/detail, and employee-only finalized transaction history. No money is transferred.
+- Phase 6.5 unpaid-leave workflow (initial implementation): an employee can submit one Monday–Friday unpaid-leave request for a specific date; an admin can approve/reject it with an audit trail. Pending requests block payroll-run creation, and existing payroll periods cannot accept new requests/decisions.
+- Payroll preview/snapshots now separate fixed monthly deductions from approved unpaid-leave deductions, show approved leave days and explain total deductions on the employee payslip. Calculations use integer INR paise and fail closed if deductions exceed gross pay. This is a demo policy; public holidays/custom work schedules and statutory payroll rules are not modeled.
 
 
 
@@ -52,11 +54,14 @@ See [`docs/PROJECT_PLAN.md`](docs/PROJECT_PLAN.md) for the full roadmap, securit
 This portfolio demo uses a deliberately simplified monthly formula:
 
 - Gross pay = base salary + monthly allowances.
-- Net pay = gross pay - monthly deductions.
-- All amounts are integer INR paise. API clients must not send calculated gross/net values; the server calculates them from stored employee salary structures.
+- Fixed monthly deductions remain a recurring employee salary component. Total deductions = fixed monthly deductions + approved unpaid-leave deduction.
+- Demo unpaid-leave policy: one explicitly requested and admin-approved Monday–Friday date is one unpaid-leave day. The monthly divisor is the number of Monday–Friday dates in that calendar month; the day rate is monthly base salary plus allowances divided by that divisor. The deduction is rounded to the nearest integer paise with integer-safe arithmetic.
+- Public holidays and custom employee work schedules are not modeled. Admins must exclude company holidays before approval; this policy is illustrative and is not a claim of statutory/Indian payroll compliance.
+- Pending unpaid-leave requests must be resolved before a payroll run can be created. If combined fixed and unpaid-leave deductions exceed gross earnings, preview/run creation is blocked for review instead of producing negative net pay.
+- All amounts are integer INR paise. API clients must not send calculated gross/net values; the server calculates them from stored employee salary structures and approved leave records.
 - Only active employees are included when a payroll run is created. Employee salary/name/department fields are snapshotted into the run, so later profile edits do not silently rewrite a previously created payroll period.
 - A period uses YYYY-MM format. Only one payroll run is allowed per period. The admin flow is draft → approved → finalized; finalization records an immutable payroll snapshot for the employee's own pay-history endpoint.
-- This demo formula does not calculate income tax, EPF, statutory deductions, overtime, bonuses or unpaid-leave proration. It is not a legal/tax-compliant payroll engine and does not transfer money.
+- This demo formula does not calculate income tax, EPF, statutory deductions, overtime, bonuses, public-holiday calendars, custom employee schedules or other statutory adjustments. Its simple unpaid-leave rule is only for demonstrating software behavior. It is not a legal/tax-compliant payroll engine and does not transfer money.
 
 Payroll API endpoints:
 - GET /api/payroll?period=YYYY-MM — list payroll runs (admin).
@@ -71,6 +76,12 @@ Payroll API endpoints:
 - POST /api/transactions/:id/retry — retry a failed simulated record without creating a duplicate (admin).
 - GET /api/transactions/me — own transaction history once payroll is finalized (employee).
 - GET /api/payroll/me — read only the authenticated employee's finalized item.
+- POST /api/unpaid-leave with { "date": "YYYY-MM-DD", "reason": "..." } — submit one unpaid-leave weekday for the authenticated employee (employee only; request starts pending).
+- GET /api/unpaid-leave/me — list the authenticated employee's own requests.
+- GET /api/unpaid-leave?period=YYYY-MM&status=pending — list requests with bounded pagination (admin).
+- POST /api/unpaid-leave/:id/approve — approve a pending request (admin; empty JSON body).
+- POST /api/unpaid-leave/:id/reject with { "decisionNote": "..." } — reject with a required reason (admin).
+- Employee WFH requests/attendance and AI Payroll Insights are planned future increments; office network matching is explicitly out of scope.
 
 ## Password change and temporary employee passwords
 
