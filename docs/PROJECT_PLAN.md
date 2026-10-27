@@ -18,6 +18,7 @@
 - Attendance direction (decided 2026-10-27): support a work-from-home (WFH) request and approval workflow, with employee check-in/check-out only on approved WFH dates. Do not implement office Wi-Fi, office public-IP, or network-matching attendance verification. WFH attendance is an auditable application record, not cryptographic proof of the employee's physical location.
 - Payroll enhancement direction (decided 2026-10-27): separate recurring fixed salary deductions from monthly variable adjustments, including approved unpaid-leave deductions. Define and document the unpaid-leave divisor/policy before implementing calculations; all final amounts remain deterministic server-side calculations.
 - AI direction (decided 2026-10-27): start with an admin-only AI Payroll Insights feature using validated, minimum-necessary aggregate data. AI may explain trends and flag areas for human review, but must not calculate authoritative wages, change records, approve payroll, or set transaction status.
+- Mandatory pre-implementation security plan (2026-10-27): review and maintain [docs/SECURITY_AND_ADVERSARIAL_TEST_PLAN.md](SECURITY_AND_ADVERSARIAL_TEST_PLAN.md) before implementing payroll adjustments, WFH attendance, or AI insights. It includes employee abuse scenarios, authorization/data-integrity tests, AI-abuse cases, environment rules, and release gates. These are planned tests, not results already achieved.
 - Use Zod validation, secure authentication, role-based access control, tests, clear setup steps and good documentation.
 - Maintain this plan as a continuity file; do not restart completed work.
 
@@ -323,8 +324,9 @@ These additions are a planned scope decision, not a claim that the features alre
 1. [x] User confirmed in the browser on 2026-10-26 that the employment-start-date fix works. Keep existing October/November finalized snapshots unchanged.
 2. Continue Phase 6 browser smoke test in order: first run the all-success flow on an unused period (prefer 2026-12 if no saved run exists), then the failure/retry flow on a separate unused period (prefer 2027-01 if no saved run exists), and finally verify linked employee finalized history, transaction history and print/Save-as-PDF payslip.
 3. The fixed, animated payroll toast UI is committed; GitHub Actions run `40382964844` passed API tests, both MongoDB integration tests and the frontend production build.
-4. After Phase 6's browser smoke test is complete, implement the approved roadmap increments in order: monthly payroll adjustments/unpaid leave (policy first), WFH-only attendance, then admin AI Payroll Insights.
-5. Defer Phase 7 release hardening until those increments are verified or explicitly deferred. Preserve the non-blocking Vite >500 kB bundle warning as a possible code-splitting task. SMTP delivery and forgot-password reset are already locally verified; never commit SMTP credentials or share OTPs.
+4. Before new feature code, review [docs/SECURITY_AND_ADVERSARIAL_TEST_PLAN.md](SECURITY_AND_ADVERSARIAL_TEST_PLAN.md) and settle the open policy decisions in Section 4 (especially unpaid-leave divisor, overlap rules, request windows, snapshot locks, and AI data/provider limits).
+5. After Phase 6's browser smoke test is complete and the policies are agreed, implement the roadmap increments in order: monthly payroll adjustments/unpaid leave, WFH-only attendance, then admin AI Payroll Insights. Add the relevant adversarial tests with each feature; never postpone the test suite until the end.
+6. Defer Phase 7 release hardening until those increments are verified or explicitly deferred. Preserve the non-blocking Vite >500 kB bundle warning as a possible code-splitting task. SMTP delivery and forgot-password reset are already locally verified; never commit SMTP credentials or share OTPs.
 
 ## Future-session resume instructions
 Paste/upload this file and say:
