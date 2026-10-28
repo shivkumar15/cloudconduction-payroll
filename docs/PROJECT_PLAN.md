@@ -1,6 +1,6 @@
 # CloudConduction Payroll — Project Plan & Continuity Handoff
 
-> Handoff updated 2026-10-27: Phase 6 is verified. The user reports that the remaining browser regression checks passed (admin grouped leave approval/rejection and period lock, WFH attendance, and final browser regression). GitHub Actions run #289 passed 63 unit/API tests, 4 MongoDB-backed integration tests, and the frontend production build at commit `8cbd8da`. Phase 7 has not started. AI Payroll Insights was explicitly deferred from the current deliverable and must not be described as shipped.
+> Handoff updated 2026-10-28: Phase 6 is verified from passing CI and user-reported browser regression. Phase 7 release hardening has started: the repository now includes a guarded authenticated API performance harness and a security release checklist. The benchmark has not yet been run against the user's local server, so no new API performance result is claimed. AI Payroll Insights remains deferred.
 
 > This file is the project continuity source of truth. Read it before implementation work. Update status, decisions, completed work, tests and next task after meaningful changes.
 
@@ -222,18 +222,19 @@ Apply role/ownership rules to all endpoints. Enforce all state transitions and m
 - [x] User completed the Phase 6 browser regression on 2026-10-27 using the app's synthetic/demo records: payslip viewing/downloading/printing; employee payroll and transaction history, CSV export and privacy; employee sidebar and date-range leave submission; admin grouped leave approval/rejection and payroll-period lock; WFH request/approval/attendance; and final browser regression (user-reported passed).
 - [x] Latest GitHub Actions run [#289](https://github.com/shivkumar15/cloudconduction-payroll/actions/runs/40512451738) passed 63 unit/API tests, all 4 MongoDB-backed integration tests, and the frontend production build at commit `8cbd8da`.
 - Acceptance: met for Phase 6. Simulation-only wording, server-side authorization/state gates and automated CI checks are in place; manual browser smoke results are user-reported, not independently observed by the assistant.
-### Phase 7 — quality and release
-- [ ] Unit and API integration suite.
-- [x] Bounded concurrency smoke-test script (default 25 concurrent workers / 250 health requests).
-- [x] User ran local health-endpoint smoke test: target `http://127.0.0.1:5001/api/health`; 250 requests; concurrency 25; 250 succeeded; 0 failed/non-2xx; elapsed 212 ms; measured throughput 1,177.3 requests/second; p50 11.7 ms, p95 46.7 ms, p99 60.1 ms.
-- [ ] Add authenticated API performance test with synthetic employees/payroll after those features exist.
-- [ ] Client production build/lint.
-- [ ] Security regression checklist.
-- [ ] Seed script with obviously synthetic data.
-- [ ] CI workflow for tests and build.
-- [ ] README setup, screenshots, demo instructions and resume summary.
-- [ ] Deployment configuration/envs, health checks and log review.
-- Acceptance: clean-clone process works, no secrets/real PII, known limitations documented.
+### Phase 7 — quality and release (started 2026-10-28)
+- [x] Unit/API test suite and MongoDB integration suite are run by GitHub Actions; run #289 passed 63 unit/API tests and 4 database-backed integration tests.
+- [x] Bounded concurrency health-endpoint smoke-test script (default 25 concurrent workers / 250 requests).
+- [x] Historical local health-endpoint smoke result recorded: `http://127.0.0.1:5001/api/health`; 250 requests; concurrency 25; 250 successful, 0 failed/non-2xx; elapsed 212 ms; throughput 1,177.3 req/s; p50 11.7 ms, p95 46.7 ms, p99 60.1 ms. This tests only the health endpoint, not payroll capacity.
+- [x] Added guarded authenticated API performance harness at `server/src/scripts/authenticatedApiTest.js`, exposed as `npm run test:api-perf`. It measures employee/payroll/transaction list endpoints and non-persisting payroll preview using bounded iterations/concurrency and remote-target safeguards.
+- [ ] Run the authenticated benchmark locally using a dedicated synthetic admin/test account; record measured endpoint latency and failure counts. The benchmark has not been run by the assistant because the local server and admin credentials are not available here.
+- [x] Added `docs/PHASE_7_SECURITY_RELEASE_CHECKLIST.md` covering secrets/env, access control, payroll invariants, leave/WFH, CI, dependency checks and deployment release gates.
+- [x] CI workflow now includes a Node syntax check for the authenticated performance harness, alongside API tests, MongoDB integration tests, and the frontend build; the current Phase 7 commit's CI result must be confirmed before marking this gate passed.
+- [x] README documents Phase 7 verification commands and safe usage of the authenticated benchmark.
+- [ ] Add a client lint/static-analysis command; none is currently configured.
+- [ ] Add or document an explicitly synthetic seed workflow if still needed; never seed a production database.
+- [ ] Review deployment configuration, environment settings, HTTPS, health checks, logs and backup/restore steps.
+- Acceptance: clean-clone process is repeatable, no secrets/real PII, benchmark scope/results are documented honestly, security release gates are reviewed, and known demo limitations remain explicit.
 
 ## Local commands (current scaffold)
 ```bash
@@ -296,7 +297,7 @@ Expected: frontend `http://localhost:5173`; health endpoint `http://localhost:50
 
 ## Approved roadmap additions before Phase 7 (status reconciled 2026-10-27)
 
-These additions are a planned scope decision, not a claim that the features already exist. Finish the remaining Phase 6 browser checks first; only then implement these increments in order.
+These roadmap additions have been reconciled against the current repository as of 2026-10-28. Phase 6 is complete. Phase 6.5/6.6 are implemented and verified; AI Payroll Insights is explicitly deferred.
 
 ### Phase 6.5 — recurring deductions, unpaid leave and payroll adjustments
 - [x] Unpaid-leave policy: same-month start/end range; each Monday–Friday date becomes a day-level request linked to one group; weekends are skipped; one admin decision approves/rejects the entire group; company holidays/custom schedules are not modeled. Monthly divisor is Monday–Friday count, daily rate uses base salary plus allowances, rounding is integer-safe, and fixed deductions are separate.
@@ -326,8 +327,8 @@ These additions are a planned scope decision, not a claim that the features alre
 - [ ] No AI Payroll Insights feature is claimed as shipped or verified in the current release. Reconsider only as a separately approved roadmap item after release hardening; review the security/adversarial plan before any implementation.
 
 ### Phase 7 — quality and release
-- Begin release hardening after the remaining Phase 6 smoke tests and the planned payroll-adjustment, WFH-attendance and AI-insights scope have either been implemented and verified or explicitly deferred.
-- Reconcile the older Phase 7 checklist below with the actual current repository and CI rather than repeating work that is already complete.
+- Release hardening started on 2026-10-28 after Phase 6 verification. AI Payroll Insights is explicitly deferred; unpaid-leave and WFH attendance workflows are implemented and covered by automated tests and user-reported browser checks.
+- Reconcile the checklist with the actual repository and CI rather than repeating completed work. Do not claim production readiness from CI or bounded local benchmarks alone.
 
 ## Latest user feedback and implementation (2026-10-27)
 - Payroll calendar/WFH date selection: expanded the allowable future WFH window from 90 to 365 days so future months, including February, can be selected. Server-side payroll-period locks still apply: a month with an existing payroll run is intentionally locked; completing January should not by itself lock February.
@@ -336,10 +337,12 @@ These additions are a planned scope decision, not a claim that the features alre
 - Latest verification completed 2026-10-27: GitHub Actions run #289 passed 63 unit/API tests, 4 MongoDB-backed integration tests, and the frontend build. The user reported the remaining browser regression checks passed. Phase 6 is marked verified; AI Payroll Insights is deferred.
 
 ## Immediate next task
-1. [x] User-confirmed browser regression passed on 2026-10-27: employee payslips, downloads/printing, payroll/transaction history and CSV export/privacy, employee navigation and date-range leave submission, admin grouped leave approval/rejection and period lock, WFH request/approval/attendance, and final browser regression.
+1. [x] Phase 6 browser regression reported passed on 2026-10-27; see the Phase 6 checklist above.
 2. [x] GitHub Actions run [#289](https://github.com/shivkumar15/cloudconduction-payroll/actions/runs/40512451738) passed at commit `8cbd8da`: 63 unit/API tests, 4 MongoDB-backed integration tests and frontend production build.
-3. [x] Explicitly defer the unverified AI Payroll Insights increment; it is not part of the current deliverable or Phase 6 acceptance.
-4. Phase 6 is closed as verified. Phase 7 is unblocked but has **not** started. Next task: wait for the user's direction before beginning Phase 7 quality/release hardening. Keep synthetic data and simulated payments only; do not claim production payroll compliance or real transfers.
+3. [x] AI Payroll Insights is explicitly deferred; it is not part of the current release.
+4. [x] Phase 7 started on 2026-10-28: added the bounded authenticated API performance harness, wired its syntax check into CI, documented safe usage, and created the release security checklist.
+5. [ ] Confirm CI for the Phase 7 code/documentation updates, then run `npm run test:api-perf` locally with a dedicated synthetic admin account; record actual endpoint latency and failures.
+6. [ ] Continue release-hardening work with static analysis/linting, dependency audit evidence and deployment/security checklist review. Keep synthetic data and simulated payments only; do not claim production payroll compliance or real transfers.
 
 ## Future-session resume instructions
 Paste/upload this file and say:
