@@ -41,7 +41,7 @@ See [`docs/PROJECT_PLAN.md`](docs/PROJECT_PLAN.md) for the full roadmap and acce
 - Email OTP password reset is implemented: six-digit code, 10-minute expiry, HMAC-stored code hash, resend cooldown, attempt limit, generic account response, and session invalidation after reset. SMTP must be configured separately for emails to be delivered.
 - A newly created employee receives a temporary initial password and is required to change it at first sign-in. Employee/admin users can also change their password later from their workspace. Password changes require the current password, a new password of at least 12 characters, invalidate other sessions, and issue a fresh session to the current browser.
 - SMTP must be configured before password-reset email delivery can work. With no SMTP configuration, the request endpoint returns an explicit server-configuration error.
-- Phase 3 employee management: employee model, salary-structure validation, admin CRUD/deactivation APIs, pagination/search/filtering, employee login provisioning, and employee self-service profile API/UI are implemented. A MongoDB-backed API lifecycle integration test is included. GitHub Actions run 110 passed the current password-change/test/build code at commit `4536cc44`; run local checks after pulling the latest documentation/env examples, and complete the browser smoke test.
+- Phase 3 employee management: employee model, salary-structure validation, admin CRUD/deactivation APIs, pagination/search/filtering, employee login provisioning, and employee self-service profile API/UI are implemented. A MongoDB-backed API lifecycle integration test is included. GitHub Actions run #289 passed 63 unit/API tests, 4 MongoDB-backed integration tests, and the frontend production build at commit `8cbd8da`; the user reported completing the Phase 6 browser regression on 2026-10-27.
 - Phase 4 payroll backend: integer-paise monthly salary calculations, payroll preview, salary snapshots, one run per month, admin approval/finalization, and employee-only finalized pay history.
 - Phase 5 simulated transactions: idempotent simulated payment records, selectable failure scenarios for testing, recorded retry attempts, admin transaction listing/detail, and employee-only finalized transaction history. No money is transferred.
 - Phase 6.5 unpaid-leave workflow: employees can submit a start/end date range within one payroll month. The server expands the range into Monday–Friday day records (weekends skipped), and an admin can approve/reject the complete group with an audit trail. Pending requests block payroll-run creation, and existing payroll periods cannot accept new requests/decisions.
@@ -274,3 +274,53 @@ Employees sign in at /employee. The dashboard shows their own profile and curren
 Amounts in the dashboard and payslip are based on the saved snapshot. The pay formula is intentionally simplified: gross = base salary + monthly allowances; net = gross - monthly deductions. Taxes, EPF, statutory deductions, overtime, bonuses and leave proration are not calculated. CSV and payslip exports are also demo records, not official payroll documents. All payment outcomes are simulated: no bank or payment provider is called and no money is transferred.
 
 Verify after pulling the latest main branch: run npm test, npm run build, and npm run test:integration --prefix server. Then complete a browser smoke test: sign in as admin, preview and create a period with synthetic employees, approve, run a successful simulation or a deliberate failure/retry, finalize, and sign in as the linked employee to confirm only their finalized history/payslip appears. Test empty states when there are no runs or finalized history. The local browser workflow has not been marked verified by CI alone.
+
+
+## Phase 7 — quality and release hardening
+
+**Status:** In progress. Phase 6 browser regression has been reported passed. AI Payroll Insights is deferred and is not part of the current release.
+
+### Verification commands
+
+Run these from the repository root after installing dependencies and configuring `server/.env`:
+
+```bash
+npm test
+npm run test:integration --prefix server
+npm run build
+node --check server/src/scripts/authenticatedApiTest.js
+```
+
+The MongoDB integration suite requires `INTEGRATION_TEST_MONGODB_URI` to point to a dedicated disposable database whose name includes `test`. Never point integration tests at your application or production database.
+
+### Authenticated API performance smoke test
+
+This bounded benchmark is opt-in and runs against an already-running API. It authenticates as an administrator and measures only:
+- employee list (`GET /api/employees?page=1&pageSize=10`)
+- saved payroll runs (`GET /api/payroll?period=YYYY-MM`)
+- transactions (`GET /api/transactions?period=YYYY-MM`)
+- payroll preview (`POST /api/payroll/preview`), which calculates a preview but does not create a payroll run
+
+The script does **not** create employees, payroll runs, leave requests, attendance records or payment simulations. Use synthetic test data and a dedicated test/admin account.
+
+Add these values only to your local ignored `server/.env`:
+```dotenv
+API_PERF_ADMIN_EMAIL=admin@example.test
+API_PERF_ADMIN_PASSWORD=replace-with-a-local-test-account-password
+API_PERF_BASE_URL=http://127.0.0.1:5001
+API_PERF_ORIGIN=http://localhost:5173
+API_PERF_PERIOD=2026-10
+API_PERF_ITERATIONS=10
+API_PERF_CONCURRENCY=4
+```
+
+Start the local app and MongoDB in separate terminals, then run from the repository root:
+```bash
+npm run test:api-perf
+```
+
+The harness is capped at 30 iterations and 8 concurrent workers. It prints per-endpoint success counts and p50/p95/p99 latency. These measurements describe only that test environment; they are not a user-capacity claim. Remote targets are blocked unless HTTPS and both explicit remote-authorization flags are provided. Prefer local testing and never run a benchmark against a shared or production system.
+
+### Release gate
+
+Use [the Phase 7 security release checklist](docs/PHASE_7_SECURITY_RELEASE_CHECKLIST.md) before deployment. A passing CI run and a local health-endpoint smoke test do not establish production readiness. The project is still a portfolio demo with simulated payment outcomes and a simplified payroll formula.
