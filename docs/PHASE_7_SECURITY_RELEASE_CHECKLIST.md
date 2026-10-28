@@ -66,6 +66,6 @@
 
 | Date | Check | Result / artifact | Open findings |
 |---|---|---|---|
-| 2026-10-27 | CI run #289 | 63 unit/API tests, 4 MongoDB integration tests and frontend production build passed | Previous CI result; rerun CI after Phase 7 changes |
+| 2026-10-28 | CI run #298 | Benchmark syntax check, 63 unit/API tests, 4 MongoDB integration tests and frontend production build passed on commit `e9ea77e` | Run the authenticated benchmark locally and record its measurements |
 | 2026-10-27 | Phase 6 browser regression | User reported payslips/exports/privacy, leave workflow, WFH attendance and final regression passed | Reported by user; not independently observed in this document |
 | 2026-10-28 | Authenticated API performance smoke test | Not run yet; script added in Phase 7 | Requires local server and a dedicated synthetic admin test account |
