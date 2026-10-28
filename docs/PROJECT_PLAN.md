@@ -1,6 +1,6 @@
 # CloudConduction Payroll — Project Plan & Continuity Handoff
 
-> Handoff updated 2026-10-28: Phase 6 is verified from passing CI and user-reported browser regression. Phase 7 release hardening has started: the repository now includes a guarded authenticated API performance harness and a security release checklist. The benchmark has not yet been run against the user's local server, so no new API performance result is claimed. AI Payroll Insights remains deferred.
+> Handoff updated 2026-10-28: Phase 6 is verified from passing CI and user-reported browser regression. Phase 7 release hardening is underway with a guarded authenticated API performance harness and a security release checklist. User-reported local benchmark passed 40/40 authenticated requests across four read/preview endpoints at concurrency 4; results are a bounded local smoke test, not a production-capacity guarantee. Further security, dependency, static-analysis and deployment checks remain open. AI Payroll Insights remains deferred.
 
 > This file is the project continuity source of truth. Read it before implementation work. Update status, decisions, completed work, tests and next task after meaningful changes.
 
@@ -342,7 +342,7 @@ These roadmap additions have been reconciled against the current repository as o
 3. [x] AI Payroll Insights is explicitly deferred; it is not part of the current release.
 4. [x] Phase 7 started on 2026-10-28: added the bounded authenticated API performance harness, wired its syntax check into CI, documented safe usage, and created the release security checklist.
 5. [x] Confirmed GitHub Actions run [#298](https://github.com/shivkumar15/cloudconduction-payroll/actions/runs/40694158840) passed on commit `e9ea77e` (63 API/unit tests, 4 MongoDB integration tests, production build, and benchmark syntax check).
-6. [ ] Run `npm run test:api-perf` locally with a dedicated synthetic admin account; record actual endpoint latency and failures.
+6. [x] User ran `npm run test:api-perf` locally on 2026-10-28 against `http://127.0.0.1:5001`: 40/40 requests passed, 0 failed, concurrency 4. p95 latency: employee list 17.1 ms, payroll list 20.7 ms, transaction list 28.0 ms, payroll preview 38.8 ms; reported throughput 313.5 req/s over 127.6 ms. Treat as a bounded local smoke test only; hardware/runtime and dataset-size context was not supplied, and synthetic-data-only use should still be confirmed.
 7. [ ] Continue release-hardening work with static analysis/linting, dependency audit evidence and deployment/security checklist review. Keep synthetic data and simulated payments only; do not claim production payroll compliance or real transfers.
 
 ## Future-session resume instructions
