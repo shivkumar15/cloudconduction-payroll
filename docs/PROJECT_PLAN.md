@@ -229,7 +229,7 @@ Apply role/ownership rules to all endpoints. Enforce all state transitions and m
 - [x] Added guarded authenticated API performance harness at `server/src/scripts/authenticatedApiTest.js`, exposed as `npm run test:api-perf`. It measures employee/payroll/transaction list endpoints and non-persisting payroll preview using bounded iterations/concurrency and remote-target safeguards.
 - [ ] Run the authenticated benchmark locally using a dedicated synthetic admin/test account; record measured endpoint latency and failure counts. The benchmark has not been run by the assistant because the local server and admin credentials are not available here.
 - [x] Added `docs/PHASE_7_SECURITY_RELEASE_CHECKLIST.md` covering secrets/env, access control, payroll invariants, leave/WFH, CI, dependency checks and deployment release gates.
-- [x] CI workflow now includes a Node syntax check for the authenticated performance harness, alongside API tests, MongoDB integration tests, and the frontend build; the current Phase 7 commit's CI result must be confirmed before marking this gate passed.
+- [x] CI workflow covers benchmark-script syntax, API tests, MongoDB integration tests and frontend build. GitHub Actions run [#298](https://github.com/shivkumar15/cloudconduction-payroll/actions/runs/40694158840) passed on commit `e9ea77e`: 63 API/unit tests, 4 MongoDB integration tests and frontend build.
 - [x] README documents Phase 7 verification commands and safe usage of the authenticated benchmark.
 - [ ] Add a client lint/static-analysis command; none is currently configured.
 - [ ] Add or document an explicitly synthetic seed workflow if still needed; never seed a production database.
@@ -341,8 +341,9 @@ These roadmap additions have been reconciled against the current repository as o
 2. [x] GitHub Actions run [#289](https://github.com/shivkumar15/cloudconduction-payroll/actions/runs/40512451738) passed at commit `8cbd8da`: 63 unit/API tests, 4 MongoDB-backed integration tests and frontend production build.
 3. [x] AI Payroll Insights is explicitly deferred; it is not part of the current release.
 4. [x] Phase 7 started on 2026-10-28: added the bounded authenticated API performance harness, wired its syntax check into CI, documented safe usage, and created the release security checklist.
-5. [ ] Confirm CI for the Phase 7 code/documentation updates, then run `npm run test:api-perf` locally with a dedicated synthetic admin account; record actual endpoint latency and failures.
-6. [ ] Continue release-hardening work with static analysis/linting, dependency audit evidence and deployment/security checklist review. Keep synthetic data and simulated payments only; do not claim production payroll compliance or real transfers.
+5. [x] Confirmed GitHub Actions run [#298](https://github.com/shivkumar15/cloudconduction-payroll/actions/runs/40694158840) passed on commit `e9ea77e` (63 API/unit tests, 4 MongoDB integration tests, production build, and benchmark syntax check).
+6. [ ] Run `npm run test:api-perf` locally with a dedicated synthetic admin account; record actual endpoint latency and failures.
+7. [ ] Continue release-hardening work with static analysis/linting, dependency audit evidence and deployment/security checklist review. Keep synthetic data and simulated payments only; do not claim production payroll compliance or real transfers.
 
 ## Future-session resume instructions
 Paste/upload this file and say:
