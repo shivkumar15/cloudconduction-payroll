@@ -9,7 +9,8 @@
     "test": "node --test test/health.test.js test/auth.test.js test/passwordReset.test.js test/employeeSchemas.test.js test/employeeAccess.test.js test/employees.test.js test/payroll.test.js test/unpaidLeave.test.js test/wfh.test.js test/transactions.test.js",
     "test:integration": "node --test test/employee.integration.js test/payroll.integration.js test/unpaidLeave.integration.js test/wfh.integration.js",
     "seed:admin": "node src/scripts/seedAdmin.js",
-    "load:test": "node src/scripts/loadTest.js"
+    "load:test": "node src/scripts/loadTest.js",
+    "test:api-perf": "node src/scripts/authenticatedApiTest.js"
   },
   "dependencies": {
     "cookie-parser": "^1.4.7",
