@@ -1,0 +1,71 @@
+# Phase 7 — Security and Release Readiness Checklist
+
+**Status:** Release-hardening checklist; items are not complete until evidence is recorded. This is a portfolio project, not a certified security review or a production-payroll approval.
+
+## 1. Safe test conditions
+
+- [ ] Use only synthetic employee accounts, salary values, email addresses, leave and attendance records.
+- [ ] Run mutation, adversarial or load tests only against localhost or an explicitly authorized disposable staging environment.
+- [ ] Use a disposable MongoDB integration-test database whose name contains `test`. Never use the app database or production data for integration tests.
+- [ ] Confirm no test path connects to a real payment provider; payment simulation must remain clearly labelled.
+- [ ] Check that secrets and actual employee data are not in commits, screenshots, test fixtures or CI logs.
+
+## 2. Authentication and authorization
+
+- [ ] Verify unauthenticated requests cannot access employee, payroll, transaction, leave, WFH or attendance records.
+- [ ] Verify an employee cannot call admin-only list/approval/retry/finalization routes directly.
+- [ ] Verify employee A cannot read employee B's data by changing IDs, query parameters or request bodies.
+- [ ] Verify unsafe cookie-authenticated requests reject absent/untrusted `Origin` headers.
+- [ ] Verify temporary employee passwords must be changed before workspace access; password reset invalidates existing sessions.
+- [ ] Verify password hashes, cookies, reset codes and tokens never appear in responses or logs.
+- [ ] Confirm the deployed frontend origin matches the exact trusted-origin/CORS configuration; do not loosen origin checks to work around cookies.
+
+## 3. Payroll and transaction integrity
+
+- [ ] Confirm salary amounts are validated as safe integer INR paise and computed server-side.
+- [ ] Confirm employees whose employment start date is outside the selected period are excluded by server logic.
+- [ ] Confirm only one run can be created for a payroll period and saved snapshots do not change after profile edits.
+- [ ] Confirm a run cannot be finalized while simulations are failed or incomplete.
+- [ ] Confirm retry reuses the same logical transaction and duplicate simulations cannot create duplicate records.
+- [ ] Confirm employees see only their own finalized payroll and transaction history.
+- [ ] Confirm approved unpaid leave is distinct from fixed deductions, pending leave blocks run creation, and payroll-period locks reject later changes.
+- [ ] Confirm WFH attendance is only permitted for an approved current-day request, timestamps come from the server, and attendance itself never causes a payroll deduction.
+
+## 4. Input validation and API resilience
+
+- [ ] Confirm request schemas reject unknown fields and client attempts to set roles, employee IDs, actors, approval status, calculated pay or transaction status.
+- [ ] Confirm malformed IDs, periods and pagination are rejected without business-data side effects.
+- [ ] Confirm request-body size and rate limits are suitable for the selected demo topology.
+- [ ] Confirm production errors return generic messages and logs do not expose environment variables or sensitive salary/PII fields.
+- [ ] Review dependency vulnerabilities using `npm audit` in the selected release environment; record date, package lock state and unresolved advisories rather than assuming prior results are current.
+- [ ] Confirm any database mutation failure leaves business records unchanged, especially where multi-document operations are not transactional.
+
+## 5. Runtime, environment and deployment
+
+- [ ] Set a strong unique `JWT_SECRET` outside source control.
+- [ ] Store production values in the hosting provider's environment/secret settings; never commit `server/.env`.
+- [ ] Configure HTTPS, secure cookies, exact CORS/trusted origin and the correct trusted-proxy setting for the deployment topology.
+- [ ] Use a least-privilege database user and restrict database network access.
+- [ ] Verify `/api/health`, startup logs, restart behavior, shutdown and error handling.
+- [ ] Document database backups and perform a restore test before using important data.
+- [ ] Confirm the benchmark is run only against a known local dataset or an authorized disposable staging service. Record request count, concurrency, success/failure count, p50/p95/p99 latency, and host/runtime/dataset context.
+- [ ] Do not infer supported user count from health-endpoint requests per second or a small synthetic benchmark.
+
+## 6. Final release gate
+
+- [ ] `npm test` passes.
+- [ ] `npm run test:integration --prefix server` passes with a disposable test database.
+- [ ] `npm run build` passes.
+- [ ] The authenticated API performance smoke test is run and its scope/limitations are documented.
+- [ ] The Phase 6 browser regression remains passed after any code changes.
+- [ ] README setup and recovery steps work from a clean checkout.
+- [ ] Known limits are documented: simulated payments only; simplified salary formula; no claim of statutory/tax compliance; no physical-location proof from WFH attendance.
+- [ ] No production-readiness claim is made until security, privacy, compliance, operational and recovery reviews appropriate to the intended use have actually been completed.
+
+## Evidence log
+
+| Date | Check | Result / artifact | Open findings |
+|---|---|---|---|
+| 2026-10-27 | CI run #289 | 63 unit/API tests, 4 MongoDB integration tests and frontend production build passed | Previous CI result; rerun CI after Phase 7 changes |
+| 2026-10-27 | Phase 6 browser regression | User reported payslips/exports/privacy, leave workflow, WFH attendance and final regression passed | Reported by user; not independently observed in this document |
+| 2026-10-28 | Authenticated API performance smoke test | Not run yet; script added in Phase 7 | Requires local server and a dedicated synthetic admin test account |
