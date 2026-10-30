@@ -89,3 +89,21 @@ test("uses null percentage when the previous aggregate is zero", () => {
   assert.deepEqual(result.comparison.changes.totalDeductionsPaise, { absolute: 0, percent: null });
   assert.deepEqual(result.comparison.changes.totalNetPayPaise, { absolute: 500, percent: null });
 });
+
+
+test("AI payroll insight endpoint rejects anonymous requests", async (t) => {
+  const { app } = await import("../src/app.js");
+  const server = app.listen(0);
+  await new Promise((resolve, reject) => {
+    server.once("listening", resolve);
+    server.once("error", reject);
+  });
+  t.after(() => new Promise((resolve, reject) => {
+    server.close((error) => error ? reject(error) : resolve());
+  }));
+
+  const response = await fetch("http://127.0.0.1:" + server.address().port + "/api/ai-insights?period=2026-10");
+  const body = await response.json();
+  assert.equal(response.status, 401);
+  assert.equal(body.success, false);
+});
