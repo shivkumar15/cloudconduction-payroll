@@ -8,7 +8,7 @@ A full-stack payroll workflow management application built with **React, Node.js
 
 ## Live demo
 
-**[Open CloudConduction Payroll](https://cloudconductionpayroll.onrender.com)** — hosted on Render.
+**[Open CloudConduction Payroll](https://cloudconductionpayroll.onrender.com/login)** — hosted on Render.
 
 Public self-registration is disabled. Demo access requires a provisioned account; do not use production credentials or real employee data for reviewer access.
 
