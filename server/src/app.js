@@ -1,4 +1,7 @@
 import express from "express";
+import { existsSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import helmet from "helmet";
 import cors from "cors";
 import cookieParser from "cookie-parser";
@@ -17,6 +20,14 @@ import attendanceRoutes from "./routes/attendanceRoutes.js";
 import aiPayrollInsightsRoutes from "./routes/aiPayrollInsightsRoutes.js";
 
 export const app = express();
+
+const clientDistPath = resolve(
+  dirname(fileURLToPath(import.meta.url)),
+  "../../client/dist"
+);
+const clientIndexPath = resolve(clientDistPath, "index.html");
+// Keep the API-only deployment working until the combined Render build includes client/dist.
+const hasBuiltClient = existsSync(clientIndexPath);
 
 app.disable("x-powered-by");
 app.set("trust proxy", env.NODE_ENV === "production" ? 1 : false);
@@ -56,6 +67,26 @@ app.use("/api/unpaid-leave", unpaidLeaveRoutes);
 app.use("/api/wfh", wfhRoutes);
 app.use("/api/attendance", attendanceRoutes);
 app.use("/api/ai-insights", aiPayrollInsightsRoutes);
+
+// In the combined Render deployment, serve the built React app from the same origin
+// as the API so the existing HTTP-only session cookie works reliably.
+if (env.NODE_ENV === "production" && hasBuiltClient) {
+  app.use(express.static(clientDistPath));
+
+  app.use((req, res, next) => {
+    if (
+      req.method !== "GET" ||
+      req.path === "/api" ||
+      req.path.startsWith("/api/")
+    ) {
+      return next();
+    }
+
+    return res.sendFile(clientIndexPath, (error) => {
+      if (error) next(error);
+    });
+  });
+}
 
 app.use(notFoundHandler);
 app.use(errorHandler);
