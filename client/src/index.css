@@ -29,6 +29,7 @@ body {
   width: 100%;
   max-width: 100%;
   min-width: 0;
+  overflow-x: clip;
 }
 
 /* Let flex/grid children shrink to the viewport instead of widening the page. */
@@ -42,7 +43,8 @@ form {
 }
 
 /* Wide tables and data grids scroll inside their own panels, not the whole page. */
-.overflow-x-auto {
+.overflow-x-auto,
+.overflow-auto {
   max-width: 100%;
   min-width: 0;
   overscroll-behavior-x: contain;
