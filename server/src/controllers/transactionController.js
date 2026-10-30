@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import { env } from "../config/env.js";
+import { isLocalPayoutTestModeEnabled } from "../utils/localPayoutTestMode.js";
 import { PayrollRun } from "../models/PayrollRun.js";
 import { PayrollTransaction } from "../models/PayrollTransaction.js";
 import {
@@ -96,11 +97,11 @@ async function createOrGetTransaction({ run, item, forceFailure, actorId }) {
 }
 
 export async function simulatePayrollTransactions(req, res, next) {
-  if (env.NODE_ENV === "production") {
+  if (!isLocalPayoutTestModeEnabled(env)) {
     return res.status(503).json({
       success: false,
       code: "LOCAL_PAYOUT_PROVIDER_DISABLED",
-      message: "The local payout test provider is disabled in production until a live provider has been configured and verified."
+      message: "Local payout tests are disabled for this deployment. An administrator must explicitly enable ENABLE_LOCAL_PAYOUT_TESTS for a portfolio test environment."
     });
   }
 
@@ -168,11 +169,11 @@ export async function simulatePayrollTransactions(req, res, next) {
 }
 
 export async function retrySimulatedTransaction(req, res, next) {
-  if (env.NODE_ENV === "production") {
+  if (!isLocalPayoutTestModeEnabled(env)) {
     return res.status(503).json({
       success: false,
       code: "LOCAL_PAYOUT_PROVIDER_DISABLED",
-      message: "Local payout-test retries are disabled in production until a live provider has been configured and verified."
+      message: "Local payout-test retries are disabled for this deployment."
     });
   }
   if (!invalidTransactionId(res, req.params.id)) return;
@@ -186,6 +187,13 @@ export async function retrySimulatedTransaction(req, res, next) {
       return res.status(409).json({
         success: false,
         message: "Only failed simulated transactions can be retried"
+      });
+    }
+
+    if (env.NODE_ENV === "production" && transaction.provider !== "local-test") {
+      return res.status(409).json({
+        success: false,
+        message: "Production payout-test retries are limited to local-test records."
       });
     }
 
@@ -271,7 +279,7 @@ export async function retrySimulatedTransaction(req, res, next) {
  * production; it exists only to test event ordering and idempotency locally.
  */
 export async function applyLocalPayoutEvent(req, res, next) {
-  if (env.NODE_ENV === "production") {
+  if (!isLocalPayoutTestModeEnabled(env)) {
     return res.status(404).json({ success: false, message: "Not found" });
   }
 

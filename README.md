@@ -130,6 +130,7 @@ Configure the combined Web Service with the repository root as its Root Director
 - **Environment:** set `NODE_ENV=production`, `MONGODB_URI`, and a strong `JWT_SECRET`.
 - **CLIENT_ORIGIN:** set to the exact origin of the combined service, such as `https://your-service.onrender.com`; keep only one entry.
 - **VITE_API_URL:** set to `/api` during the frontend build, or leave it unset so production defaults to the same-origin `/api` path.
+- **ENABLE_LOCAL_PAYOUT_TESTS:** set to `true` only when you intentionally want the admin-only synthetic payout workflow available on this portfolio deployment. It defaults to `false`; it does not enable a real payment provider or move funds.
 
 The Express app serves `client/dist` in production when that build output exists; API routes (including `/api/health`) remain API routes, and other GET routes fall back to `index.html` for React Router. This also keeps the existing API-only service working when `client/dist` is absent.
 
@@ -167,7 +168,7 @@ The internal local provider is a development/test harness for exercising a reali
 4. Inspect the provider-style reference and status-event history. Retry failed records to create another processing attempt.
 5. Finalize the payroll run only after every payout has succeeded.
 
-Local payout creation, retries and status events are disabled in production. Local status events are not real webhooks; an eventual RazorpayX integration must use the real provider API and verified webhook signatures.
+Local payout creation, retries and status events are disabled in production by default. For a portfolio demonstration, they can be explicitly enabled with `ENABLE_LOCAL_PAYOUT_TESTS=true`; all three operations remain behind admin authentication and use only the local adapter. The adapter creates synthetic references and test status events, never contacts a bank/payment gateway, and never transfers funds. Local status events are not real webhooks; an eventual RazorpayX integration must use the real provider API and verified webhook signatures. Keep the flag false for any deployment intended for real payroll operations.
 
 ## AI payroll insights
 

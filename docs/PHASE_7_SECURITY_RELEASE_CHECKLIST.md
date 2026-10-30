@@ -8,6 +8,7 @@
 - [ ] Run mutation, adversarial or load tests only against localhost or an explicitly authorized disposable staging environment.
 - [ ] Use a disposable MongoDB integration-test database whose name contains `test`. Never use the app database or production data for integration tests.
 - [ ] Confirm no test path connects to a real payment provider; payment simulation must remain clearly labelled.
+- [ ] If the hosted portfolio demo enables `ENABLE_LOCAL_PAYOUT_TESTS=true`, verify it remains admin-only, uses only the local adapter, records clearly labelled test outcomes, and never contacts a payment provider or moves money. Keep it false for real payroll use.
 - [ ] Check that secrets and actual employee data are not in commits, screenshots, test fixtures or CI logs.
 
 ## 2. Authentication and authorization

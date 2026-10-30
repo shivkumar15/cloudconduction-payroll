@@ -5,6 +5,11 @@ import { connectDatabase } from "./config/db.js";
 let server;
 
 async function start() {
+  if (env.NODE_ENV === "production" && env.ENABLE_LOCAL_PAYOUT_TESTS) {
+    console.warn(
+      "[SAFETY] ENABLE_LOCAL_PAYOUT_TESTS is enabled in production. Payout references and status events are synthetic; no bank or payment gateway is contacted and no money is transferred."
+    );
+  }
   await connectDatabase();
   server = app.listen(env.PORT, () => {
     console.info(`API listening on port ${env.PORT}`);

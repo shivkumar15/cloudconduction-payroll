@@ -251,7 +251,7 @@ Apply role/ownership rules to all endpoints. Enforce all state transitions and m
 - [x] New payout requests remain processing until an administrator applies a local success/failure status event.
 - [x] Test events are authenticated, admin-only, validated, recorded in event history, and de-duplicated by event ID; terminal states cannot be changed by replayed/out-of-order events.
 - [x] Retrying a failed local payout creates a new processing attempt. Payroll finalization still requires every payout to be succeeded.
-- [x] Local payout creation, retries and status events are disabled when `NODE_ENV=production`.
+- [x] Local payout creation, retries and status events are disabled in production by default and require explicit `ENABLE_LOCAL_PAYOUT_TESTS=true` opt-in for the admin-only portfolio demonstration. The adapter makes no external payment calls and transfers no money.
 - [ ] RazorpayX has not been connected. Wait for official sandbox/API access, then build the provider adapter and verify actual webhook signatures before making any live-provider claims.
 - Verification: GitHub Actions run [#337](https://github.com/shivkumar15/cloudconduction-payroll/actions/runs/40863534173) passed lint, API tests, MongoDB-backed payroll integration tests, dependency audits and frontend build. The user confirmed the local payout workflow works in the browser, including Processing, success/failure events and retry behavior; the latest responsive overflow fix is also reported working.
 

@@ -9,6 +9,7 @@ import {
   isLocalPayoutStatusTransitionAllowed
 } from "../src/services/localPayoutProvider.js";
 import { app } from "../src/app.js";
+import { isLocalPayoutTestModeEnabled } from "../src/utils/localPayoutTestMode.js";
 
 async function withServer(t) {
   const server = app.listen(0);
@@ -37,6 +38,28 @@ test("simulation adapter is clearly simulated and validates integer paise", () =
   assert.throws(() => simulatePayment({ amountPaise: -1 }), /safe non-negative integer/);
   assert.throws(() => simulatePayment({ amountPaise: 12.5 }), /safe non-negative integer/);
   assert.throws(() => simulatePayment({ amountPaise: 0, currency: "USD" }), /Only INR/);
+});
+
+test("local payout test mode is available outside production and requires explicit production opt-in", () => {
+  assert.equal(isLocalPayoutTestModeEnabled({
+    NODE_ENV: "development",
+    ENABLE_LOCAL_PAYOUT_TESTS: false
+  }), true);
+
+  assert.equal(isLocalPayoutTestModeEnabled({
+    NODE_ENV: "test",
+    ENABLE_LOCAL_PAYOUT_TESTS: false
+  }), true);
+
+  assert.equal(isLocalPayoutTestModeEnabled({
+    NODE_ENV: "production",
+    ENABLE_LOCAL_PAYOUT_TESTS: false
+  }), false);
+
+  assert.equal(isLocalPayoutTestModeEnabled({
+    NODE_ENV: "production",
+    ENABLE_LOCAL_PAYOUT_TESTS: true
+  }), true);
 });
 
 test("local payout provider creates test references and waits for a status event", () => {
