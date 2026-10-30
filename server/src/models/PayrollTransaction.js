@@ -11,10 +11,17 @@ const attemptSchema = new mongoose.Schema({
     min: 1,
     validate: Number.isSafeInteger
   },
-  status: { type: String, enum: ["succeeded", "failed"], required: true },
+  status: { type: String, enum: ["processing", "succeeded", "failed"], required: true },
   message: { type: String, required: true, maxlength: 180 },
   attemptedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
   attemptedAt: { type: Date, required: true, default: Date.now }
+}, { _id: false, strict: "throw" });
+
+const providerEventSchema = new mongoose.Schema({
+  eventId: { type: String, required: true, trim: true, maxlength: 120 },
+  status: { type: String, enum: ["succeeded", "failed"], required: true },
+  receivedAt: { type: Date, required: true, default: Date.now },
+  message: { type: String, required: true, maxlength: 180 }
 }, { _id: false, strict: "throw" });
 
 const simulationTransactionSchema = new mongoose.Schema({
@@ -37,14 +44,17 @@ const simulationTransactionSchema = new mongoose.Schema({
   employeeCode: { type: String, required: true, trim: true, maxlength: 20 },
   employeeName: { type: String, required: true, trim: true, maxlength: 162 },
   idempotencyKey: { type: String, required: true, unique: true, maxlength: 160 },
-  provider: { type: String, enum: ["simulation"], required: true, default: "simulation" },
+  provider: { type: String, enum: ["simulation", "local-test"], required: true, default: "simulation" },
+  providerReference: { type: String, trim: true, maxlength: 100, default: null },
+  providerPaymentId: { type: String, trim: true, maxlength: 100, default: null },
+  providerEvents: { type: [providerEventSchema], default: [] },
   currency: { type: String, enum: ["INR"], required: true, default: "INR" },
   amountPaise: {
     type: Number,
     required: true,
     validate: { validator: isNonNegativeSafeInteger, message: "Transaction amount must be a safe integer amount in paise" }
   },
-  status: { type: String, enum: ["succeeded", "failed"], required: true, index: true },
+  status: { type: String, enum: ["processing", "succeeded", "failed"], required: true, index: true },
   simulatedReference: { type: String, required: true, maxlength: 80 },
   failureCode: { type: String, default: null, maxlength: 60 },
   attemptCount: {
@@ -78,7 +88,16 @@ simulationTransactionSchema.methods.toPublicJSON = function toPublicJSON() {
     employeeCode: this.employeeCode,
     employeeName: this.employeeName,
     provider: this.provider,
+    testOnly: true,
     simulatedOnly: true,
+    providerReference: this.providerReference || this.simulatedReference,
+    providerPaymentId: this.providerPaymentId || null,
+    providerEvents: (this.providerEvents || []).map((event) => ({
+      eventId: event.eventId,
+      status: event.status,
+      receivedAt: event.receivedAt,
+      message: event.message
+    })),
     currency: this.currency,
     amountPaise: this.amountPaise,
     status: this.status,

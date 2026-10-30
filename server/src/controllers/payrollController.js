@@ -263,7 +263,7 @@ async function transitionPayrollRun(req, res, next, action) {
         return res.status(409).json({
           success: false,
           code: "SIMULATED_PAYMENTS_INCOMPLETE",
-          message: "Every employee payment must have a successful simulation before finalizing payroll"
+          message: "Every employee payout must have a succeeded provider status before finalizing payroll"
         });
       }
     }

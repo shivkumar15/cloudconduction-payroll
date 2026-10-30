@@ -60,6 +60,7 @@ function StatusBadge({ status }) {
     approved: "bg-blue-50 text-blue-700",
     finalized: "bg-emerald-50 text-emerald-700",
     succeeded: "bg-emerald-50 text-emerald-700",
+    processing: "bg-amber-50 text-amber-800",
     failed: "bg-rose-50 text-rose-700"
   };
   return <span className={"inline-flex rounded-full px-2.5 py-1 text-xs font-semibold " + (classes[status] || "bg-slate-100 text-slate-700")}>{status}</span>;
@@ -241,13 +242,23 @@ export default function AdminPayrollPage() {
         );
         const summary = response.data.summary;
         if (summary) {
-          response.data.message = "Payout test finished: " + summary.succeeded + " succeeded, " + summary.failed + " failed. No funds were transferred.";
+          response.data.message = "Local payout requests created: " + (summary.processing || 0) + " processing, " + summary.failed + " failed. Apply a test provider event to finish each processing payout. No funds were transferred.";
         }
         return response;
       },
       "Payout test records processed. No funds were transferred."
     );
   }
+  async function applyLocalProviderEvent(transactionId, status) {
+    const eventId = "local-test-event-" + window.crypto.randomUUID();
+    const eventLabel = status === "succeeded" ? "succeeded" : "failed";
+    await runAction(
+      "provider-event-" + transactionId,
+      () => api.post("/transactions/" + transactionId + "/local-event", { eventId, status }),
+      "Local provider test event recorded: payout " + eventLabel + ". No funds were transferred."
+    );
+  }
+
 
   async function finalizeRun() {
     if (!selectedRun) return;
@@ -593,6 +604,7 @@ export default function AdminPayrollPage() {
               <label className="sr-only" htmlFor="transaction-status-filter">Filter transaction status</label>
               <select id="transaction-status-filter" className={fieldClass + " min-w-36"} value={transactionStatus} onChange={(event) => { setTransactionStatus(event.target.value); setTransactionPage(1); }}>
                 <option value="">All statuses</option>
+                <option value="processing">Processing</option>
                 <option value="succeeded">Succeeded</option>
                 <option value="failed">Failed</option>
               </select>
@@ -614,6 +626,14 @@ export default function AdminPayrollPage() {
                   <td className="px-3 py-3 text-center">{transaction.attemptCount}</td>
                   <td className="whitespace-nowrap px-3 py-3 text-xs text-slate-500">{formatDate(transaction.lastAttemptAt)}</td>
                   <td className="min-w-48 px-3 py-3">
+                    {transaction.status === "processing" && transaction.provider === "local-test" && <div className="mb-2 flex flex-col gap-1">
+                      <button type="button" disabled={busyAction !== ""} onClick={() => applyLocalProviderEvent(transaction.id, "succeeded")} className="inline-flex items-center justify-center rounded-md border border-emerald-200 px-2.5 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-50 disabled:opacity-50">
+                        {busyAction === "provider-event-" + transaction.id ? "Applying event…" : "Test success event"}
+                      </button>
+                      <button type="button" disabled={busyAction !== ""} onClick={() => applyLocalProviderEvent(transaction.id, "failed")} className="inline-flex items-center justify-center rounded-md border border-rose-200 px-2.5 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-50 disabled:opacity-50">
+                        {busyAction === "provider-event-" + transaction.id ? "Applying event…" : "Test failure event"}
+                      </button>
+                    </div>}
                     {transaction.status === "failed" && <button type="button" disabled={busyAction !== ""} onClick={() => retryTransaction(transaction.id)} className="mb-2 inline-flex items-center gap-1 rounded-md border border-rose-200 px-2.5 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-50 disabled:opacity-50">
                       <RefreshCw size={13} aria-hidden="true" /> {busyAction === "retry-" + transaction.id ? "Retrying…" : "Retry payout test"}
                     </button>}
@@ -622,6 +642,13 @@ export default function AdminPayrollPage() {
                       <div className="mt-2 space-y-2">
                         <p className="break-all text-slate-500">Test reference: {transaction.simulatedReference}</p>
                         {transaction.failureCode && <p className="text-rose-700">Failure: {transaction.failureCode}</p>}
+                        {transaction.providerPaymentId && <p className="break-all text-slate-500">Provider ID: {transaction.providerPaymentId}</p>}
+                        {(transaction.providerEvents || []).map((event) => <div key={event.eventId} className="rounded bg-indigo-50 p-2">
+                          <p className="font-semibold">Provider event · {event.status}</p>
+                          <p className="mt-1 break-all text-slate-500">Event ID: {event.eventId}</p>
+                          <p className="mt-1 text-slate-600">{event.message}</p>
+                          <p className="mt-1 text-slate-500">{formatDate(event.receivedAt)}</p>
+                        </div>)}
                         {transaction.attemptHistory.map((attempt) => <div key={attempt.attemptNumber} className="rounded bg-slate-50 p-2">
                           <p className="font-semibold">Attempt {attempt.attemptNumber} · {attempt.status}</p>
                           <p className="mt-1 text-slate-600">{attempt.message}</p>

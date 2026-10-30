@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { env } from "../config/env.js";
 import { PayrollRun } from "../models/PayrollRun.js";
 import { PayrollTransaction } from "../models/PayrollTransaction.js";
 import {
@@ -6,9 +7,14 @@ import {
   simulatePayment
 } from "../services/paymentSimulationService.js";
 import {
+  createLocalPayoutRequest,
+  isLocalPayoutStatusTransitionAllowed
+} from "../services/localPayoutProvider.js";
+import {
   simulatePayrollTransactionsSchema,
   transactionIdSchema,
-  transactionListQuerySchema
+  transactionListQuerySchema,
+  localPayoutEventSchema
 } from "../validators/transactionSchemas.js";
 
 function respondInvalid(res, message, issues) {
@@ -41,7 +47,7 @@ async function createOrGetTransaction({ run, item, forceFailure, actorId }) {
   if (existing) return existing;
 
   const now = new Date();
-  const outcome = simulatePayment({
+  const outcome = createLocalPayoutRequest({
     amountPaise: item.netPayPaise,
     currency: item.currency,
     forceFailure
@@ -54,10 +60,13 @@ async function createOrGetTransaction({ run, item, forceFailure, actorId }) {
     employeeName: item.employeeName,
     idempotencyKey,
     provider: outcome.provider,
+    providerReference: outcome.providerReference,
+    providerPaymentId: outcome.providerPaymentId,
+    providerEvents: [],
     currency: item.currency,
     amountPaise: item.netPayPaise,
     status: outcome.status,
-    simulatedReference: outcome.simulatedReference,
+    simulatedReference: outcome.providerReference,
     failureCode: outcome.failureCode,
     attemptCount: 1,
     attemptHistory: [{
@@ -87,6 +96,14 @@ async function createOrGetTransaction({ run, item, forceFailure, actorId }) {
 }
 
 export async function simulatePayrollTransactions(req, res, next) {
+  if (env.NODE_ENV === "production") {
+    return res.status(503).json({
+      success: false,
+      code: "LOCAL_PAYOUT_PROVIDER_DISABLED",
+      message: "The local payout test provider is disabled in production until a live provider has been configured and verified."
+    });
+  }
+
   const parsed = simulatePayrollTransactionsSchema.safeParse(req.body || {});
   if (!parsed.success) {
     return respondInvalid(res, "Invalid simulated payment scenario", parsed.error.issues);
@@ -129,13 +146,17 @@ export async function simulatePayrollTransactions(req, res, next) {
     }
 
     const succeeded = transactions.filter((transaction) => transaction.status === "succeeded").length;
-    const failed = transactions.length - succeeded;
+    const processing = transactions.filter((transaction) => transaction.status === "processing").length;
+    const failed = transactions.filter((transaction) => transaction.status === "failed").length;
     return res.status(200).json({
       success: true,
-      message: "Simulation completed. No money was transferred. Repeating this request does not create duplicate transactions.",
+      message: "Local payout test requests created. Processing records need a separate provider-status test event. No funds were transferred.",
       simulatedOnly: true,
+      testOnly: true,
+      provider: "local-test",
       summary: {
         count: transactions.length,
+        processing,
         succeeded,
         failed
       },
@@ -147,6 +168,13 @@ export async function simulatePayrollTransactions(req, res, next) {
 }
 
 export async function retrySimulatedTransaction(req, res, next) {
+  if (env.NODE_ENV === "production") {
+    return res.status(503).json({
+      success: false,
+      code: "LOCAL_PAYOUT_PROVIDER_DISABLED",
+      message: "Local payout-test retries are disabled in production until a live provider has been configured and verified."
+    });
+  }
   if (!invalidTransactionId(res, req.params.id)) return;
 
   try {
@@ -171,11 +199,18 @@ export async function retrySimulatedTransaction(req, res, next) {
 
     const nextAttemptNumber = transaction.attemptCount + 1;
     const now = new Date();
-    const outcome = simulatePayment({
-      amountPaise: transaction.amountPaise,
-      currency: transaction.currency,
-      forceFailure: false
-    });
+    const outcome = transaction.provider === "local-test"
+      ? createLocalPayoutRequest({
+        amountPaise: transaction.amountPaise,
+        currency: transaction.currency,
+        forceFailure: false
+      })
+      : simulatePayment({
+        amountPaise: transaction.amountPaise,
+        currency: transaction.currency,
+        forceFailure: false
+      });
+    const providerReference = outcome.providerReference || outcome.simulatedReference;
 
     const updated = await PayrollTransaction.findOneAndUpdate(
       {
@@ -186,7 +221,10 @@ export async function retrySimulatedTransaction(req, res, next) {
       {
         $set: {
           status: outcome.status,
-          simulatedReference: outcome.simulatedReference,
+          provider: outcome.provider,
+          providerReference,
+          providerPaymentId: outcome.providerPaymentId || transaction.providerPaymentId || null,
+          simulatedReference: providerReference,
           failureCode: outcome.failureCode,
           attemptCount: nextAttemptNumber,
           lastAttemptAt: now
@@ -213,8 +251,11 @@ export async function retrySimulatedTransaction(req, res, next) {
 
     return res.status(200).json({
       success: true,
-      message: "Simulated retry succeeded. No money was transferred.",
+      message: transaction.provider === "local-test"
+        ? "Local payout retry is processing and awaits a provider-status test event. No funds were transferred."
+        : "Simulated retry succeeded. No money was transferred.",
       simulatedOnly: true,
+      testOnly: true,
       data: respondTransaction(updated)
     });
   } catch (error) {
@@ -222,6 +263,115 @@ export async function retrySimulatedTransaction(req, res, next) {
   }
 }
 
+
+
+/**
+ * Applies an authenticated local provider event to test webhook-like lifecycle
+ * handling. This route never receives a real Razorpay webhook and is disabled in
+ * production; it exists only to test event ordering and idempotency locally.
+ */
+export async function applyLocalPayoutEvent(req, res, next) {
+  if (env.NODE_ENV === "production") {
+    return res.status(404).json({ success: false, message: "Not found" });
+  }
+
+  const parsed = localPayoutEventSchema.safeParse(req.body || {});
+  if (!parsed.success) {
+    return respondInvalid(res, "Invalid local payout status event", parsed.error.issues);
+  }
+  if (!invalidTransactionId(res, req.params.id)) return;
+
+  try {
+    const transaction = await PayrollTransaction.findById(req.params.id);
+    if (!transaction) {
+      return res.status(404).json({ success: false, message: "Transaction not found" });
+    }
+    if (transaction.provider !== "local-test") {
+      return res.status(409).json({
+        success: false,
+        message: "Status events can only be applied to local-provider test payouts"
+      });
+    }
+
+    const { eventId, status } = parsed.data;
+    const existingEvents = transaction.providerEvents || [];
+    if (existingEvents.some((event) => event.eventId === eventId)) {
+      return res.status(200).json({
+        success: true,
+        duplicate: true,
+        message: "This local provider event was already processed.",
+        testOnly: true,
+        data: respondTransaction(transaction)
+      });
+    }
+
+    if (!isLocalPayoutStatusTransitionAllowed(transaction.status, status)) {
+      return res.status(409).json({
+        success: false,
+        message: "A local provider event can only move a processing payout to succeeded or failed."
+      });
+    }
+
+    const run = await PayrollRun.findById(transaction.payrollRunId);
+    if (!run || run.status !== "approved") {
+      return res.status(409).json({
+        success: false,
+        message: "Local provider status events are only accepted while the payroll run is approved."
+      });
+    }
+
+    const receivedAt = new Date();
+    const message = status === "succeeded"
+      ? "Local provider test event reported the payout as succeeded. No funds were transferred."
+      : "Local provider test event reported the payout as failed. No funds were transferred.";
+
+    const updated = await PayrollTransaction.findOneAndUpdate(
+      {
+        _id: transaction._id,
+        provider: "local-test",
+        status: "processing",
+        "providerEvents.eventId": { $ne: eventId }
+      },
+      {
+        $set: {
+          status,
+          failureCode: status === "failed" ? "LOCAL_TEST_PROVIDER_FAILURE" : null
+        },
+        $push: {
+          providerEvents: { eventId, status, receivedAt, message }
+        }
+      },
+      { new: true, runValidators: true }
+    );
+
+    if (!updated) {
+      const latest = await PayrollTransaction.findById(transaction._id);
+      if (latest?.providerEvents?.some((event) => event.eventId === eventId)) {
+        return res.status(200).json({
+          success: true,
+          duplicate: true,
+          message: "This local provider event was already processed.",
+          testOnly: true,
+          data: respondTransaction(latest)
+        });
+      }
+      return res.status(409).json({
+        success: false,
+        message: "Payout status changed before this event was applied. Refresh the payout table."
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      duplicate: false,
+      message,
+      testOnly: true,
+      data: respondTransaction(updated)
+    });
+  } catch (error) {
+    return next(error);
+  }
+}
 export async function listTransactions(req, res, next) {
   const parsed = transactionListQuerySchema.safeParse(req.query);
   if (!parsed.success) {

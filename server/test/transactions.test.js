@@ -4,6 +4,10 @@ import mongoose from "mongoose";
 import { buildPaymentIdempotencyKey, simulatePayment } from "../src/services/paymentSimulationService.js";
 import { transactionListQuerySchema, simulatePayrollTransactionsSchema } from "../src/validators/transactionSchemas.js";
 import { PayrollTransaction } from "../src/models/PayrollTransaction.js";
+import {
+  createLocalPayoutRequest,
+  isLocalPayoutStatusTransitionAllowed
+} from "../src/services/localPayoutProvider.js";
 import { app } from "../src/app.js";
 
 async function withServer(t) {
@@ -35,6 +39,38 @@ test("simulation adapter is clearly simulated and validates integer paise", () =
   assert.throws(() => simulatePayment({ amountPaise: 0, currency: "USD" }), /Only INR/);
 });
 
+test("local payout provider creates test references and waits for a status event", () => {
+  const payout = createLocalPayoutRequest({ amountPaise: 2_600_000 });
+  assert.equal(payout.provider, "local-test");
+  assert.equal(payout.status, "processing");
+  assert.equal(payout.testOnly, true);
+  assert.match(payout.providerReference, /^LPT-[A-F0-9]{20}$/);
+  assert.match(payout.providerPaymentId, /^lpt_[a-f0-9-]+$/);
+  assert.equal(payout.failureCode, null);
+
+  const failed = createLocalPayoutRequest({ amountPaise: 2_600_000, forceFailure: true });
+  assert.equal(failed.status, "failed");
+  assert.equal(failed.failureCode, "LOCAL_TEST_DECLINE");
+
+  assert.equal(isLocalPayoutStatusTransitionAllowed("processing", "succeeded"), true);
+  assert.equal(isLocalPayoutStatusTransitionAllowed("processing", "failed"), true);
+  assert.equal(isLocalPayoutStatusTransitionAllowed("succeeded", "failed"), false);
+  assert.equal(isLocalPayoutStatusTransitionAllowed("failed", "succeeded"), false);
+  assert.throws(() => createLocalPayoutRequest({ amountPaise: -1 }), /safe non-negative integer/);
+  assert.throws(() => createLocalPayoutRequest({ amountPaise: 10, currency: "USD" }), /Only INR/);
+});
+
+test("local payout event schema rejects forged or malformed event fields", async () => {
+  const { localPayoutEventSchema } = await import("../src/validators/transactionSchemas.js");
+  assert.deepEqual(localPayoutEventSchema.parse({ eventId: "local-event-123", status: "succeeded" }), {
+    eventId: "local-event-123",
+    status: "succeeded"
+  });
+  assert.equal(localPayoutEventSchema.safeParse({ eventId: "short", status: "succeeded" }).success, false);
+  assert.equal(localPayoutEventSchema.safeParse({ eventId: "local-event-123", status: "processing" }).success, false);
+  assert.equal(localPayoutEventSchema.safeParse({ eventId: "local-event-123", status: "succeeded", isAdmin: true }).success, false);
+});
+
 test("logical payment idempotency key is stable per run and employee", () => {
   const runId = new mongoose.Types.ObjectId("507f1f77bcf86cd799439011");
   const employeeId = new mongoose.Types.ObjectId("507f1f77bcf86cd799439012");
@@ -56,6 +92,7 @@ test("transaction list query validates filters and pagination", () => {
   assert.equal(transactionListQuerySchema.safeParse({ pageSize: "101" }).success, false);
   assert.equal(transactionListQuerySchema.safeParse({ period: "2026-13" }).success, false);
   assert.equal(transactionListQuerySchema.safeParse({ status: "pending" }).success, false);
+  assert.equal(transactionListQuerySchema.parse({ status: "processing" }).status, "processing");
   assert.equal(transactionListQuerySchema.safeParse({ unexpected: true }).success, false);
 });
 

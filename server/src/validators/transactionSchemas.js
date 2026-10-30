@@ -7,7 +7,7 @@ export const transactionListQuerySchema = z.object({
   page: z.coerce.number().int().min(1).max(1_000_000).default(1),
   pageSize: z.coerce.number().int().min(1).max(100).default(10),
   period: periodSchema.optional(),
-  status: z.enum(["succeeded", "failed"]).optional()
+  status: z.enum(["processing", "succeeded", "failed"]).optional()
 }).strict();
 
 export const simulatePayrollTransactionsSchema = z.object({
@@ -26,3 +26,8 @@ export const simulatePayrollTransactionsSchema = z.object({
 });
 
 export const transactionIdSchema = z.string().regex(/^[a-fA-F0-9]{24}$/, "Invalid transaction ID");
+
+export const localPayoutEventSchema = z.object({
+  eventId: z.string().trim().min(8).max(120).regex(/^[A-Za-z0-9:_-]+$/),
+  status: z.enum(["succeeded", "failed"])
+}).strict();

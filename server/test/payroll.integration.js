@@ -241,6 +241,14 @@ test("MongoDB payroll lifecycle snapshots salaries, prevents duplicate periods a
     const employeeTransactionsArePrivate = await request(baseUrl, "/api/transactions", { cookie: employeeCookie });
     assert.equal(employeeTransactionsArePrivate.status, 403);
 
+    const employeeLocalProviderEventForbidden = await request(baseUrl, "/api/transactions/507f1f77bcf86cd799439011/local-event", {
+      method: "POST",
+      cookie: employeeCookie,
+      body: { eventId: "employee-test-event-1", status: "succeeded" }
+    });
+    assert.equal(employeeLocalProviderEventForbidden.status, 403);
+
+
     const invalidFailureScenario = await request(baseUrl, runUrl + "/simulate-transactions", {
       method: "POST",
       cookie: adminCookie,
@@ -264,7 +272,9 @@ test("MongoDB payroll lifecycle snapshots salaries, prevents duplicate periods a
     const idempotencyKey = "payroll-run:" + created.id + ":employee:" + activeEmployee._id.toString();
     const storedTransaction = await PayrollTransaction.findById(transactionId);
     assert.equal(storedTransaction.idempotencyKey, idempotencyKey);
-    assert.equal(storedTransaction.provider, "simulation");
+    assert.equal(storedTransaction.provider, "local-test");
+    assert.match(storedTransaction.providerReference, /^LPT-/);
+    assert.match(storedTransaction.providerPaymentId, /^lpt_/);
     assert.equal(storedTransaction.amountPaise, 2_600_000);
 
     const employeeTransactionsBeforeFinalization = await request(baseUrl, "/api/transactions/me", {
@@ -320,10 +330,32 @@ test("MongoDB payroll lifecycle snapshots salaries, prevents duplicate periods a
     assert.equal(retryResponse.status, 200);
     const retryBody = await retryResponse.json();
     assert.equal(retryBody.simulatedOnly, true);
-    assert.equal(retryBody.data.status, "succeeded");
+    assert.equal(retryBody.data.status, "processing");
+    assert.equal(retryBody.data.provider, "local-test");
     assert.equal(retryBody.data.attemptCount, 2);
     assert.equal(retryBody.data.attemptHistory.length, 2);
     assert.equal((await PayrollTransaction.findById(transactionId)).idempotencyKey, idempotencyKey);
+
+    const localEventId = "local-test-event-" + runId;
+    const successEvent = await request(baseUrl, "/api/transactions/" + transactionId + "/local-event", {
+      method: "POST",
+      cookie: adminCookie,
+      body: { eventId: localEventId, status: "succeeded" }
+    });
+    assert.equal(successEvent.status, 200);
+    const successEventBody = await successEvent.json();
+    assert.equal(successEventBody.duplicate, false);
+    assert.equal(successEventBody.data.status, "succeeded");
+    assert.equal(successEventBody.data.providerEvents.length, 1);
+
+    const duplicateSuccessEvent = await request(baseUrl, "/api/transactions/" + transactionId + "/local-event", {
+      method: "POST",
+      cookie: adminCookie,
+      body: { eventId: localEventId, status: "succeeded" }
+    });
+    assert.equal(duplicateSuccessEvent.status, 200);
+    assert.equal((await duplicateSuccessEvent.json()).duplicate, true);
+    assert.equal((await PayrollTransaction.findById(transactionId)).providerEvents.length, 1);
 
     const repeatRetry = await request(baseUrl, "/api/transactions/" + transactionId + "/retry", {
       method: "POST",
