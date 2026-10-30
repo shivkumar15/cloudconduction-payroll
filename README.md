@@ -119,6 +119,22 @@ npm run dev
 - **Email OTP password reset:** configure the SMTP variables in `server/.env`; password-reset email delivery will not work until SMTP is configured.
 - **RazorpayX:** not integrated yet. Account access to the official sandbox is pending; the existing local payout provider is not RazorpayX and does not send funds.
 
+## Render deployment (same-origin session cookies)
+
+For a reliable cookie-based login on Render, deploy the React frontend and Express API from one Render Web Service. Separate `*.onrender.com` frontend and backend hostnames can be cross-site for browser cookie rules, which can cause login to succeed while later authenticated API calls return 401.
+
+Configure the combined Web Service with the repository root as its Root Directory (leave it blank):
+
+- **Build command:** `npm ci && npm ci --prefix server && npm ci --prefix client && npm run build --prefix client`
+- **Start command:** `npm start --prefix server`
+- **Environment:** set `NODE_ENV=production`, `MONGODB_URI`, and a strong `JWT_SECRET`.
+- **CLIENT_ORIGIN:** set to the exact origin of the combined service, such as `https://your-service.onrender.com`; keep only one entry.
+- **VITE_API_URL:** set to `/api` during the frontend build, or leave it unset so production defaults to the same-origin `/api` path.
+
+The Express app serves `client/dist` in production when that build output exists; API routes (including `/api/health`) remain API routes, and other GET routes fall back to `index.html` for React Router. This also keeps the existing API-only service working when `client/dist` is absent.
+
+After deployment, verify `/api/health`, sign in, check `/api/auth/me`, open an authenticated page, refresh it, and test logout. Do not switch `NODE_ENV` away from `production` to enable local payout test actions.
+
 ## Testing and quality checks
 
 Run from the repository root:
