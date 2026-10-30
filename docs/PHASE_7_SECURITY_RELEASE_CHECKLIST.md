@@ -58,7 +58,8 @@
 - [x] User-reported local `npm run build` passed on 2026-10-28; Vite emits a non-fatal large main-chunk warning (857.57 kB minified / 240.94 kB gzip).
 - [x] The authenticated API performance smoke test ran locally and its bounded scope/limitations are documented; it is not a production-capacity guarantee.
 - [ ] The Phase 6 browser regression remains passed after any code changes.
-- [ ] Confirm CI passed after the client install step was changed to `npm install --include=optional` to reconcile Windows-generated optional dependencies on the Linux runner; root and server retain `npm ci`.
+- [x] Screenshot confirms CI run #309 passed after the client install step was changed to `npm install --include=optional`; documentation-only runs #310 and #311 also passed. Root and server retain `npm ci`.
+- [ ] Verify the latest CI run passes the newly added root/server/client `npm audit --audit-level=high` step.
 - [ ] README setup and recovery steps work from a clean checkout.
 - [ ] Known limits are documented: simulated payments only; simplified salary formula; no claim of statutory/tax compliance; no physical-location proof from WFH attendance.
 - [ ] No production-readiness claim is made until security, privacy, compliance, operational and recovery reviews appropriate to the intended use have actually been completed.
@@ -67,8 +68,8 @@
 
 | Date | Check | Result / artifact | Open findings |
 |---|---|---|---|
-| 2026-10-28 | CI run #298 | Benchmark syntax check, 63 unit/API tests, 4 MongoDB integration tests and frontend production build passed on commit `e9ea77e` | Commit generated lockfiles; switch CI to `npm ci` and verify the dependency-updated commit. Lint/static-analysis and deployment/security checks remain open. |
+| 2026-10-28 | CI run #298 | Benchmark syntax check, 63 unit/API tests, 4 MongoDB integration tests and frontend production build passed on commit `e9ea77e` | This was before the lockfile CI change; see run #309 for the cross-platform install fix. Lint/static-analysis and deployment/security checks remain open. |
 | 2026-10-27 | Phase 6 browser regression | User reported payslips/exports/privacy, leave workflow, WFH attendance and final regression passed | Reported by user; not independently observed in this document |
 | 2026-10-28 | Authenticated API performance smoke test (user-reported) | `http://127.0.0.1:5001`; 40 requests, 40 passed, 0 failed; concurrency 4; 313.5 req/s reported over 127.6 ms. Endpoint p50/p95/p99 (ms): employee list 9.5/17.1/17.1; payroll list 9.5/20.7/20.7; transaction list 9.6/28.0/28.0; payroll preview 12.1/38.8/38.8. | Local-only bounded smoke test; host/runtime and dataset-size details not supplied; confirm synthetic-only test data. Not a production-capacity guarantee. |
 | 2026-10-28 | Local dependency audit and regression verification (user-reported) | Root/server/client audits all report zero vulnerabilities after resolving `body-parser` to 2.4.0; 63/63 unit/API tests, 4/4 MongoDB integration tests and Vite build passed. | Generated package-lock files must be committed and CI rerun using reproducible installs. Main Vite chunk warning remains non-fatal; verify benchmark used synthetic-only data. |
-| 2026-10-28 | Cross-platform CI dependency install fix | Root/server remain on `npm ci`; client uses `npm install --include=optional` (commit `390b856`) because the Windows-generated lockfile omitted optional WASM dependencies required by Linux CI. This is an environment compatibility workaround, not a source-code failure. | Verify the latest GitHub Actions run; main Vite chunk warning remains non-fatal; confirm benchmark used synthetic-only data. |
+| 2026-10-28 | Cross-platform CI dependency install fix | Screenshot confirms CI run #309 passed on commit `390b856`; documentation-only runs #310 and #311 also passed. Root/server use `npm ci`; client uses `npm install --include=optional` because the Windows-generated lockfile omitted optional WASM dependencies required by Linux CI. | A separate high-severity npm audit gate was added in commit `572799f`; verify its CI result. Main Vite chunk warning remains non-fatal; confirm benchmark used synthetic-only data. |
