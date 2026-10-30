@@ -37,7 +37,7 @@
 - [ ] Confirm malformed IDs, periods and pagination are rejected without business-data side effects.
 - [ ] Confirm request-body size and rate limits are suitable for the selected demo topology.
 - [ ] Confirm production errors return generic messages and logs do not expose environment variables or sensitive salary/PII fields.
-- [x] User-reported local `npm audit` checks on 2026-10-28: root, server and client report zero vulnerabilities after `npm audit fix --prefix server` upgraded the resolved backend `body-parser` dependency to 2.4.0. The user generated root/server/client lockfiles locally; verify they are present, commit them, and rerun the audit/CI against the committed lockfiles before treating dependency verification as reproducible.
+- [x] User-reported local `npm audit` checks on 2026-10-28: root, server and client report zero vulnerabilities after `npm audit fix --prefix server` upgraded the resolved backend `body-parser` dependency to 2.4.0. The root/server/client lockfiles were committed and pushed to `main` (commit `63e5746`); CI was changed to use `npm ci` for all three packages (commit `d60854f`). Reproducible-install CI result is still awaiting verification.
 - [ ] Confirm any database mutation failure leaves business records unchanged, especially where multi-document operations are not transactional.
 
 ## 5. Runtime, environment and deployment
@@ -58,6 +58,7 @@
 - [x] User-reported local `npm run build` passed on 2026-10-28; Vite emits a non-fatal large main-chunk warning (857.57 kB minified / 240.94 kB gzip).
 - [x] The authenticated API performance smoke test ran locally and its bounded scope/limitations are documented; it is not a production-capacity guarantee.
 - [ ] The Phase 6 browser regression remains passed after any code changes.
+- [ ] Confirm CI passed on the commit using the committed lockfiles and `npm ci`; prior CI evidence predates this workflow change.
 - [ ] README setup and recovery steps work from a clean checkout.
 - [ ] Known limits are documented: simulated payments only; simplified salary formula; no claim of statutory/tax compliance; no physical-location proof from WFH attendance.
 - [ ] No production-readiness claim is made until security, privacy, compliance, operational and recovery reviews appropriate to the intended use have actually been completed.
@@ -70,3 +71,4 @@
 | 2026-10-27 | Phase 6 browser regression | User reported payslips/exports/privacy, leave workflow, WFH attendance and final regression passed | Reported by user; not independently observed in this document |
 | 2026-10-28 | Authenticated API performance smoke test (user-reported) | `http://127.0.0.1:5001`; 40 requests, 40 passed, 0 failed; concurrency 4; 313.5 req/s reported over 127.6 ms. Endpoint p50/p95/p99 (ms): employee list 9.5/17.1/17.1; payroll list 9.5/20.7/20.7; transaction list 9.6/28.0/28.0; payroll preview 12.1/38.8/38.8. | Local-only bounded smoke test; host/runtime and dataset-size details not supplied; confirm synthetic-only test data. Not a production-capacity guarantee. |
 | 2026-10-28 | Local dependency audit and regression verification (user-reported) | Root/server/client audits all report zero vulnerabilities after resolving `body-parser` to 2.4.0; 63/63 unit/API tests, 4/4 MongoDB integration tests and Vite build passed. | Generated package-lock files must be committed and CI rerun using reproducible installs. Main Vite chunk warning remains non-fatal; verify benchmark used synthetic-only data. |
+| 2026-10-28 | Lockfiles and reproducible CI install change | Root, server and client lockfiles pushed in commit `63e5746`; CI changed to `npm ci` for each package in commit `d60854f`. Project plan updated after these changes. | Verify the newest GitHub Actions run; main Vite chunk warning remains non-fatal; confirm the benchmark used synthetic-only data. |
