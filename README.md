@@ -6,6 +6,12 @@ A full-stack payroll workflow management application built with **React, Node.js
 
 **Repository:** https://github.com/shivkumar15/cloudconduction-payroll
 
+## Live demo
+
+**[Open CloudConduction Payroll](https://cloudconductionpayroll.onrender.com)** — hosted on Render.
+
+Public self-registration is disabled. Demo access requires a provisioned account; do not use production credentials or real employee data for reviewer access.
+
 > **Payment and payroll scope:** payout processing currently uses a local development/test provider. It does not connect to RazorpayX, call a bank or payment gateway, or transfer money. The payroll formula is simplified and is not a statutory or tax-compliant payroll engine. Use synthetic employee data only.
 
 ## Highlights
