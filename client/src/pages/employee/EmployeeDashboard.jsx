@@ -571,7 +571,7 @@ export default function EmployeeDashboard() {
                 </tbody>
               </table>
             </div>
-            <p className="mt-5 border-t border-slate-200 pt-4 text-xs leading-5 text-slate-500">This payslip follows the application's simplified payroll rules and excludes income tax, EPF, statutory deductions, overtime, bonuses, public holidays and custom work schedules. Approved unpaid leave uses the configured Monday–Friday divisor. Any associated payout status is a test record and does not confirm a bank transfer. This is not a statutory or tax-compliant payslip.</p>
+            <p className="mt-5 border-t border-slate-200 pt-4 text-xs leading-5 text-slate-500">This payslip follows the application&apos;s simplified payroll rules and excludes income tax, EPF, statutory deductions, overtime, bonuses, public holidays and custom work schedules. Approved unpaid leave uses the configured Monday–Friday divisor. Any associated payout status is a test record and does not confirm a bank transfer. This is not a statutory or tax-compliant payslip.</p>
           </section>
         )}
 

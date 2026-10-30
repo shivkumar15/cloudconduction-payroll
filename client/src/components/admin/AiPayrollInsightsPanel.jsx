@@ -179,7 +179,7 @@ export default function AiPayrollInsightsPanel({ runs }) {
 
     const previousRun = finalizedRuns.find((run) => run.period < selectedPeriod) || null;
     setError("");
-    setResult(makeDemoInsightResult(currentRun, previousRun));
+    setResult(makeOfflineInsightResult(currentRun, previousRun));
   }
 
   return (
@@ -227,7 +227,7 @@ export default function AiPayrollInsightsPanel({ runs }) {
           </button>
           <button
             type="button"
-            onClick={showDemoInsights}
+            onClick={showOfflineInsights}
             disabled={!selectedPeriod || loading}
             className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
           >
