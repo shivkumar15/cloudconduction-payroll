@@ -37,7 +37,7 @@
 - [ ] Confirm malformed IDs, periods and pagination are rejected without business-data side effects.
 - [ ] Confirm request-body size and rate limits are suitable for the selected demo topology.
 - [ ] Confirm production errors return generic messages and logs do not expose environment variables or sensitive salary/PII fields.
-- [x] User-reported local `npm audit` checks on 2026-10-28: root, server and client report zero vulnerabilities after `npm audit fix --prefix server` upgraded the resolved backend `body-parser` dependency to 2.4.0. The root/server/client lockfiles were committed and pushed to `main` (commit `63e5746`); CI was changed to use `npm ci` for all three packages (commit `d60854f`). Reproducible-install CI result is still awaiting verification.
+- [x] User-reported local `npm audit` checks on 2026-10-28: root, server and client reported zero vulnerabilities after `npm audit fix --prefix server` upgraded the resolved backend `body-parser` dependency to 2.4.0. The root/server/client lockfiles were pushed in commit `63e5746`; root and server use `npm ci`. Client CI uses `npm install --include=optional` because the Windows-generated lockfile omitted platform-specific optional WASM dependency entries required by Linux CI. The high-severity audit gate passed in user-confirmed run #312.
 - [ ] Confirm any database mutation failure leaves business records unchanged, especially where multi-document operations are not transactional.
 
 ## 5. Runtime, environment and deployment
@@ -60,6 +60,7 @@
 - [ ] The Phase 6 browser regression remains passed after any code changes.
 - [x] Screenshot confirms CI run #309 passed after the client install step was changed to `npm install --include=optional`; documentation-only runs #310 and #311 also passed. Root and server retain `npm ci`.
 - [x] User screenshot confirms GitHub Actions run #312 passed the root/server/client `npm audit --audit-level=high` step; documentation-only runs #313–#315 also passed.
+- [ ] Frontend lint (`npm run lint`) passes locally and in CI after the committed ESLint dependencies/configuration are installed and the client lockfile is regenerated.
 - [ ] README setup and recovery steps work from a clean checkout.
 - [ ] Known limits are documented: simulated payments only; simplified salary formula; no claim of statutory/tax compliance; no physical-location proof from WFH attendance.
 - [ ] No production-readiness claim is made until security, privacy, compliance, operational and recovery reviews appropriate to the intended use have actually been completed.
@@ -74,3 +75,4 @@
 | 2026-10-28 | Local dependency audit and regression verification (user-reported) | Root/server/client audits all report zero vulnerabilities after resolving `body-parser` to 2.4.0; 63/63 unit/API tests, 4/4 MongoDB integration tests and Vite build passed. | Generated package-lock files must be committed and CI rerun using reproducible installs. Main Vite chunk warning remains non-fatal; verify benchmark used synthetic-only data. |
 | 2026-10-28 | Cross-platform CI dependency install fix | Screenshot confirms CI run #309 passed on commit `390b856`; documentation-only runs #310 and #311 also passed. Root/server use `npm ci`; client uses `npm install --include=optional` because the Windows-generated lockfile omitted optional WASM dependencies required by Linux CI. | A separate high-severity npm audit gate was added in commit `572799f`; verify its CI result. Main Vite chunk warning remains non-fatal; confirm benchmark used synthetic-only data. |
 | 2026-10-29 | Dependency-audit CI gate | User screenshot confirms run #312 passed `npm audit --audit-level=high` for root/server/client; documentation-only runs #313–#315 also passed. | Reconcile lint status: current GitHub main still has no lint script/CI lint step. Main Vite chunk warning remains non-fatal; remaining security/deployment checklist items stay open. |
+| 2026-10-29 | ESLint setup added (verification pending) | ESLint flat config, root/client lint scripts, README quality-check instructions, and GitHub Actions lint step added in commits `414bc5f`, `2802882`, `0cf18a5`, `b4e08d5`, and `a1a104d`. | Pull latest main on Windows, run `npm install --include=optional --prefix client`, then `npm run lint`; review any errors and verify a new CI run. |
