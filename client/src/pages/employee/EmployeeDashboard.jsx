@@ -571,7 +571,7 @@ export default function EmployeeDashboard() {
                 </tbody>
               </table>
             </div>
-            <p className="mt-5 border-t border-slate-200 pt-4 text-xs leading-5 text-slate-500">Portfolio demo statement only. This uses a simplified salary formula and excludes income tax, EPF, statutory deductions, overtime, bonuses, public-holiday calendars and custom work schedules. Approved unpaid leave is prorated using this demo's Monday–Friday divisor. Any related transaction status is simulated; no money is transferred. This statement is not a statutory or tax-compliant payslip.</p>
+            <p className="mt-5 border-t border-slate-200 pt-4 text-xs leading-5 text-slate-500">Portfolio demo statement only. This uses a simplified salary formula and excludes income tax, EPF, statutory deductions, overtime, bonuses, public-holiday calendars and custom work schedules. Approved unpaid leave is prorated using this demo&apos;s Monday–Friday divisor. Any related transaction status is simulated; no money is transferred. This statement is not a statutory or tax-compliant payslip.</p>
           </section>
         )}
 

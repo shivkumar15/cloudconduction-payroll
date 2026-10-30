@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import {
-  ArrowLeft, CalendarDays, CheckCircle2, Clock3, RefreshCw, X, XCircle, ClipboardCheck
+  ArrowLeft, CheckCircle2, RefreshCw, X, XCircle, ClipboardCheck
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import api from "../../services/api.js";
