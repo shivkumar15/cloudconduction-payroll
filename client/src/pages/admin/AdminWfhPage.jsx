@@ -198,7 +198,7 @@ export default function AdminWfhPage() {
       <section className="mx-auto max-w-7xl px-5 py-8 lg:px-8">
         <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
           <div>
-            <p className="text-sm font-semibold text-indigo-600">PHASE 6.6 · EMPLOYEE ATTENDANCE</p>
+            <p className="text-sm font-semibold text-indigo-600">WFH & ATTENDANCE</p>
             <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">WFH requests & attendance</h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">Approve date-specific WFH requests and review server-recorded check-ins/check-outs. This workflow does not verify physical location.</p>
           </div>

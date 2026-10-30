@@ -331,7 +331,7 @@ export default function AdminPayrollPage() {
       <section className="mx-auto max-w-7xl px-5 py-8 lg:px-8">
         <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
           <div>
-            <p className="text-sm font-semibold text-indigo-600">PHASE 6 · PAYROLL WORKSPACE</p>
+            <p className="text-sm font-semibold text-indigo-600">PAYROLL WORKSPACE</p>
             <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">Payroll & transactions</h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
               Preview saved salary structures, create and approve payroll runs, then validate the payout workflow using test records.

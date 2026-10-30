@@ -134,7 +134,7 @@ export default function AdminUnpaidLeavePage() {
       </header>
 
       <section className="mx-auto max-w-7xl px-5 py-8 lg:px-8">
-        <p className="text-sm font-semibold text-indigo-600">PHASE 6.5 · PAYROLL INPUTS</p>
+        <p className="text-sm font-semibold text-indigo-600">UNPAID LEAVE MANAGEMENT</p>
         <div className="mt-2 flex flex-col justify-between gap-4 md:flex-row md:items-end">
           <div>
             <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Unpaid-leave requests</h1>

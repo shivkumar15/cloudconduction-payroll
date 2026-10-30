@@ -339,7 +339,7 @@ export default function EmployeesPage() {
       <section className="mx-auto max-w-7xl px-5 py-8 lg:px-8">
         <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
           <div>
-            <p className="text-sm font-semibold text-indigo-600">PHASE 3</p>
+            <p className="text-sm font-semibold text-indigo-600">EMPLOYEE MANAGEMENT</p>
             <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">Employees</h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">Manage employee profiles, salary structures, and linked login access. Use synthetic test records until production data controls are reviewed.</p>
           </div>
