@@ -48,6 +48,12 @@ jobs:
       - name: Install client dependencies (platform optional dependencies)
         run: npm install --include=optional --prefix client
 
+      - name: Audit root, server and client dependencies
+        run: |
+          npm audit --audit-level=high
+          npm audit --prefix server --audit-level=high
+          npm audit --prefix client --audit-level=high
+
       - name: Check authenticated API performance script syntax
         run: node --check server/src/scripts/authenticatedApiTest.js
 
