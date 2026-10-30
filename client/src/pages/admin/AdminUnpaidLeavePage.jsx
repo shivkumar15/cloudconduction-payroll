@@ -182,7 +182,7 @@ export default function AdminUnpaidLeavePage() {
           </div>
 
           <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950">
-            This demo counts Monday–Friday dates as working days; public holidays and custom employee schedules are not modeled. Review the exact date before approval. A saved payroll run locks that month, and the server will reject late decisions.
+            The current policy counts Monday–Friday dates as working days; public holidays and custom employee schedules are not modeled. Review the exact date before approval. A saved payroll run locks that month, and the server will reject late decisions.
           </div>
 
           {loading && <p className="mt-4 text-sm text-slate-500" role="status">Loading leave requests…</p>}

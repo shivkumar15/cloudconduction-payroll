@@ -100,7 +100,7 @@ function EmployeeFields({ form, setForm, includeAccountPassword = false }) {
           required
         />
         <span className="mt-1 block text-xs leading-5 text-slate-500">
-          Included from the month containing this date. This demo pays a full month and does not prorate salary. The date is locked after the employee appears in a saved payroll run.
+          Included from the month containing this date. The current rule calculates a full month without salary proration. The date is locked after the employee appears in a saved payroll run.
         </span>
       </label>
       <label>
@@ -341,7 +341,7 @@ export default function EmployeesPage() {
           <div>
             <p className="text-sm font-semibold text-indigo-600">PHASE 3</p>
             <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">Employees</h1>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">Manage employee profiles, salary structures, and their linked login access. Use synthetic data in this demo.</p>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">Manage employee profiles, salary structures, and linked login access. Use synthetic test records until production data controls are reviewed.</p>
           </div>
           <button type="button" onClick={() => { setShowCreate((value) => !value); setCreateError(""); }} className="inline-flex items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700">
             <Plus size={17} /> {showCreate ? "Close form" : "Add employee"}
@@ -456,7 +456,7 @@ export default function EmployeesPage() {
           </div>
         </section>
 
-        <p className="mt-5 text-xs leading-5 text-slate-500">Salary components are demo inputs in integer paise at the API boundary. This app does not calculate statutory tax, make real transfers, or store real employee data.</p>
+        <p className="mt-5 text-xs leading-5 text-slate-500">Salary components use integer paise at the API boundary. The current formula does not calculate statutory tax, and payout records do not transfer money. Do not enter real employee data until production privacy, security and compliance controls have been reviewed.</p>
       </section>
     </main>
   );

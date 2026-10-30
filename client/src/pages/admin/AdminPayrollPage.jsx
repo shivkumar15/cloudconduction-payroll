@@ -124,7 +124,7 @@ export default function AdminPayrollPage() {
       setTransactions(Array.isArray(response.data.data) ? response.data.data : []);
       setTransactionPagination(response.data.pagination || { page: transactionPage, pageSize: 25, total: 0, totalPages: 0 });
     } catch (error) {
-      setTransactionError(responseMessage(error, "Unable to load simulated transactions."));
+      setTransactionError(responseMessage(error, "Unable to load payout records."));
       setTransactions([]);
       setTransactionPagination({ page: transactionPage, pageSize: 25, total: 0, totalPages: 0 });
     } finally {
@@ -241,17 +241,17 @@ export default function AdminPayrollPage() {
         );
         const summary = response.data.summary;
         if (summary) {
-          response.data.message = "Simulation finished: " + summary.succeeded + " succeeded, " + summary.failed + " failed. No money was transferred.";
+          response.data.message = "Payout test finished: " + summary.succeeded + " succeeded, " + summary.failed + " failed. No funds were transferred.";
         }
         return response;
       },
-      "Simulated transactions processed. No money was transferred."
+      "Payout test records processed. No funds were transferred."
     );
   }
 
   async function finalizeRun() {
     if (!selectedRun) return;
-    const confirmed = window.confirm("Finalize " + selectedRun.period + " payroll? This is a one-way demo workflow transition after all simulated transactions succeed.");
+    const confirmed = window.confirm("Finalize " + selectedRun.period + " payroll? This is a permanent status change, allowed only after every payout test record succeeds.");
     if (!confirmed) return;
     await runAction(
       "finalize",
@@ -264,7 +264,7 @@ export default function AdminPayrollPage() {
     await runAction(
       "retry-" + transactionId,
       () => api.post("/transactions/" + transactionId + "/retry", {}),
-      "Simulated transaction retry completed. No money was transferred."
+      "Payout test retry completed. No funds were transferred."
     );
   }
 
@@ -289,7 +289,7 @@ export default function AdminPayrollPage() {
 
   function exportTransactions() {
     const rows = [
-      ["Period", "Employee code", "Employee name", "Amount INR", "Status", "Attempts", "Simulated reference", "Last attempt"],
+      ["Period", "Employee code", "Employee name", "Amount INR", "Status", "Attempts", "Payout test reference", "Last attempt"],
       ...transactions.map((item) => [
         item.period,
         item.employeeCode,
@@ -301,7 +301,7 @@ export default function AdminPayrollPage() {
         item.lastAttemptAt
       ])
     ];
-    downloadCsv("simulated-transactions-" + period + ".csv", rows);
+    downloadCsv("payout-test-history-" + period + ".csv", rows);
   }
 
   return (
@@ -312,7 +312,7 @@ export default function AdminPayrollPage() {
             <ArrowLeft size={17} aria-hidden="true" /> Back to dashboard
           </Link>
           <span className="rounded-lg bg-amber-50 px-3 py-2 text-xs font-bold uppercase tracking-wide text-amber-800">
-            Simulation only · No real transfers
+            Payout test environment · No funds transferred
           </span>
         </div>
       </header>
@@ -323,7 +323,7 @@ export default function AdminPayrollPage() {
             <p className="text-sm font-semibold text-indigo-600">PHASE 6 · PAYROLL WORKSPACE</p>
             <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">Payroll & transactions</h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-              Preview saved salary structures, create and approve monthly runs, then test the payment lifecycle with simulated transactions.
+              Preview saved salary structures, create and approve payroll runs, then validate the payout workflow using test records.
             </p>
           </div>
           <label className="block w-full max-w-xs">
@@ -427,7 +427,7 @@ export default function AdminPayrollPage() {
           <article className={cardClass}>
             <div className="flex items-center justify-between gap-3"><p className="text-sm text-slate-500">Failed on this page</p><ShieldAlert size={19} className="text-rose-600" aria-hidden="true" /></div>
             <p className="mt-4 text-3xl font-bold">{loadingTransactions ? "…" : failedVisible}</p>
-            <p className="mt-1 text-xs text-slate-500">Retry failed simulation records below</p>
+            <p className="mt-1 text-xs text-slate-500">Retry failed payout-test records below</p>
           </article>
         </div>
 
@@ -552,13 +552,13 @@ export default function AdminPayrollPage() {
                 </div>
                 <div className="mt-4 flex flex-wrap gap-2">
                   {selectedRun.status === "draft" && <button type="button" disabled={busyAction !== ""} onClick={approveRun} className={primaryButton}><CheckCircle2 size={16} /> {busyAction === "approve" ? "Approving…" : "Approve run"}</button>}
-                  {selectedRun.status === "approved" && <button type="button" disabled={busyAction !== ""} onClick={simulateTransactions} className={primaryButton}><Play size={16} /> {busyAction === "simulate" ? "Simulating…" : "Simulate payments"}</button>}
+                  {selectedRun.status === "approved" && <button type="button" disabled={busyAction !== ""} onClick={simulateTransactions} className={primaryButton}><Play size={16} /> {busyAction === "simulate" ? "Processing test…" : "Run payout test"}</button>}
                   {selectedRun.status === "approved" && <button type="button" disabled={busyAction !== ""} onClick={finalizeRun} className={secondaryButton}><FileCheck size={16} /> {busyAction === "finalize" ? "Finalizing…" : "Finalize run"}</button>}
                 </div>
                 {selectedRun.status === "approved" && <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3">
-                  <label className="block text-sm font-semibold text-amber-950" htmlFor="failure-codes">Optional demo failure scenario</label>
+                  <label className="block text-sm font-semibold text-amber-950" htmlFor="failure-codes">Optional test failure scenario</label>
                   <input id="failure-codes" className={"mt-2 " + fieldClass} value={failCodes} onChange={(event) => setFailCodes(event.target.value)} placeholder="EMP-1001, EMP-1002" />
-                  <p className="mt-1 text-xs leading-5 text-amber-900">Comma-separated employee codes will be marked failed on their first simulation attempt. Leave blank for all-success simulation. This only tests the workflow; no money moves. Retrying an existing failed record is available in the transactions table.</p>
+                  <p className="mt-1 text-xs leading-5 text-amber-900">Enter comma-separated employee codes to mark their first payout-test attempt as failed. Leave blank to test successful outcomes. This validates the workflow only; no funds are moved. Failed records can be retried from the payout table.</p>
                 </div>}
                 {selectedRun.status === "finalized" && <p className="mt-4 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800">This payroll snapshot is finalized. Employee accounts can now view their own pay history.</p>}
                 <div className="mt-5 max-h-72 overflow-auto rounded-lg border border-slate-200">
@@ -586,7 +586,7 @@ export default function AdminPayrollPage() {
         <section className={"mt-6 " + cardClass}>
           <div className="flex flex-col justify-between gap-3 md:flex-row md:items-end">
             <div>
-              <h2 className="text-lg font-semibold">Simulated transactions</h2>
+              <h2 className="text-lg font-semibold">Payout activity</h2>
               <p className="mt-1 text-sm text-slate-500">View outcomes, reference IDs and attempt history. Failed transactions can be retried without creating duplicates.</p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -601,7 +601,7 @@ export default function AdminPayrollPage() {
           </div>
 
           {loadingTransactions && <p className="mt-4 text-sm text-slate-500" role="status">Loading transactions…</p>}
-          {!loadingTransactions && !transactionError && transactions.length === 0 && <p className="mt-4 rounded-lg bg-slate-50 p-5 text-sm text-slate-600">No simulated transactions match this period and status. Approve a payroll run and choose Simulate payments to create records.</p>}
+          {!loadingTransactions && !transactionError && transactions.length === 0 && <p className="mt-4 rounded-lg bg-slate-50 p-5 text-sm text-slate-600">No payout-test records match this period and status. Approve a payroll run and choose Run payout test to create records.</p>}
           {!loadingTransactions && transactions.length > 0 && <div className="mt-4 overflow-x-auto rounded-xl border border-slate-200">
             <table className="min-w-full text-left text-sm">
               <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500"><tr><th className="px-3 py-3">Employee</th><th className="px-3 py-3">Period</th><th className="px-3 py-3 text-right">Amount</th><th className="px-3 py-3">Status</th><th className="px-3 py-3">Attempts</th><th className="px-3 py-3">Last attempt</th><th className="px-3 py-3">Actions / history</th></tr></thead>
@@ -610,17 +610,17 @@ export default function AdminPayrollPage() {
                   <td className="px-3 py-3"><p className="font-semibold">{transaction.employeeName}</p><p className="text-xs text-slate-500">{transaction.employeeCode}</p></td>
                   <td className="whitespace-nowrap px-3 py-3">{transaction.period}</td>
                   <td className="whitespace-nowrap px-3 py-3 text-right font-semibold tabular-nums">{money(transaction.amountPaise)}</td>
-                  <td className="px-3 py-3"><StatusBadge status={transaction.status} /><p className="mt-1 text-xs text-slate-500">Simulation</p></td>
+                  <td className="px-3 py-3"><StatusBadge status={transaction.status} /><p className="mt-1 text-xs text-slate-500">Test record</p></td>
                   <td className="px-3 py-3 text-center">{transaction.attemptCount}</td>
                   <td className="whitespace-nowrap px-3 py-3 text-xs text-slate-500">{formatDate(transaction.lastAttemptAt)}</td>
                   <td className="min-w-48 px-3 py-3">
                     {transaction.status === "failed" && <button type="button" disabled={busyAction !== ""} onClick={() => retryTransaction(transaction.id)} className="mb-2 inline-flex items-center gap-1 rounded-md border border-rose-200 px-2.5 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-50 disabled:opacity-50">
-                      <RefreshCw size={13} aria-hidden="true" /> {busyAction === "retry-" + transaction.id ? "Retrying…" : "Retry simulation"}
+                      <RefreshCw size={13} aria-hidden="true" /> {busyAction === "retry-" + transaction.id ? "Retrying…" : "Retry payout test"}
                     </button>}
                     <details className="text-xs">
                       <summary className="cursor-pointer font-semibold text-indigo-700">Attempt history</summary>
                       <div className="mt-2 space-y-2">
-                        <p className="break-all text-slate-500">Ref: {transaction.simulatedReference}</p>
+                        <p className="break-all text-slate-500">Test reference: {transaction.simulatedReference}</p>
                         {transaction.failureCode && <p className="text-rose-700">Failure: {transaction.failureCode}</p>}
                         {transaction.attemptHistory.map((attempt) => <div key={attempt.attemptNumber} className="rounded bg-slate-50 p-2">
                           <p className="font-semibold">Attempt {attempt.attemptNumber} · {attempt.status}</p>
@@ -641,12 +641,12 @@ export default function AdminPayrollPage() {
               <button type="button" className={secondaryButton} disabled={transactionPage >= transactionPagination.totalPages || loadingTransactions || transactionPagination.totalPages === 0} onClick={() => setTransactionPage((page) => page + 1)}>Next <ChevronRight size={16} /></button>
             </div>
           </div>
-          <p className="mt-3 text-xs leading-5 text-slate-500">These entries are generated by the simulation adapter only. They are not bank transactions, payment confirmations, or proof of a real salary transfer.</p>
+          <p className="mt-3 text-xs leading-5 text-slate-500">These records are generated by the internal payout-test workflow. They are not bank transactions, payout confirmations, or proof of a salary transfer.</p>
         </section>
 
         <div className="mt-6 flex flex-wrap items-start gap-3 rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-600">
           <ShieldAlert size={18} className="mt-0.5 shrink-0 text-amber-600" aria-hidden="true" />
-          <p>Amounts are illustrative. The simplified formula excludes tax, EPF, statutory deductions, overtime, bonuses and leave proration. Finalization is enforced by the server and requires every employee transaction to have succeeded in simulation.</p>
+          <p>The current payroll formula excludes tax, EPF, statutory deductions, overtime, bonuses and leave proration. The server permits finalization only after every payout-test record succeeds. This application does not produce a statutory payroll calculation.</p>
         </div>
       </section>
     </main>

@@ -67,7 +67,7 @@ export default function AdminDashboard() {
       icon: Banknote
     },
     {
-      label: "Simulated transactions",
+      label: "Payout records",
       value: transactionCount === null ? "—" : String(transactionCount),
       note: transactionCount === null ? "Unable to load transactions" : "Records for " + currentPeriod(),
       icon: Activity
@@ -113,7 +113,7 @@ export default function AdminDashboard() {
             <p className="text-sm font-semibold text-indigo-600">ADMIN OVERVIEW</p>
             <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">Payroll dashboard</h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-              Review saved payroll totals, manage employee records and operate the simulated payroll workflow.
+              Review payroll totals, manage employee records and track payout processing.
             </p>
           </div>
           <div className="inline-flex items-center gap-2 self-start rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600 sm:self-auto">
@@ -139,7 +139,7 @@ export default function AdminDashboard() {
 
         {failedTransactionCount > 0 && (
           <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">
-            <p>{failedTransactionCount} failed simulated transaction(s) exist for {currentPeriod()}.</p>
+            <p>{failedTransactionCount} failed payout record(s) exist for {currentPeriod()}.</p>
             <Link to="/admin/payroll" className="inline-flex items-center gap-2 font-semibold underline">Review and retry <ArrowRight size={15} aria-hidden="true" /></Link>
           </div>
         )}
@@ -149,8 +149,8 @@ export default function AdminDashboard() {
             <div className="flex items-start gap-3">
               <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-indigo-50 text-indigo-600"><Wallet size={22} aria-hidden="true" /></span>
               <div className="flex-1">
-                <h2 className="text-lg font-semibold">Payroll & simulated transactions</h2>
-                <p className="mt-2 text-sm leading-6 text-slate-600">Preview a period, create and approve a payroll snapshot, simulate payment outcomes, retry failed simulation attempts and finalize the run.</p>
+                <h2 className="text-lg font-semibold">Payroll & payout activity</h2>
+                <p className="mt-2 text-sm leading-6 text-slate-600">Preview a period, create and approve a payroll snapshot, run payout tests, review failed attempts and finalize the period.</p>
                 <Link to="/admin/payroll" className="mt-4 inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700">Open payroll workspace <ArrowRight size={16} aria-hidden="true" /></Link>
               </div>
             </div>
@@ -187,7 +187,7 @@ export default function AdminDashboard() {
           </article>
         </div>
 
-        <p className="mt-6 text-xs leading-5 text-slate-500">This is a portfolio demo using synthetic salary data. The salary formula is simplified and payment outcomes are simulated; no money is transferred. The dashboard metrics are fetched from stored employee, payroll and transaction records rather than placeholder numbers.</p>
+        <p className="mt-6 text-xs leading-5 text-slate-500">Use synthetic salary records until production data controls are reviewed. The current payroll formula is simplified, and payout records are internal tests that do not transfer money. Dashboard metrics reflect saved employee, payroll and payout records.</p>
       </section>
     </main>
   );

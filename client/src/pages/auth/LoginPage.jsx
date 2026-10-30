@@ -70,7 +70,7 @@ export default function LoginPage() {
           </p>
           <div className="mt-8 flex items-center gap-2 text-sm text-slate-300">
             <ShieldCheck size={18} className="text-emerald-400" />
-            Demo environment · simulated payments only
+            Payroll management workspace
           </div>
         </div>
         <p className="text-xs text-slate-500">CloudConduction Payroll · Portfolio project</p>
@@ -170,7 +170,7 @@ export default function LoginPage() {
           </div>
 
           <p className="mt-5 text-center text-xs leading-5 text-slate-500">
-            Demo application only. No real payments are made.
+            Payout processing is currently in test mode and does not transfer money.
           </p>
         </div>
       </section>

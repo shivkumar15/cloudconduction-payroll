@@ -247,7 +247,7 @@ export default function EmployeeDashboard() {
 
   function exportTransactionHistory() {
     const rows = [
-      ["Period", "Amount INR", "Status", "Simulated reference", "Attempts", "Last attempt"],
+      ["Period", "Amount INR", "Status", "Payout test reference", "Attempts", "Last attempt"],
       ...transactions.map((transaction) => [
         transaction.period,
         (transaction.amountPaise / 100).toFixed(2),
@@ -257,7 +257,7 @@ export default function EmployeeDashboard() {
         transaction.lastAttemptAt
       ])
     ];
-    downloadCsv("my-simulated-transaction-history.csv", rows);
+    downloadCsv("my-payout-test-history.csv", rows);
   }
 
   const displayedUnpaidLeaveRequests = unpaidLeaveRequests.filter((request, index, all) => {
@@ -322,7 +322,7 @@ export default function EmployeeDashboard() {
               <div><p className="text-xs uppercase tracking-wide text-slate-500">Work email</p><p className="mt-1 break-all font-medium">{profile.workEmail}</p></div>
             </div>
             <div className="mt-5 border-t border-slate-100 pt-5">
-              <div className="flex items-center gap-2 font-semibold"><ShieldCheck size={18} className="text-emerald-600" aria-hidden="true" /> Current monthly salary structure (demo)</div>
+              <div className="flex items-center gap-2 font-semibold"><ShieldCheck size={18} className="text-emerald-600" aria-hidden="true" /> Current monthly salary structure</div>
               <p className="mt-1 text-sm text-slate-500">These are salary inputs, not a processed payslip or a promise of payment.</p>
               <div className="mt-4 grid gap-3 sm:grid-cols-3">
                 <div className="rounded-xl bg-slate-50 p-4"><p className="text-sm text-slate-500">Base salary</p><p className="mt-2 text-xl font-bold">{money(profile.salaryStructure.baseSalaryPaise)}</p></div>
@@ -411,7 +411,7 @@ export default function EmployeeDashboard() {
               <Send size={16} aria-hidden="true" /> {submittingWfh ? "Submitting…" : "Request WFH"}
             </button>
           </form>
-          <p className="mt-3 text-xs leading-5 text-slate-500">This demo does not verify physical location. WFH attendance is a server-timestamped application record; it is not proof of where an employee is located. A date cannot be simultaneously reserved for WFH and unpaid leave.</p>
+          <p className="mt-3 text-xs leading-5 text-slate-500">WFH attendance is a server-timestamped application record and does not independently verify physical location. A date cannot be simultaneously reserved for WFH and unpaid leave.</p>
 
           <div className="mt-5 grid gap-5 xl:grid-cols-2">
             <div>
@@ -521,7 +521,7 @@ export default function EmployeeDashboard() {
           </div>
           {historyError && <p className="mt-4 rounded-lg bg-rose-50 p-3 text-sm text-rose-700" role="alert">{historyError}</p>}
           {loadingHistory && <p className="mt-4 text-sm text-slate-500" role="status">Loading finalized pay history…</p>}
-          {!loadingHistory && !historyError && payrollHistory.length === 0 && <p className="mt-4 rounded-xl bg-slate-50 p-5 text-sm text-slate-600">No finalized payroll history yet. Your admin must complete the payroll simulation and finalize the run before a payslip becomes available.</p>}
+          {!loadingHistory && !historyError && payrollHistory.length === 0 && <p className="mt-4 rounded-xl bg-slate-50 p-5 text-sm text-slate-600">No finalized payroll history yet. Your administrator must complete the payroll workflow and finalize the period before a payslip becomes available.</p>}
           {!loadingHistory && payrollHistory.length > 0 && <div className="mt-4 overflow-x-auto rounded-xl border border-slate-200">
             <table className="min-w-full text-left text-sm">
               <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500"><tr><th className="px-4 py-3">Period</th><th className="px-4 py-3">Gross pay</th><th className="px-4 py-3">Deductions</th><th className="px-4 py-3 text-right">Net pay</th><th className="px-4 py-3">Finalized</th><th className="px-4 py-3">Payslip</th></tr></thead>
@@ -543,7 +543,7 @@ export default function EmployeeDashboard() {
           <section className="payroll-payslip mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
             <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
               <div>
-                <p className="text-xs font-bold uppercase tracking-widest text-indigo-600">CloudConduction · Demo statement</p>
+                <p className="text-xs font-bold uppercase tracking-widest text-indigo-600">CloudConduction · Payslip</p>
                 <h2 className="mt-2 text-2xl font-bold">Payslip · {selectedPayslip.period}</h2>
                 <p className="mt-1 text-sm text-slate-500">Finalized on {formatDate(selectedPayslip.finalizedAt)}</p>
               </div>
@@ -567,25 +567,25 @@ export default function EmployeeDashboard() {
                   <tr><th className="py-3 text-left font-medium text-slate-600">Fixed monthly deductions</th><td className="py-3 text-right font-semibold tabular-nums">− {money(selectedPayslip.item.fixedMonthlyDeductionsPaise ?? selectedPayslip.item.monthlyDeductionsPaise)}</td></tr>
                   {(selectedPayslip.item.unpaidLeaveDays || 0) > 0 && <tr><th className="py-3 text-left font-medium text-slate-600">Unpaid leave ({selectedPayslip.item.unpaidLeaveDays} weekday(s))</th><td className="py-3 text-right font-semibold tabular-nums">− {money(selectedPayslip.item.unpaidLeaveDeductionPaise || 0)}</td></tr>}
                   <tr><th className="py-3 text-left font-semibold text-slate-800">Total deductions</th><td className="py-3 text-right font-semibold tabular-nums">− {money(selectedPayslip.item.monthlyDeductionsPaise)}</td></tr>
-                  <tr className="border-t-2 border-slate-300"><th className="py-4 text-left text-base font-bold">Net pay (demo)</th><td className="py-4 text-right text-xl font-bold tabular-nums">{money(selectedPayslip.item.netPayPaise)}</td></tr>
+                  <tr className="border-t-2 border-slate-300"><th className="py-4 text-left text-base font-bold">Net pay</th><td className="py-4 text-right text-xl font-bold tabular-nums">{money(selectedPayslip.item.netPayPaise)}</td></tr>
                 </tbody>
               </table>
             </div>
-            <p className="mt-5 border-t border-slate-200 pt-4 text-xs leading-5 text-slate-500">Portfolio demo statement only. This uses a simplified salary formula and excludes income tax, EPF, statutory deductions, overtime, bonuses, public-holiday calendars and custom work schedules. Approved unpaid leave is prorated using this demo&apos;s Monday–Friday divisor. Any related transaction status is simulated; no money is transferred. This statement is not a statutory or tax-compliant payslip.</p>
+            <p className="mt-5 border-t border-slate-200 pt-4 text-xs leading-5 text-slate-500">This payslip follows the application's simplified payroll rules and excludes income tax, EPF, statutory deductions, overtime, bonuses, public holidays and custom work schedules. Approved unpaid leave uses the configured Monday–Friday divisor. Any associated payout status is a test record and does not confirm a bank transfer. This is not a statutory or tax-compliant payslip.</p>
           </section>
         )}
 
         <section className={"no-print mt-6 " + cardClass + (activeSection === "transactions" ? "" : " hidden")}>
           <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
             <div>
-              <h2 className="text-lg font-semibold">Simulated transaction history</h2>
+              <h2 className="text-lg font-semibold">Payout history</h2>
               <p className="mt-1 text-sm text-slate-500">Transaction records are visible only when their payroll run is finalized and always belong to your employee account.</p>
             </div>
             <button type="button" disabled={transactions.length === 0} onClick={exportTransactionHistory} className={buttonClass}><Download size={16} aria-hidden="true" /> Export CSV</button>
           </div>
           {transactionError && <p className="mt-4 rounded-lg bg-rose-50 p-3 text-sm text-rose-700" role="alert">{transactionError}</p>}
           {loadingTransactions && <p className="mt-4 text-sm text-slate-500" role="status">Loading transaction history…</p>}
-          {!loadingTransactions && !transactionError && transactions.length === 0 && <p className="mt-4 rounded-xl bg-slate-50 p-5 text-sm text-slate-600">No finalized simulated transaction records are available yet.</p>}
+          {!loadingTransactions && !transactionError && transactions.length === 0 && <p className="mt-4 rounded-xl bg-slate-50 p-5 text-sm text-slate-600">No finalized payout-test records are available yet.</p>}
           {!loadingTransactions && transactions.length > 0 && <div className="mt-4 overflow-x-auto rounded-xl border border-slate-200">
             <table className="min-w-full text-left text-sm">
               <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500"><tr><th className="px-4 py-3">Period</th><th className="px-4 py-3 text-right">Amount</th><th className="px-4 py-3">Status</th><th className="px-4 py-3">Attempts</th><th className="px-4 py-3">Reference</th><th className="px-4 py-3">Last attempt</th></tr></thead>
@@ -593,7 +593,7 @@ export default function EmployeeDashboard() {
                 {transactions.map((transaction) => <tr key={transaction.id}>
                   <td className="whitespace-nowrap px-4 py-3 font-semibold">{transaction.period}</td>
                   <td className="whitespace-nowrap px-4 py-3 text-right font-semibold">{money(transaction.amountPaise)}</td>
-                  <td className="px-4 py-3"><StatusBadge status={transaction.status} /><p className="mt-1 text-xs text-slate-500">Simulation only</p></td>
+                  <td className="px-4 py-3"><StatusBadge status={transaction.status} /><p className="mt-1 text-xs text-slate-500">Test record</p></td>
                   <td className="px-4 py-3 text-center">{transaction.attemptCount}</td>
                   <td className="max-w-48 break-all px-4 py-3 text-xs text-slate-500">{transaction.simulatedReference}</td>
                   <td className="whitespace-nowrap px-4 py-3 text-slate-500">{formatDate(transaction.lastAttemptAt)}</td>
@@ -601,7 +601,7 @@ export default function EmployeeDashboard() {
               </tbody>
             </table>
           </div>}
-          <p className="mt-4 text-xs leading-5 text-slate-500">If a finalized run has a failed simulation in this demo, contact the payroll administrator. This record is not proof of a bank transfer.</p>
+          <p className="mt-4 text-xs leading-5 text-slate-500">If a finalized run has a failed payout test, contact the payroll administrator. This record does not confirm a bank transfer.</p>
         </section>
           </div>
         </div>
