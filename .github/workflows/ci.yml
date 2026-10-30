@@ -54,6 +54,9 @@ jobs:
           npm audit --prefix server --audit-level=high
           npm audit --prefix client --audit-level=high
 
+      - name: Lint frontend JavaScript and JSX
+        run: npm run lint
+
       - name: Check authenticated API performance script syntax
         run: node --check server/src/scripts/authenticatedApiTest.js
 
