@@ -37,14 +37,14 @@ jobs:
         with:
           node-version: 22
 
-      - name: Install root dependencies
-        run: npm install
+      - name: Install root dependencies from lockfile
+        run: npm ci
 
-      - name: Install server dependencies
-        run: npm install --prefix server
+      - name: Install server dependencies from lockfile
+        run: npm ci --prefix server
 
-      - name: Install client dependencies
-        run: npm install --prefix client
+      - name: Install client dependencies from lockfile
+        run: npm ci --prefix client
 
       - name: Check authenticated API performance script syntax
         run: node --check server/src/scripts/authenticatedApiTest.js
