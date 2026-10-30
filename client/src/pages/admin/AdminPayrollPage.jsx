@@ -10,6 +10,7 @@ import {
   Tooltip, XAxis, YAxis
 } from "recharts";
 import api from "../../services/api.js";
+import AiPayrollInsightsPanel from "../../components/admin/AiPayrollInsightsPanel.jsx";
 
 const currency = new Intl.NumberFormat("en-IN", {
   style: "currency",
@@ -429,6 +430,8 @@ export default function AdminPayrollPage() {
             <p className="mt-1 text-xs text-slate-500">Retry failed simulation records below</p>
           </article>
         </div>
+
+        <AiPayrollInsightsPanel runs={runs} />
 
         <div className="mt-6 grid gap-5 xl:grid-cols-[1.2fr_1fr]">
           <section className={cardClass}>
