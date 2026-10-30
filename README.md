@@ -25,6 +25,22 @@ A portfolio-focused MERN payroll management application. The initial scaffold in
 5. API health check: http://localhost:5001/api/health
 6. Frontend: http://localhost:5173
 
+## Quality checks
+
+From the repository root, the frontend lint command and the main verification commands are:
+
+```bash
+npm run lint
+npm test
+npm run test:integration --prefix server
+npm run build
+npm audit --audit-level=high
+npm audit --prefix server --audit-level=high
+npm audit --prefix client --audit-level=high
+```
+
+The MongoDB integration tests require a disposable test database; do not point them at production or real employee data. The frontend ESLint configuration is in `client/eslint.config.js`. ESLint findings include errors plus warnings for existing unused variables and hook dependency issues; review warnings without weakening critical correctness checks.
+
 ## Security notes
 - Never commit `.env` files or real employee data.
 - Use synthetic data only in development.
