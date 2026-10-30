@@ -10,10 +10,55 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+html {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: clip;
+}
+
 body {
   margin: 0;
+  width: 100%;
+  max-width: 100%;
   min-width: 320px;
   min-height: 100vh;
+  overflow-x: clip;
+}
+
+#root {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+/* Let flex/grid children shrink to the viewport instead of widening the page. */
+main,
+header,
+section,
+article,
+nav,
+form {
+  min-width: 0;
+}
+
+/* Wide tables and data grids scroll inside their own panels, not the whole page. */
+.overflow-x-auto {
+  max-width: 100%;
+  min-width: 0;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+img,
+video,
+canvas,
+iframe {
+  max-width: 100%;
+}
+
+pre {
+  max-width: 100%;
+  overflow-x: auto;
 }
 
 button, input, select, textarea {
