@@ -43,8 +43,10 @@ jobs:
       - name: Install server dependencies from lockfile
         run: npm ci --prefix server
 
-      - name: Install client dependencies from lockfile
-        run: npm ci --prefix client
+      # npm's lockfile can omit platform-specific optional WASM dependencies when generated on Windows.
+      # npm install reconciles this optional dependency tree for the Linux CI runner.
+      - name: Install client dependencies (platform optional dependencies)
+        run: npm install --include=optional --prefix client
 
       - name: Check authenticated API performance script syntax
         run: node --check server/src/scripts/authenticatedApiTest.js
