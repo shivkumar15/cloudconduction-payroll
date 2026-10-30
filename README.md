@@ -125,7 +125,7 @@ For a reliable cookie-based login on Render, deploy the React frontend and Expre
 
 Configure the combined Web Service with the repository root as its Root Directory (leave it blank):
 
-- **Build command:** `npm ci && npm ci --prefix server && npm ci --prefix client && npm run build --prefix client`
+- **Build command:** `npm ci && npm ci --prefix server && npm install --include=optional --prefix client && npm run build --prefix client`
 - **Start command:** `npm start --prefix server`
 - **Environment:** set `NODE_ENV=production`, `MONGODB_URI`, and a strong `JWT_SECRET`.
 - **CLIENT_ORIGIN:** set to the exact origin of the combined service, such as `https://your-service.onrender.com`; keep only one entry.
