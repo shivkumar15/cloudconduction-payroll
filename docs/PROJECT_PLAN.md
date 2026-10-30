@@ -1,6 +1,6 @@
 # CloudConduction Payroll — Project Plan & Continuity Handoff
 
-> Handoff updated 2026-10-28: Phase 6 is verified from passing CI and user-reported browser regression. Phase 7 release hardening is underway. User-reported local API smoke test passed 40/40 requests; local root/server/client dependency audits report zero vulnerabilities after updating backend `body-parser` to 2.4.0; and local verification passed 63 unit/API tests, 4 MongoDB integration tests and the Vite production build (with a non-fatal large-chunk warning). The three package-lock files are committed. GitHub Actions run #309 passed after the client install was changed to `npm install --include=optional` to reconcile platform-specific optional dependencies on Linux; root/server use `npm ci`. CI now also runs high-severity dependency audits for root/server/client (workflow commit `572799f`), and that newest workflow change still needs verification. Security and deployment checks remain open; AI Payroll Insights remains deferred.
+> Handoff updated 2026-10-28: Phase 6 is verified from passing CI and user-reported browser regression. Phase 7 release hardening is underway. User-reported local API smoke test passed 40/40 requests; local root/server/client dependency audits report zero vulnerabilities after updating backend `body-parser` to 2.4.0; and local verification passed 63 unit/API tests, 4 MongoDB integration tests and the Vite production build (with a non-fatal large-chunk warning). The three package-lock files are committed. GitHub Actions run #309 passed after the client install was changed to `npm install --include=optional` to reconcile platform-specific optional dependencies on Linux; root/server use `npm ci`. CI now runs high-severity dependency audits for root/server/client (workflow commit `572799f`); user screenshot confirms run #312 passed the audit gate, and documentation-only runs #313–#315 also passed. Security and deployment checks remain open; AI Payroll Insights remains deferred.
 
 > This file is the project continuity source of truth. Read it before implementation work. Update status, decisions, completed work, tests and next task after meaningful changes.
 
@@ -236,6 +236,15 @@ Apply role/ownership rules to all endpoints. Enforce all state transitions and m
 - [ ] Review deployment configuration, environment settings, HTTPS, health checks, logs and backup/restore steps.
 - Acceptance: clean-clone process is repeatable, no secrets/real PII, benchmark scope/results are documented honestly, security release gates are reviewed, and known demo limitations remain explicit.
 
+### Phase 8 — AI Payroll Insights (planned, not yet implemented)
+- [ ] Start only after the remaining Phase 7 lint/CI state has been reconciled and verified on GitHub.
+- [ ] Build an admin-only, read-only AI insight panel based on server-computed aggregate period metrics; no individual employee identifiers or line-item salaries are sent to the model.
+- [ ] Preserve existing deterministic payroll calculations and state transitions as the sole financial source of truth. The model has no tools and no ability to mutate records, approve payroll or set transaction status.
+- [ ] Use a server-side provider adapter, secret stored only in `server/.env`/hosting secrets, structured and Zod-validated output, timeouts, rate limits and safe failure states.
+- [ ] Mock the provider in automated tests so CI does not make paid external API calls or require the API key.
+- [ ] Test role denial, period validation, PII minimization, output validation, provider outage/timeout, and absence of business-record mutations before browser verification.
+- MVP uses advisory summaries/observations/items-to-review/limitations only. The feature does not calculate authoritative wages or claim tax/legal compliance.
+
 ## Local commands (current scaffold)
 ```bash
 npm install
@@ -324,7 +333,8 @@ These roadmap additions have been reconciled against the current repository as o
 
 ### Phase 6.7 — AI Payroll Insights (explicitly deferred 2026-10-27)
 - [x] Decision recorded: the unverified AI increment was removed from the current deliverable and is not part of Phase 6 acceptance.
-- [ ] No AI Payroll Insights feature is claimed as shipped or verified in the current release. Reconsider only as a separately approved roadmap item after release hardening; review the security/adversarial plan before any implementation.
+- [x] Historical decision: AI Payroll Insights was deferred from Phase 6 and is not part of its acceptance criteria.
+- [x] Roadmap decision reaffirmed by the user on 2026-10-29: implement AI Payroll Insights as a separate future phase after Phase 7 closeout. It remains unimplemented until code and tests are added. See [docs/AI_PAYROLL_INSIGHTS_PLAN.md](AI_PAYROLL_INSIGHTS_PLAN.md) for scope, architecture, guardrails and acceptance tests.
 
 ### Phase 7 — quality and release
 - Release hardening started on 2026-10-28 after Phase 6 verification. AI Payroll Insights is explicitly deferred; unpaid-leave and WFH attendance workflows are implemented and covered by automated tests and user-reported browser checks.
@@ -347,7 +357,9 @@ These roadmap additions have been reconciled against the current repository as o
 8. [x] Root and server CI installs use `npm ci`; the client CI step now uses `npm install --include=optional` in commit `390b856` because the Windows-generated client lockfile omitted platform-specific optional WASM dependencies required on Linux. This lets npm reconcile the optional dependency tree on the Ubuntu CI runner without requiring the user to switch away from Windows for local development.
 9. [x] User screenshot confirmed GitHub Actions run #309 (visible in the [GitHub Actions history](https://github.com/shivkumar15/cloudconduction-payroll/actions)) passed after the client optional-dependency installation workaround; the following documentation-only runs #310 and #311 also passed.
 10. [x] Added dependency-audit gates for root, server and client to the CI workflow in commit `572799f` (`npm audit --audit-level=high` for each package).
-11. [ ] Verify the new dependency-audit CI step passes. Then continue static analysis/linting and deployment/security checklist review. Keep synthetic data and simulated payments only; do not claim production payroll compliance or real transfers.
+11. [x] User screenshot confirms GitHub Actions run #312 passed the high-severity npm audit gates for root/server/client; documentation-only runs #313–#315 also passed.
+12. [ ] Reconcile static-analysis/lint status: GitHub main still has no lint script in `client/package.json` and no lint step in the current CI workflow. If lint was added locally, push that change and verify the run before claiming Phase 7 complete.
+13. [ ] After Phase 7 lint/CI closeout, start Phase 8 AI Payroll Insights using [docs/AI_PAYROLL_INSIGHTS_PLAN.md](AI_PAYROLL_INSIGHTS_PLAN.md).
 
 ## Future-session resume instructions
 Paste/upload this file and say:
