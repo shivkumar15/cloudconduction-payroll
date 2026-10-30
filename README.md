@@ -10,7 +10,16 @@ A full-stack payroll workflow management application built with **React, Node.js
 
 **[Open CloudConduction Payroll](https://cloudconductionpayroll.onrender.com/login)** — hosted on Render.
 
-Public self-registration is disabled. Demo access requires a provisioned account; do not use production credentials or real employee data for reviewer access.
+### Public demo credentials
+
+These are intentionally shared credentials for reviewers. Anyone who can access this public repository can use them.
+
+| Role | Email / Login | Password |
+|---|---|---|
+| Admin | `admin@gmail.com` | `admin@123456` |
+| Employee | `test@gmail.com` | `test@1234567` |
+
+**Demo safety:** Sign in only to evaluate the demo. The admin account has administrative permissions and other visitors may use it too, so changes are not private or guaranteed to persist. Use fictional records only. Never enter real employee, payroll, banking, or personal information. These credentials must not be reused on any personal or production account.
 
 > **Payment and payroll scope:** payout processing currently uses a local development/test provider. It does not connect to RazorpayX, call a bank or payment gateway, or transfer money. The payroll formula is simplified and is not a statutory or tax-compliant payroll engine. Use synthetic employee data only.
 
