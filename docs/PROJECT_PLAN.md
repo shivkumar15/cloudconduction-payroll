@@ -1,6 +1,6 @@
 # CloudConduction Payroll — Project Plan & Continuity Handoff
 
-> Handoff updated 2026-10-28: Phase 6 is verified from passing CI and user-reported browser regression. Phase 7 release hardening is underway. User-reported local API smoke test passed 40/40 requests; local root/server/client dependency audits report zero vulnerabilities after updating backend `body-parser` to 2.4.0; and local verification passed 63 unit/API tests, 4 MongoDB integration tests and the Vite production build (with a non-fatal large-chunk warning). The three package-lock files are committed. GitHub Actions run #309 passed after the client install was changed to `npm install --include=optional` to reconcile platform-specific optional dependencies on Linux; root/server use `npm ci`. CI now runs high-severity dependency audits for root/server/client (workflow commit `572799f`); user screenshot confirms run #312 passed the audit gate, and documentation-only runs #313–#315 also passed. Security and deployment checks remain open; AI Payroll Insights remains deferred.
+> Handoff updated 2026-10-28: Phase 6 is verified from passing CI and user-reported browser regression. Phase 7 release hardening is underway. User-reported local API smoke test passed 40/40 requests; local root/server/client dependency audits report zero vulnerabilities after updating backend `body-parser` to 2.4.0; and local verification passed 63 unit/API tests, 4 MongoDB integration tests and the Vite production build (with a non-fatal large-chunk warning). The three package-lock files are committed. GitHub Actions run #309 passed after the client install was changed to `npm install --include=optional` to reconcile platform-specific optional dependencies on Linux; root/server use `npm ci`. CI now runs high-severity dependency audits for root/server/client (workflow commit `572799f`); user screenshot confirms run #312 passed the audit gate, and documentation-only runs #313–#315 also passed. ESLint configuration and a CI lint step have now been committed (client package/script `414bc5f`, root lint script `2802882`, config `0cf18a5`, workflow `b4e08d5`); local lockfile regeneration and a passing lint CI run remain pending. Security and deployment checks remain open; AI Payroll Insights remains planned as Phase 8 and is not implemented yet.
 
 > This file is the project continuity source of truth. Read it before implementation work. Update status, decisions, completed work, tests and next task after meaningful changes.
 
@@ -231,7 +231,7 @@ Apply role/ownership rules to all endpoints. Enforce all state transitions and m
 - [x] Added `docs/PHASE_7_SECURITY_RELEASE_CHECKLIST.md` covering secrets/env, access control, payroll invariants, leave/WFH, CI, dependency checks and deployment release gates.
 - [x] CI workflow covers benchmark-script syntax, API tests, MongoDB integration tests and frontend build. GitHub Actions run [#298](https://github.com/shivkumar15/cloudconduction-payroll/actions/runs/40694158840) passed on commit `e9ea77e`: 63 API/unit tests, 4 MongoDB integration tests and frontend build.
 - [x] README documents Phase 7 verification commands and safe usage of the authenticated benchmark.
-- [ ] Add a client lint/static-analysis command; none is currently configured.
+- [x] Added ESLint flat config at `client/eslint.config.js`, client and root `lint` scripts, and a CI lint step. Official ESLint flat config and React plugin guidance informed the setup. Local frontend lockfile regeneration and successful lint/CI execution remain pending.
 - [ ] Add or document an explicitly synthetic seed workflow if still needed; never seed a production database.
 - [ ] Review deployment configuration, environment settings, HTTPS, health checks, logs and backup/restore steps.
 - Acceptance: clean-clone process is repeatable, no secrets/real PII, benchmark scope/results are documented honestly, security release gates are reviewed, and known demo limitations remain explicit.
@@ -358,8 +358,9 @@ These roadmap additions have been reconciled against the current repository as o
 9. [x] User screenshot confirmed GitHub Actions run #309 (visible in the [GitHub Actions history](https://github.com/shivkumar15/cloudconduction-payroll/actions)) passed after the client optional-dependency installation workaround; the following documentation-only runs #310 and #311 also passed.
 10. [x] Added dependency-audit gates for root, server and client to the CI workflow in commit `572799f` (`npm audit --audit-level=high` for each package).
 11. [x] User screenshot confirms GitHub Actions run #312 passed the high-severity npm audit gates for root/server/client; documentation-only runs #313–#315 also passed.
-12. [ ] Reconcile static-analysis/lint status: GitHub main still has no lint script in `client/package.json` and no lint step in the current CI workflow. If lint was added locally, push that change and verify the run before claiming Phase 7 complete.
-13. [ ] After Phase 7 lint/CI closeout, start Phase 8 AI Payroll Insights using [docs/AI_PAYROLL_INSIGHTS_PLAN.md](AI_PAYROLL_INSIGHTS_PLAN.md).
+12. [x] Added ESLint config and CI lint step in commits `414bc5f`, `2802882`, `0cf18a5` and `b4e08d5`; updated README quality-check instructions.
+13. [ ] User: sync with `git pull --rebase origin main`, regenerate the client lockfile on Windows with `npm install --include=optional --prefix client`, then run `npm run lint` and share the output. We must fix lint errors and confirm CI passes before closing Phase 7.
+14. [ ] After Phase 7 lint/CI closeout, implement Phase 8 AI Payroll Insights following [docs/AI_PAYROLL_INSIGHTS_PLAN.md](AI_PAYROLL_INSIGHTS_PLAN.md).
 
 ## Future-session resume instructions
 Paste/upload this file and say:
