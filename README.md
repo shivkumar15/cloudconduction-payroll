@@ -59,7 +59,7 @@ See [`docs/PROJECT_PLAN.md`](docs/PROJECT_PLAN.md) for the full roadmap and acce
 - SMTP must be configured before password-reset email delivery can work. With no SMTP configuration, the request endpoint returns an explicit server-configuration error.
 - Phase 3 employee management: employee model, salary-structure validation, admin CRUD/deactivation APIs, pagination/search/filtering, employee login provisioning, and employee self-service profile API/UI are implemented. A MongoDB-backed API lifecycle integration test is included. GitHub Actions run #289 passed 63 unit/API tests, 4 MongoDB-backed integration tests, and the frontend production build at commit `8cbd8da`; the user reported completing the Phase 6 browser regression on 2026-10-27.
 - Phase 4 payroll backend: integer-paise monthly salary calculations, payroll preview, salary snapshots, one run per month, admin approval/finalization, and employee-only finalized pay history.
-- Phase 5 simulated transactions: idempotent simulated payment records, selectable failure scenarios for testing, recorded retry attempts, admin transaction listing/detail, and employee-only finalized transaction history. No money is transferred.
+- Payout lifecycle: idempotent local-provider test requests, provider-like payout references, processing/succeeded/failed states, admin-only status events, event history, and retry attempts. The local provider does not connect to RazorpayX or transfer money.
 - Phase 6.5 unpaid-leave workflow: employees can submit a start/end date range within one payroll month. The server expands the range into Monday–Friday day records (weekends skipped), and an admin can approve/reject the complete group with an audit trail. Pending requests block payroll-run creation, and existing payroll periods cannot accept new requests/decisions.
 - Payroll preview/snapshots now separate fixed monthly deductions from approved unpaid-leave deductions, show approved leave days and explain total deductions on the employee payslip. Calculations use integer INR paise and fail closed if deductions exceed gross pay. This is a demo policy; public holidays/custom work schedules and statutory payroll rules are not modeled.
 - Phase 6.6 WFH attendance MVP: employees can request WFH for a date from today through 365 days ahead, admins can approve/reject, and employees can check in/out for today's approved request using server timestamps. Admins can record a reasoned correction for a missed checkout. WFH and unpaid leave cannot reserve the same employee/date. No location tracking is implemented, and no attendance absence automatically reduces salary. The employee workspace uses a sidebar-style section menu for Overview, WFH & attendance, Unpaid leave, Payslips, and Transactions.
@@ -71,10 +71,20 @@ See [`docs/PROJECT_PLAN.md`](docs/PROJECT_PLAN.md) for the full roadmap and acce
 The admin-only **AI payroll insights** panel is an advisory feature for portfolio demonstrations.
 
 - **Real Gemini mode:** the server sends only aggregate values from finalized payroll periods to Gemini. The endpoint is protected by admin authentication and rate limiting, validates the period and model output, and does not allow the model to mutate payroll, employees, leave, attendance, or transaction records.
-- **Offline demo mode:** select a finalized period and click **Load offline demo (no API call)**. The browser creates a deterministic summary and period comparison from saved aggregate totals. It does not contact Gemini and labels the result **Demo · Offline**.
+- **Offline analysis:** select a finalized period and click **Run offline analysis (no API call)**. The browser creates a deterministic summary and period comparison from saved aggregate totals. It does not contact Gemini and labels the result **Offline analysis**.
 - **Quota and billing:** the real Gemini mode depends on the project's current free-tier eligibility and quota. A provider HTTP 429 is shown safely; the application does not turn on billing or silently switch to a paid model. Keep billing disabled for a zero-spend demo.
 - **Privacy:** use synthetic demonstration payroll data. The real AI request uses aggregate metrics only, but API free-tier terms and quotas are controlled by Google.
 - **Limits:** this is not a statutory payroll calculator, compliance assessment, or production payroll service. All payments remain simulated.
+
+## Local payout provider lifecycle (development/test only)
+
+The payout workflow currently uses an internal local provider adapter. It is designed to make API and UI state transitions testable while RazorpayX account access is unresolved.
+
+- **Run payout test** creates one idempotent local payout request per employee. Requests normally begin in **Processing** and receive a local provider reference and payment ID.
+- For a processing payout, an administrator can apply a **Test success event** or **Test failure event**. Event IDs are de-duplicated, events are recorded in the history, and terminal payouts cannot be changed by a replayed or out-of-order event.
+- Retrying a failed local payout creates a new processing attempt. Payroll cannot be finalized until every payout has succeeded.
+- The local status-event endpoint is an authenticated development/test harness, not a real provider webhook. Local payout requests, retries and local events are disabled in production.
+- **RazorpayX is not connected yet.** No external payout API is called and no money is transferred. Once official sandbox access is granted, a dedicated RazorpayX adapter and verified webhook-signature handling must be implemented and tested before describing this as a Razorpay integration.
 
 ## Payroll calculation demo rules
 
@@ -96,11 +106,12 @@ Payroll API endpoints:
 - POST /api/payroll/runs with { "period": "YYYY-MM" } — create a draft snapshot (admin).
 - GET /api/payroll/runs/:id — inspect a run (admin).
 - POST /api/payroll/runs/:id/approve — move draft to approved (admin).
-- POST /api/payroll/runs/:id/simulate-transactions with optional { "failEmployeeCodes": ["EMP-001"] } — create or reuse simulated transactions for an approved run (admin; no real transfer).
+- POST /api/payroll/runs/:id/simulate-transactions with optional { "failEmployeeCodes": ["EMP-001"] } — create or reuse local payout-test requests for an approved run (admin; development/test only; no real transfer).
 - POST /api/payroll/runs/:id/finalize — finalize only after all employee simulations have succeeded (admin).
-- GET /api/transactions?period=YYYY-MM&status=failed — list simulated transactions (admin).
+- GET /api/transactions?period=YYYY-MM&status=processing|succeeded|failed — list payout records filtered by state (admin).
 - GET /api/transactions/:id — inspect one simulated transaction (admin).
-- POST /api/transactions/:id/retry — retry a failed simulated record without creating a duplicate (admin).
+- POST /api/transactions/:id/retry — retry a failed payout-test request without creating a duplicate; local-provider retries return to processing (admin, development/test only).
+- POST /api/transactions/:id/local-event with { "eventId": "local-test-event-123", "status": "succeeded"|"failed" } — apply a deduplicated local provider-status event (admin, development/test only; this is not a real Razorpay webhook).
 - GET /api/transactions/me — own transaction history once payroll is finalized (employee).
 - GET /api/payroll/me — read only the authenticated employee's finalized item.
 - POST /api/unpaid-leave/range with { "startDate": "YYYY-MM-DD", "endDate": "YYYY-MM-DD", "reason": "..." } — submit a range within one payroll month; weekdays become individually auditable day records and one admin decision approves/rejects the full range (employee only; starts pending).
@@ -285,13 +296,13 @@ A developer-reported run on a local Windows environment (2026-10-22) completed 2
 
 ## Phase 6 — payroll UI and employee self-service
 
-After admin sign-in, open **Payroll & simulated transactions** from the dashboard, or visit /admin/payroll.
+After admin sign-in, open **Payroll & payout activity** from the dashboard, or visit /admin/payroll.
 
 - Choose a month and select **Preview period** to calculate totals from the currently active employee salary structures without saving a run.
 - Use **Create draft run** to persist the snapshot for that month. Each period can have only one run.
 - Select a draft run and choose **Approve run**.
 - On an approved run, choose **Simulate payments**. Leave the failure-scenario field blank to simulate success for all employees, or enter comma-separated employee codes (for example, EMP-1001) to demonstrate a failure on the first simulation attempt.
-- In the simulated transaction table, inspect the generated reference and attempt history. Use **Retry simulation** for failed entries. Repeating the simulation request is idempotent; it does not retry an existing failed transaction.
+- Choose **Run payout test** for an approved run. Local provider requests remain processing until you use a test success/failure event on each row. Inspect provider references and event history; retry failed records as needed. Repeating the request is idempotent and does not create duplicate payout records.
 - Choose **Finalize run** only after the simulation records for every employee have succeeded. The server enforces this rule even if a user invokes the API directly.
 - The payroll page shows recent saved runs, a chart for net payroll and deductions, period/status filters, transaction attempt detail and CSV export for the currently visible transaction page.
 
