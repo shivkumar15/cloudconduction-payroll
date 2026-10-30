@@ -253,7 +253,7 @@ Apply role/ownership rules to all endpoints. Enforce all state transitions and m
 - [x] Retrying a failed local payout creates a new processing attempt. Payroll finalization still requires every payout to be succeeded.
 - [x] Local payout creation, retries and status events are disabled when `NODE_ENV=production`.
 - [ ] RazorpayX has not been connected. Wait for official sandbox/API access, then build the provider adapter and verify actual webhook signatures before making any live-provider claims.
-- Verification: GitHub Actions run [#337](https://github.com/shivkumar15/cloudconduction-payroll/actions/runs/40863534173) passed lint, API tests, MongoDB-backed payroll integration tests, dependency audits and frontend build. Browser verification of the new local-provider buttons is still pending.
+- Verification: GitHub Actions run [#337](https://github.com/shivkumar15/cloudconduction-payroll/actions/runs/40863534173) passed lint, API tests, MongoDB-backed payroll integration tests, dependency audits and frontend build. The user confirmed the local payout workflow works in the browser, including Processing, success/failure events and retry behavior; the latest responsive overflow fix is also reported working.
 
 
 ## Local commands (current scaffold)
@@ -363,8 +363,10 @@ These roadmap additions are reconciled against the current repository as of 2026
 - [x] Phase 7 local checks reported by the user: 77/77 unit/API tests pass; frontend lint reports zero errors and one non-blocking Fast Refresh warning; production build succeeds with a non-fatal large-bundle warning; root/server/client npm audits report zero vulnerabilities.
 - [x] Phase 8 AI Payroll Insights is implemented with an admin-only aggregate-only Gemini endpoint, validated structured output, quota-safe failure handling and an offline demo mode that makes no provider request.- [x] Phase 8 AI Payroll Insights is implemented with an admin-only aggregate-only Gemini endpoint, validated structured output, quota-safe failure handling and local offline analysis that makes no provider request.
 - [x] Local payout lifecycle is implemented for development/test with processing status, admin-applied deduplicated provider-status events, provider references, event history, retry protection and a production guard.
-- [ ] Manually test the new payout lifecycle in the browser. Do not describe it as RazorpayX-connected until the official test API is integrated and verified.
+- [x] User manually verified the local payout lifecycle in the browser: request creation, status events and retry flow work. The latest horizontal overflow fix also works in the browser.
+- [ ] RazorpayX is not connected. Do not describe the app as RazorpayX-connected until the official test API is integrated and verified.
 - [x] GitHub Actions run [#337](https://github.com/shivkumar15/cloudconduction-payroll/actions/runs/40863534173) passed on local payout-provider commit `d5cac19`, including dependency audits, lint, API tests, MongoDB-backed integration tests and frontend build.
+- [x] GitHub Actions runs [#339](https://github.com/shivkumar15/cloudconduction-payroll/actions/runs/40865034854) and [#340](https://github.com/shivkumar15/cloudconduction-payroll/actions/runs/40865144190) passed for the horizontal-overflow containment fix; the user confirmed the UI behavior works.
 - [ ] The remaining [Phase 7 security release checklist](PHASE_7_SECURITY_RELEASE_CHECKLIST.md) items must be closed with evidence before the app is considered for real employee data or production payroll. It remains a portfolio demo, payments are simulated, and payroll rules are simplified.
 - Next useful portfolio task after documentation CI completes: decide whether to deploy a demo or keep it local, then capture screenshots and add a short resume-focused project summary. Do not enable Gemini billing just to demo the UI.
 
