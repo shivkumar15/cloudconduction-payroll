@@ -236,14 +236,14 @@ Apply role/ownership rules to all endpoints. Enforce all state transitions and m
 - [ ] Review deployment configuration, environment settings, HTTPS, health checks, logs and backup/restore steps.
 - Acceptance: clean-clone process is repeatable, no secrets/real PII, benchmark scope/results are documented honestly, security release gates are reviewed, and known demo limitations remain explicit.
 
-### Phase 8 — AI Payroll Insights (planned, not yet implemented)
-- [ ] Start only after the remaining Phase 7 lint/CI state has been reconciled and verified on GitHub.
-- [ ] Build an admin-only, read-only AI insight panel based on server-computed aggregate period metrics; no individual employee identifiers or line-item salaries are sent to the model.
-- [ ] Preserve existing deterministic payroll calculations and state transitions as the sole financial source of truth. The model has no tools and no ability to mutate records, approve payroll or set transaction status.
-- [ ] Use a server-side provider adapter, secret stored only in `server/.env`/hosting secrets, structured and Zod-validated output, timeouts, rate limits and safe failure states.
-- [ ] Mock the provider in automated tests so CI does not make paid external API calls or require the API key.
-- [ ] Test role denial, period validation, PII minimization, output validation, provider outage/timeout, and absence of business-record mutations before browser verification.
-- MVP uses advisory summaries/observations/items-to-review/limitations only. The feature does not calculate authoritative wages or claim tax/legal compliance.
+### Phase 8 — AI Payroll Insights (implemented 2026-10-29)
+- [x] Admin-only, read-only insight panel based on server-computed aggregate finalized-period metrics; individual identifiers and salary line items are excluded from model input.
+- [x] Existing payroll calculations and state transitions remain authoritative. The model has no tools and cannot mutate records, approve payroll or set transaction status.
+- [x] Server-side Gemini provider integration, server-only API key, structured and Zod-validated output, timeouts, rate limits and safe provider-error states are implemented.
+- [x] Provider calls are mocked in automated tests; CI does not need a real Gemini key or use paid API access.
+- [x] Tests cover role protection, period validation, aggregate-only input, output validation, quota errors and timeouts.
+- [x] The offline demo mode creates a clearly labelled local summary from saved aggregate totals without contacting Gemini; the user confirmed it works in the browser.
+- The live Gemini integration remains subject to Google's free-tier eligibility and quota. It previously returned HTTP 429 while billing was disabled. This feature is advisory only and does not calculate authoritative wages or claim tax/legal compliance.
 
 ## Local commands (current scaffold)
 ```bash
@@ -306,7 +306,7 @@ Expected: frontend `http://localhost:5173`; health endpoint `http://localhost:50
 
 ## Approved roadmap additions before Phase 7 (status reconciled 2026-10-27)
 
-These roadmap additions have been reconciled against the current repository as of 2026-10-28. Phase 6 is complete. Phase 6.5/6.6 are implemented and verified; AI Payroll Insights is explicitly deferred.
+These roadmap additions are reconciled against the current repository as of 2026-10-29. Phase 6 is complete, Phase 6.5/6.6 are implemented and verified, and the separately scoped Phase 8 AI Payroll Insights feature is now implemented.
 
 ### Phase 6.5 — recurring deductions, unpaid leave and payroll adjustments
 - [x] Unpaid-leave policy: same-month start/end range; each Monday–Friday date becomes a day-level request linked to one group; weekends are skipped; one admin decision approves/rejects the entire group; company holidays/custom schedules are not modeled. Monthly divisor is Monday–Friday count, daily rate uses base salary plus allowances, rounding is integer-safe, and fixed deductions are separate.
@@ -331,13 +331,13 @@ These roadmap additions have been reconciled against the current repository as o
 - [x] User reported the WFH request/approval and attendance browser workflow passed on 2026-10-27. The passing MongoDB integration test separately covers server timestamps, ownership, shared date reservations/overlap protection, audited checkout correction, and payroll locks.
 - Attendance is separate from leave. A missed punch or no attendance record never automatically becomes unpaid leave or a payroll deduction.
 
-### Phase 6.7 — AI Payroll Insights (explicitly deferred 2026-10-27)
-- [x] Decision recorded: the unverified AI increment was removed from the current deliverable and is not part of Phase 6 acceptance.
-- [x] Historical decision: AI Payroll Insights was deferred from Phase 6 and is not part of its acceptance criteria.
-- [x] Roadmap decision reaffirmed by the user on 2026-10-29: implement AI Payroll Insights as a separate future phase after Phase 7 closeout. It remains unimplemented until code and tests are added. See [docs/AI_PAYROLL_INSIGHTS_PLAN.md](AI_PAYROLL_INSIGHTS_PLAN.md) for scope, architecture, guardrails and acceptance tests.
+### Phase 6.7 — AI Payroll Insights (historical deferral decision, superseded by Phase 8)
+- [x] Historical decision: AI Payroll Insights was deferred from Phase 6 and was not part of Phase 6 acceptance criteria.
+- [x] The feature was later implemented as a separate Phase 8 increment on 2026-10-29 after the API guardrails, tests and CI checks were added.
+- [x] Current design and verification details are recorded in [docs/AI_PAYROLL_INSIGHTS_PLAN.md](AI_PAYROLL_INSIGHTS_PLAN.md).
 
 ### Phase 7 — quality and release
-- Release hardening started on 2026-10-28 after Phase 6 verification. AI Payroll Insights is explicitly deferred; unpaid-leave and WFH attendance workflows are implemented and covered by automated tests and user-reported browser checks.
+- Release hardening started on 2026-10-28 after Phase 6 verification. Unpaid-leave and WFH attendance workflows are implemented and covered by automated tests and user-reported browser checks; Phase 8 AI Payroll Insights was implemented on 2026-10-29. Remaining production checklist items stay open until their own evidence is recorded.
 - Reconcile the checklist with the actual repository and CI rather than repeating completed work. Do not claim production readiness from CI or bounded local benchmarks alone.
 
 ## Latest user feedback and implementation (2026-10-27)
@@ -346,21 +346,14 @@ These roadmap additions have been reconciled against the current repository as o
 - Employee UX: added responsive sidebar-style navigation (mobile horizontal menu) for Overview, WFH & attendance, Unpaid leave, Payslips and Transactions, while keeping the profile/salary summary above the content.
 - Latest verification completed 2026-10-27: GitHub Actions run #289 passed 63 unit/API tests, 4 MongoDB-backed integration tests, and the frontend build. The user reported the remaining browser regression checks passed. Phase 6 is marked verified; AI Payroll Insights is deferred.
 
-## Immediate next task
-1. [x] Phase 6 browser regression reported passed on 2026-10-27; see the Phase 6 checklist above.
-2. [x] GitHub Actions run [#289](https://github.com/shivkumar15/cloudconduction-payroll/actions/runs/40512451738) passed at commit `8cbd8da`: 63 unit/API tests, 4 MongoDB-backed integration tests and frontend production build.
-3. [x] AI Payroll Insights is explicitly deferred; it is not part of the current release.
-4. [x] Phase 7 started on 2026-10-28: added the bounded authenticated API performance harness, wired its syntax check into CI, documented safe usage, and created the release security checklist.
-5. [x] Confirmed GitHub Actions run [#298](https://github.com/shivkumar15/cloudconduction-payroll/actions/runs/40694158840) passed on commit `e9ea77e` (63 API/unit tests, 4 MongoDB integration tests, production build, and benchmark syntax check).
-6. [x] User ran `npm run test:api-perf` locally on 2026-10-28 against `http://127.0.0.1:5001`: 40/40 requests passed, 0 failed, concurrency 4. p95 latency: employee list 17.1 ms, payroll list 20.7 ms, transaction list 28.0 ms, payroll preview 38.8 ms; reported throughput 313.5 req/s over 127.6 ms. Treat as a bounded local smoke test only; hardware/runtime and dataset-size context was not supplied, and synthetic-data-only use should still be confirmed.
-7. [x] User-reported local dependency remediation and verification on 2026-10-28: `npm audit` at root and with `--prefix server`/`--prefix client` reported zero vulnerabilities after `npm audit fix --prefix server`; `body-parser@2.4.0` is installed under Express. `npm test` passed 63/63; `npm run test:integration --prefix server` passed 4/4 MongoDB tests; `npm run build` passed (2,277 modules), with a non-fatal main-chunk warning (857.57 kB minified, 240.94 kB gzip). The root, server and client `package-lock.json` files were pushed to `main` in commit `63e5746`.
-8. [x] Root and server CI installs use `npm ci`; the client CI step now uses `npm install --include=optional` in commit `390b856` because the Windows-generated client lockfile omitted platform-specific optional WASM dependencies required on Linux. This lets npm reconcile the optional dependency tree on the Ubuntu CI runner without requiring the user to switch away from Windows for local development.
-9. [x] User screenshot confirmed GitHub Actions run #309 (visible in the [GitHub Actions history](https://github.com/shivkumar15/cloudconduction-payroll/actions)) passed after the client optional-dependency installation workaround; the following documentation-only runs #310 and #311 also passed.
-10. [x] Added dependency-audit gates for root, server and client to the CI workflow in commit `572799f` (`npm audit --audit-level=high` for each package).
-11. [x] User screenshot confirms GitHub Actions run #312 passed the high-severity npm audit gates for root/server/client; documentation-only runs #313–#315 also passed.
-12. [x] Added ESLint config and CI lint step in commits `414bc5f`, `2802882`, `0cf18a5` and `b4e08d5`; updated README quality-check instructions.
-13. [ ] User: sync with `git pull --rebase origin main`, regenerate the client lockfile on Windows with `npm install --include=optional --prefix client`, then run `npm run lint` and share the output. We must fix lint errors and confirm CI passes before closing Phase 7.
-14. [ ] After Phase 7 lint/CI closeout, implement Phase 8 AI Payroll Insights following [docs/AI_PAYROLL_INSIGHTS_PLAN.md](AI_PAYROLL_INSIGHTS_PLAN.md).
+## Current status — 2026-10-29
+
+- [x] Phase 6 browser regression was reported passed by the user; the AI insights panel was later added and the user confirmed its offline demo works correctly.
+- [x] Phase 7 local checks reported by the user: 77/77 unit/API tests pass; frontend lint reports zero errors and one non-blocking Fast Refresh warning; production build succeeds with a non-fatal large-bundle warning; root/server/client npm audits report zero vulnerabilities.
+- [x] Phase 8 AI Payroll Insights is implemented with an admin-only aggregate-only Gemini endpoint, validated structured output, quota-safe failure handling and an offline demo mode that makes no provider request.
+- [x] GitHub Actions run [#331](https://github.com/shivkumar15/cloudconduction-payroll/actions/runs/40854587362) passed on application commit `3b1853e`, including the configured CI verification pipeline. Documentation updates were committed afterward and trigger a separate CI run.
+- [ ] The remaining [Phase 7 security release checklist](PHASE_7_SECURITY_RELEASE_CHECKLIST.md) items must be closed with evidence before the app is considered for real employee data or production payroll. It remains a portfolio demo, payments are simulated, and payroll rules are simplified.
+- Next useful portfolio task after documentation CI completes: decide whether to deploy a demo or keep it local, then capture screenshots and add a short resume-focused project summary. Do not enable Gemini billing just to demo the UI.
 
 ## Future-session resume instructions
 Paste/upload this file and say:
