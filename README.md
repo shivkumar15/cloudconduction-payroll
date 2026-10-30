@@ -66,6 +66,16 @@ See [`docs/PROJECT_PLAN.md`](docs/PROJECT_PLAN.md) for the full roadmap and acce
 
 
 
+## Phase 8 — AI Payroll Insights
+
+The admin-only **AI payroll insights** panel is an advisory feature for portfolio demonstrations.
+
+- **Real Gemini mode:** the server sends only aggregate values from finalized payroll periods to Gemini. The endpoint is protected by admin authentication and rate limiting, validates the period and model output, and does not allow the model to mutate payroll, employees, leave, attendance, or transaction records.
+- **Offline demo mode:** select a finalized period and click **Load offline demo (no API call)**. The browser creates a deterministic summary and period comparison from saved aggregate totals. It does not contact Gemini and labels the result **Demo · Offline**.
+- **Quota and billing:** the real Gemini mode depends on the project's current free-tier eligibility and quota. A provider HTTP 429 is shown safely; the application does not turn on billing or silently switch to a paid model. Keep billing disabled for a zero-spend demo.
+- **Privacy:** use synthetic demonstration payroll data. The real AI request uses aggregate metrics only, but API free-tier terms and quotas are controlled by Google.
+- **Limits:** this is not a statutory payroll calculator, compliance assessment, or production payroll service. All payments remain simulated.
+
 ## Payroll calculation demo rules
 
 This portfolio demo uses a deliberately simplified monthly formula:
@@ -108,7 +118,7 @@ Payroll API endpoints:
 - GET /api/attendance/me — read own WFH attendance; GET /api/attendance?period=YYYY-MM — list attendance (admin).
 - POST /api/attendance/:id/correct-checkout with { "checkedOutAt": "ISO timestamp", "reason": "..." } — one audited correction of a missing checkout (admin).
 - Admin WFH UI: `/admin/wfh`; admin unpaid-leave UI: `/admin/unpaid-leave`. Office network matching, GPS and biometrics are explicitly out of scope.
-- AI Payroll Insights are the next planned increment; use only aggregate inputs, keep the OpenAI key server-side, and show a disabled notice if no key is configured.
+- Phase 8 AI Payroll Insights: an admin-only advisory panel compares finalized payroll periods using server-computed aggregate metrics and schema-validated Gemini output. `GEMINI_API_KEY` stays server-side. Gemini free-tier quota limits may temporarily block real generation; billing remains optional and disabled. The **Load offline demo (no API call)** action uses saved aggregate totals locally and clearly labels its result as a demo, so the panel remains testable without quota or billing.
 
 ## Password change and temporary employee passwords
 

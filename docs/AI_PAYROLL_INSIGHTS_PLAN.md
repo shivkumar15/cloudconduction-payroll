@@ -1,6 +1,6 @@
 # AI Payroll Insights — Implementation Plan
 
-**Status:** Phase 8 implementation in progress. The aggregate-only metrics builder and its tests are already committed. The Gemini endpoint is being added in this step.
+**Status:** Implemented and verified for the portfolio demo (2026-10-29). The aggregate-only metrics builder, admin-only Gemini endpoint, output validation, quota-safe errors, admin UI and offline no-API demo mode are committed. The user confirmed the offline demo works. The latest GitHub Actions CI run #331 passed; the real Gemini provider may still return HTTP 429 when its free-tier quota is exhausted.
 
 ## Goal
 
@@ -47,7 +47,7 @@ Do not add function calling, database tools, search grounding, or model-triggere
 3. Add authenticated, admin-only endpoint with strict period validation, projection-only database reads, request limit, timeout, and safe errors.
 4. Add the admin UI panel and loading, empty, disabled, timeout, quota, and error states.
 5. Add tests proving anonymous/employee denial, absence of PII from provider input, strict output validation, no business-record mutation, and unchanged payroll calculations.
-6. Verify unit/API tests, MongoDB integration tests, dependency audits, lint, production build, and GitHub Actions. Make a manual browser check using synthetic demo data only.
+6. Verification completed for this implementation: the user reports 77/77 local unit/API tests passing, local lint with zero errors and one non-blocking warning, successful production build, and zero reported root/server/client audit vulnerabilities. GitHub Actions CI run #331 passed, including the configured CI verification steps. The user also manually confirmed that the offline demo renders correctly without an API request. A live Gemini request remains quota-dependent; no paid billing is enabled.
 
 ## Acceptance criteria
 
@@ -59,4 +59,5 @@ Do not add function calling, database tools, search grounding, or model-triggere
 - The backend never changes payroll calculations or payroll/transaction state transitions.
 - Tests run in CI without a provider key or external API call.
 - Use of paid billing is not required; the model is pinned and failures do not trigger paid-model fallback.
+- The offline demo path displays labelled, deterministic aggregate insights without sending a request to Gemini.
 - The application remains explicitly a portfolio demo with simulated payments only.

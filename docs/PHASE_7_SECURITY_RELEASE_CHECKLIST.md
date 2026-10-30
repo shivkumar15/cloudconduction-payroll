@@ -57,10 +57,10 @@
 - [x] User-reported local `npm run test:integration --prefix server` passed all 4 MongoDB integration tests on 2026-10-28.
 - [x] User-reported local `npm run build` passed on 2026-10-28; Vite emits a non-fatal large main-chunk warning (857.57 kB minified / 240.94 kB gzip).
 - [x] The authenticated API performance smoke test ran locally and its bounded scope/limitations are documented; it is not a production-capacity guarantee.
-- [ ] The Phase 6 browser regression remains passed after any code changes.
+- [x] User reported the Phase 6 browser regression is passed; after the latest AI UI change the user also confirmed that the offline demo insights panel works correctly.
 - [x] Screenshot confirms CI run #309 passed after the client install step was changed to `npm install --include=optional`; documentation-only runs #310 and #311 also passed. Root and server retain `npm ci`.
 - [x] User screenshot confirms GitHub Actions run #312 passed the root/server/client `npm audit --audit-level=high` step; documentation-only runs #313–#315 also passed.
-- [ ] Frontend lint (`npm run lint`) passes locally and in CI after the committed ESLint dependencies/configuration are installed and the client lockfile is regenerated.
+- [x] Frontend lint (`npm run lint`) completes locally with zero errors and one non-blocking Fast Refresh warning; GitHub Actions CI run #331 passed the lint/build verification pipeline.
 - [ ] README setup and recovery steps work from a clean checkout.
 - [ ] Known limits are documented: simulated payments only; simplified salary formula; no claim of statutory/tax compliance; no physical-location proof from WFH attendance.
 - [ ] No production-readiness claim is made until security, privacy, compliance, operational and recovery reviews appropriate to the intended use have actually been completed.
@@ -68,6 +68,7 @@
 ## Evidence log
 
 | Date | Check | Result / artifact | Open findings |
+| 2026-10-29 | Phase 8 offline demo and final local checks | User confirmed the offline AI insights demo works; local checks: 77/77 unit/API tests, lint with 0 errors and 1 non-blocking warning, production build succeeded with a large-chunk warning, root/server/client audits reported zero vulnerabilities. CI run #331 passed on commit `3b1853e`: https://github.com/shivkumar15/cloudconduction-payroll/actions/runs/40854587362 | Real Gemini generation currently depends on free-tier quota and previously returned HTTP 429; billing remains disabled. Other deployment/security checklist items remain open and must not be treated as production clearance. |
 |---|---|---|---|
 | 2026-10-28 | CI run #298 | Benchmark syntax check, 63 unit/API tests, 4 MongoDB integration tests and frontend production build passed on commit `e9ea77e` | This was before the lockfile CI change; see run #309 for the cross-platform install fix. Lint/static-analysis and deployment/security checks remain open. |
 | 2026-10-27 | Phase 6 browser regression | User reported payslips/exports/privacy, leave workflow, WFH attendance and final regression passed | Reported by user; not independently observed in this document |
